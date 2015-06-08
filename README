@@ -1,0 +1,12 @@
+1. Compilation/Installation
+
+mkdir build
+cd build
+cmake ..
+make
+make install # optional
+
+
+2. Testing
+
+bin/example
