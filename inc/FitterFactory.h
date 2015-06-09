@@ -89,6 +89,8 @@ public:
 	bool fit(TH1 * hist, const char * pars = "B,Q", const char * gpars = "");
 	static bool fit(HistFitParams & hfp, TH1 * hist, const char * pars = "B,Q", const char * gpars = "");
 
+	void print() const;
+
 private:
 	bool import_parameters(const char * filename);
 	bool export_parameters(const char * filename);

@@ -1,0 +1,19 @@
+# - Config file for the @CMAKE_PROJECT_NAME@ package
+# It defines the following variables
+#  @CAPS_PROJECT_NAME@_INCLUDE_DIR  - include directories for @CMAKE_PROJECT_NAME@
+#  @CAPS_PROJECT_NAME@_LIBRARY_DIR  - library directories for @CMAKE_PROJECT_NAME@
+#  @CAPS_PROJECT_NAME@_LIBRARIES    - libraries to link against
+#  @CAPS_PROJECT_NAME@_EXECUTABLE   - the bar executable
+
+set(@CAPS_PROJECT_NAME@_VERSION @PROJECT_VERSION@)
+
+@PACKAGE_INIT@
+
+set_and_check(@CAPS_PROJECT_NAME@_INCLUDE_DIR "@PACKAGE_CMAKE_INSTALL_INCLUDEDIR@")
+set_and_check(@CAPS_PROJECT_NAME@_LIBRARY_DIR "@PACKAGE_CMAKE_INSTALL_LIBDIR@")
+
+check_required_components(@PROJECT_VERSION@)
+
+# # These are IMPORTED targets created by @CMAKE_PROJECT_NAME@Targets.cmake
+set(@CAPS_PROJECT_NAME@_LIBRARIES FitterFactory)
+# set(@CAPS_PROJECT_NAME@_EXECUTABLE "")

@@ -55,7 +55,7 @@ HistFitParams::HistFitParams(const HistFitParams & hfp)
 	funname = hfp.funname;
 	f_sig = hfp.f_sig;
 	f_bg = hfp.f_bg;
-// 	func = hfp.func;
+
 	allparnum = hfp.allparnum;
 	rebin = hfp.rebin;
 	fun_l = hfp.fun_l;
@@ -80,15 +80,14 @@ HistFitParams& HistFitParams::operator=(const HistFitParams& hfp) {
 	funname = hfp.funname;
 	f_sig = hfp.f_sig;
 	f_bg = hfp.f_bg;
-// 	func = hfp.func;
+
 	allparnum = hfp.allparnum;
 	rebin = hfp.rebin;
 	fun_l = hfp.fun_l;
 	fun_u = hfp.fun_u;
 	fit_disabled = hfp.fit_disabled;
 
-	// Can we delete od functions?
-// 	if (fun) fun->Delete();
+
 	funSig = hfp.funSig;
 	funBg = hfp.funBg;
 	funSum = hfp.funSum;
@@ -106,7 +105,8 @@ HistFitParams& HistFitParams::operator=(const HistFitParams& hfp) {
 	return *this;
 }
 
-HistFitParams::~HistFitParams() {
+HistFitParams::~HistFitParams()
+{
 	delete [] pars;
 }
 
@@ -125,23 +125,9 @@ void HistFitParams::Init(const TString & h, const TString & fsig, const TString 
 	TString funcSig = "f_" + histname + "_sig";
 	TString funcBg = "f_" + histname + "_bg";
 
-// 	if (f_sig.BeginsWith("voigt"))
-// 	{
-// 		funSig = new TF1(funcSig, "voigt", f_l, f_u);
-// 		funSig = new TF1(funcSig, "[0] * TMath::Voigt(x, [1], [2], [3], 4)", f_l, f_u);
-// 		funSig = new TF1(funcSig, "gaus(0)+gaus(3)", f_l, f_u);;
-// 	}
-// 	else if (f_sig.BeginsWith("ggaus"))
-// 	{
-// 		funSig = new TF1(funcSig, "ggaus", f_l, f_u);
-// 		funSig = new TF1(funcSig, "[0] * TMath::Voigt(x, [1], [2], [3], 4)", f_l, f_u);
-// 		funSig = new TF1(funcSig, "gaus(0)+gaus(3)", f_l, f_u);;
-// 	}
-// 	else
-		funSig = new TF1(funcSig, fsig, f_l, f_u);
-
+	funSig = new TF1(funcSig, fsig, f_l, f_u);
 	funBg = new TF1(funcBg, fbg, f_l, f_u);
-// 	funSum = new TF1("f_" + histname, funcSig + "+" + funcBg, f_l, f_u);		// FIXME 1
+
 	funSum = new TF1("f_" + histname, fsig + "+" + fbg, f_l, f_u);
 	allparnum = funSum->GetNpar();
 	pars = new ParamValues[allparnum];
@@ -549,4 +535,11 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	hist->GetListOfFunctions()->Add(tfLambdaBg);
 
 	return true;
+}
+
+void FitterFactory::print() const
+{
+	std::map<TString, HistFitParams>::const_iterator it;
+	for (it = hfpmap.begin(); it != hfpmap.end(); ++it)
+		it->second.Print();
 }
