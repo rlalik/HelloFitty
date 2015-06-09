@@ -1,0 +1,7 @@
+#ifndef FFCONFIG_H
+#define FFCONFIG_H
+
+#cmakedefine HAS_ROOTTOOLS @RootTools_FOUND@
+
+#endif /* FFCONFIG_H */
+
