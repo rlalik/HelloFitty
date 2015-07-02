@@ -25,7 +25,8 @@
 #include <TF1.h>
 #include <TH1.h>
 
-struct ParamValues {
+struct ParamValues
+{
 	Double_t val;		// value
 	Double_t l;			// lower limit
 	Double_t u;			// upper limit
@@ -43,8 +44,8 @@ public:
 // 	TString func;		// fit function
 	Int_t allparnum;	// num of pars
 	Int_t rebin;		// rebin, 0 == no rebin
-	Float_t fun_l;		// function range
-	Float_t fun_u;		// function range
+	Double_t fun_l;		// function range
+	Double_t fun_u;		// function range
 	Bool_t fit_disabled;
 
 	ParamValues * pars;
