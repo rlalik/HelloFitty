@@ -208,10 +208,13 @@ TString HistFitParams::exportEntry() const
 
 // 	PR(allparnum);
 	for (int i = 0; i < allparnum; ++i) {
-		Float_t val = funSum->GetParameter(i);
-		TString v = TString::Format("%f", val).Strip(TString::kTrailing, '0');
-		TString l = TString::Format("%f", pars[i].l).Strip(TString::kTrailing, '0');
-		TString u = TString::Format("%f", pars[i].u).Strip(TString::kTrailing, '0');
+		Double_t val = funSum->GetParameter(i);
+// 		TString v = TString::Format("%g", val).Strip(TString::kTrailing, '0');
+// 		TString l = TString::Format("%g", pars[i].l).Strip(TString::kTrailing, '0');
+// 		TString u = TString::Format("%g", pars[i].u).Strip(TString::kTrailing, '0');
+		TString v = TString::Format("%g", val);
+		TString l = TString::Format("%g", pars[i].l);
+		TString u = TString::Format("%g", pars[i].u);
 
 		if (pars[i].l or pars[i].u)
 			out += TString::Format(" %s : %s %s", v.Data(), l.Data(), u.Data());
@@ -424,7 +427,7 @@ bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
 
 bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const char* gpars)
 {
-	std::pair<Float_t, Float_t> res;
+	std::pair<Double_t, Double_t> res;
 
 	bool was_rebin = false;
 
@@ -458,7 +461,7 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	// backup old parameters
 	double * pars_backup_old = new double[par_num];
 	tfLambdaSum->GetParameters(pars_backup_old);
-	float chi2_backup_old = hist->Chisquare(tfLambdaSum, "R");
+	double chi2_backup_old = hist->Chisquare(tfLambdaSum, "R");
 
 // 	tfLambdaSum->SetRange(hfp.fun_l, hfp.fun_u);
 
@@ -473,26 +476,26 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 		chi2_backup_old *= 2.;
 	}
 
-// 	RootTools::Smooth(hist, 50);
-	hist->Fit(tfLambdaSum, pars, gpars, hfp.fun_l, hfp.fun_u);
-
-	// backup new parameters
-	double * pars_backup_new = new double[par_num];
-	tfLambdaSum->GetParameters(pars_backup_new);
-	float chi2_backup_new = hist->Chisquare(tfLambdaSum, "R");
-
 	// print them
 	printf("* %s old: ",  hist->GetName());
 	for (uint i = 0; i < par_num; ++i)
 		printf("%f ", pars_backup_old[i]);
 	printf(" --> chi2:  %f -- *\n", chi2_backup_old);
 
+// 	RootTools::Smooth(hist, 50);
+	hist->Fit(tfLambdaSum, pars, gpars, hfp.fun_l, hfp.fun_u);
+
+	// backup new parameters
+	double * pars_backup_new = new double[par_num];
+	tfLambdaSum->GetParameters(pars_backup_new);
+	double chi2_backup_new = hist->Chisquare(tfLambdaSum, "R");
+
 	printf("  %s new: ",  hist->GetName());
 	for (uint i = 0; i < par_num; ++i)
 		printf("%f ", pars_backup_new[i]);
 	printf(" --> chi2:  %f -- *\n", chi2_backup_new);
 
-// 	float chi2_new = tfLambdaSum->GetChisquare();
+// 	double chi2_new = tfLambdaSum->GetChisquare();
 // 	printf(" %s Chi2 -- old:   %12.2g\t new:   %12.2g\n", hist->GetName(), chi2_backup, chi2_new);
 	if (chi2_backup_new >= chi2_backup_old)
 	{
