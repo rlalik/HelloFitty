@@ -27,11 +27,14 @@
 
 struct ParamValues
 {
-	Double_t val;		// value
-	Double_t l;			// lower limit
-	Double_t u;			// upper limit
+	double val;		// value
+	double l;			// lower limit
+	double u;			// upper limit
+	enum ParamFlags { FREE, FIXED } flag;
+	bool has_limits;
 
-	ParamValues() : val(0), l(0), u(0) {}
+	ParamValues() : val(0), l(0), u(0), flag(FREE), has_limits(false) {}
+	void print();
 };
 
 class HistFitParams
@@ -58,8 +61,8 @@ public:
 	~HistFitParams();
 	HistFitParams & operator=(const HistFitParams & hfp);
 	void Init(const TString & h, const TString & fsig, const TString & fbg, Int_t bgn, Double_t f_l, Double_t f_u);
-	void SetParam(Int_t par, Double_t val);
-	void SetParam(Int_t par, Double_t val, Double_t l, Double_t u);
+	void SetParam(Int_t par, Double_t val, ParamValues::ParamFlags flag);
+	void SetParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValues::ParamFlags flag);
 	void Print() const;
 	void PrintInline() const;
 
