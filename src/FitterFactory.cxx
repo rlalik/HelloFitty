@@ -558,12 +558,11 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	}
 
 	// print them
-	printf("* %s old: ",  hist->GetName());
+	printf("* old: ");
 	for (uint i = 0; i < par_num; ++i)
 		printf("%g ", pars_backup_old[i]);
 	printf(" --> chi2:  %f -- *\n", chi2_backup_old);
 
-// 	RootTools::Smooth(hist, 50);
 	hist->Fit(tfLambdaSum, pars, gpars, hfp.fun_l, hfp.fun_u);
 
 // 	TVirtualFitter * fitter = TVirtualFitter::GetFitter();
@@ -577,47 +576,29 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	tfLambdaSum->GetParameters(pars_backup_new);
 	double chi2_backup_new = hist->Chisquare(tfLambdaSum, "R");
 
-	printf("  %s new: ",  hist->GetName());
+	printf("  new: ");
 	for (uint i = 0; i < par_num; ++i)
 		printf("%g ", pars_backup_new[i]);
 	printf(" --> chi2:  %f -- *", chi2_backup_new);
 
-// 	double chi2_new = tfLambdaSum->GetChisquare();
-// 	printf(" %s Chi2 -- old:   %12.2g\t new:   %12.2g\n", hist->GetName(), chi2_backup, chi2_new);
 	if (chi2_backup_new > chi2_backup_old)
 	{
 		tfLambdaSum->SetParameters(pars_backup_old);
 		((TF1*)hist->GetListOfFunctions()->At(0))->SetParameters(pars_backup_old);
 		printf("\n\tFIT-ERROR: Fit got worse -> restoring params for chi2 = %g", hist->Chisquare(tfLambdaSum, "R"));
-
-// 		double * pars_backup2 = new double[par_num];
-// 		tfLambdaSum->GetParameters(pars_backup2);
-// 		// print them
-// 		printf("   restored: ");
-// 		for (uint i = 0; i < par_num; ++i)
-// 			printf("%f ", ((TF1*)hist->GetListOfFunctions()->At(0))->GetParameter(i));
-// 		printf("\n");
 	}
 	else if (tfLambdaSum->GetMaximum() > 2.0 * hist->GetMaximum())
 	{
 		tfLambdaSum->SetParameters(pars_backup_old);
 		((TF1*)hist->GetListOfFunctions()->At(0))->SetParameters(pars_backup_old);
-		printf("\n\tMAX-ERROR: %g vs. %g -> %f", tfLambdaSum->GetMaximum(), hist->GetMaximum(), hist->Chisquare(tfLambdaSum, "R") );
 
-// 		double * pars_backup2 = new double[par_num];
-// 		tfLambdaSum->GetParameters(pars_backup2);
-// 		// print them
-// 		printf("   restored: ");
-// 		for (uint i = 0; i < par_num; ++i)
-// 			printf("%f ", ((TF1*)hist->GetListOfFunctions()->At(0))->GetParameter(i));
-// 		printf("\n");
+		printf("\n\tMAX-ERROR: %g vs. %g -> %f", tfLambdaSum->GetMaximum(), hist->GetMaximum(),
+			   hist->Chisquare(tfLambdaSum, "R") );
 	}
 	else
 	{
 		printf("\t [ OK ]");
 	}
-// 	printf("   %f\n", hist->Chisquare(tfLambdaSum, "R"));
-
 	printf("\n");
 
 	tfLambdaSum->SetChisquare(hist->Chisquare(tfLambdaSum, "R"));
