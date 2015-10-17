@@ -18,24 +18,26 @@
 
 #include <fstream>
 #include <string>
-#include "getopt.h"
-
-#include "TCanvas.h"
-#include "TChain.h"
-#include "TDirectory.h"
-#include "TError.h"
-#include "TGaxis.h"
-#include "TH2.h"
-#include "TImage.h"
-#include "TLatex.h"
-#include "TLegend.h"
-#include "TMath.h"
-#include "TString.h"
-#include "TStyle.h"
-#include "TSystem.h"
-#include "TVector.h"
-
+#include <getopt.h>
 #include <sys/stat.h>
+
+#include <TCanvas.h>
+#include <TChain.h>
+#include <TDirectory.h>
+#include <TError.h>
+#include <TGaxis.h>
+#include <TH2.h>
+#include <TImage.h>
+#include <TLatex.h>
+#include <TLegend.h>
+#include <TMath.h>
+#include <TString.h>
+#include <TStyle.h>
+#include <TSystem.h>
+#include <TVector.h>
+
+#include <TVirtualFitter.h>
+#include <TMatrixDSym.h>
 
 // #include "RootTools.h"
 
@@ -43,10 +45,16 @@
 
 #define PR(x) std::cout << "++DEBUG: " << #x << " = |" << x << "| (" << __FILE__ << ", " << __LINE__ << ")\n";
 
+void ParamValues::print()
+{
+	printf("   %g ( %g, %g ), %d, %d\n", val, l, u, flag, has_limits);
+}
+
 HistFitParams::HistFitParams() :
 	allparnum(0), rebin(0),
 	fit_disabled(kFALSE), pars(0),
-	funSig(0), funBg(0), funSum(0) {
+	funSig(0), funBg(0), funSum(0)
+{
 }
 
 HistFitParams::HistFitParams(const HistFitParams & hfp)
@@ -75,7 +83,8 @@ HistFitParams::HistFitParams(const HistFitParams & hfp)
 	}
 }
 
-HistFitParams& HistFitParams::operator=(const HistFitParams& hfp) {
+HistFitParams& HistFitParams::operator=(const HistFitParams& hfp)
+{
 	histname = hfp.histname;
 	funname = hfp.funname;
 	f_sig = hfp.f_sig;
@@ -135,22 +144,40 @@ void HistFitParams::Init(const TString & h, const TString & fsig, const TString 
 	fun_u = f_u;
 }
 
-void HistFitParams::SetParam(Int_t par, Double_t val) {
+void HistFitParams::SetParam(Int_t par, Double_t val, ParamValues::ParamFlags flag)
+{
 	if (!(par < allparnum)) return;
 	pars[par].val = val;
-	funSum->SetParameter(par, val);
+	pars[par].flag = flag;
+	pars[par].has_limits = false;
+
+	if (flag == ParamValues::FIXED)
+		funSum->FixParameter(par, val);
+	else
+		funSum->SetParameter(par, val);
 }
 
-void HistFitParams::SetParam(Int_t par, Double_t val, Double_t l, Double_t u) {
+
+void HistFitParams::SetParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValues::ParamFlags flag)
+{
 	if (!(par < allparnum)) return;
 	pars[par].val = val;
 	pars[par].l = l;
 	pars[par].u = u;
-	funSum->SetParameter(par, val);
-	funSum->SetParLimits(par, l, u);
+	pars[par].flag = flag;
+	pars[par].has_limits = true;
+
+	if (flag == ParamValues::FIXED)
+		funSum->FixParameter(par, val);
+	else
+	{
+		funSum->SetParameter(par, val);
+		funSum->SetParLimits(par, l, u);
+	}
 }
 
-const HistFitParams HistFitParams::parseEntryFromFile(const TString & line) {
+const HistFitParams HistFitParams::parseEntryFromFile(const TString & line)
+{
 	TString line_ = line;
 	line_.ReplaceAll("\t", " ");
 	TObjArray * arr = line_.Tokenize(" ");
@@ -172,23 +199,53 @@ const HistFitParams HistFitParams::parseEntryFromFile(const TString & line) {
 	Double_t par_, l_, u_;
 	Int_t step = 0;
 	Int_t parnum = 0;
+	ParamValues::ParamFlags flag_;
+	bool has_limits_ = false;
 
-	for (int i = 6; i < arr->GetEntries(); /*++i*/i += step, ++parnum) {
+	for (int i = 6; i < arr->GetEntries(); /*++i*/i += step, ++parnum)
+	{
 		TString val = ((TObjString *)arr->At(i))->String();
 		TString nval = ((i+1) < arr->GetEntries()) ? ((TObjString *)arr->At(i+1))->String() : TString();
 
 		par_ = val.Atof();
-		if (nval == ":") {
+		if (nval == ":")
+		{
 			l_ = (i+2) < arr->GetEntries() ? ((TObjString *)arr->At(i+2))->String().Atof() : 0;
 			u_ = (i+2) < arr->GetEntries() ? ((TObjString *)arr->At(i+3))->String().Atof() : 0;
 			step = 4;
-		} else {
+			flag_ = ParamValues::FREE;
+			has_limits_ = true;
+		}
+		else if (nval == "F")
+		{
+			l_ = (i+2) < arr->GetEntries() ? ((TObjString *)arr->At(i+2))->String().Atof() : 0;
+			u_ = (i+2) < arr->GetEntries() ? ((TObjString *)arr->At(i+3))->String().Atof() : 0;
+			step = 4;
+			flag_ = ParamValues::FIXED;
+			has_limits_ = true;
+		}
+		else if (nval == "f")
+		{
+			l_ = 0;
+			u_ = 0;
+			step = 2;
+			flag_ = ParamValues::FIXED;
+			has_limits_ = false;
+		}
+		else
+		{
 			l_ = 0;
 			u_ = 0;
 			step = 1;
+			flag_ = ParamValues::FREE;
+			has_limits_ = false;
 		}
-// std::cout << parnum << ", " << par_ << ", " << l_ << ", " << u_ << "\n";
-		hfp.SetParam(parnum, par_, l_, u_);
+
+// 		std::cout << parnum << ", " << par_ << ", " << l_ << ", " << u_ << ", " << flag_ << "\n";
+		if (has_limits_)
+			hfp.SetParam(parnum, par_, l_, u_, flag_);
+		else
+			hfp.SetParam(parnum, par_, flag_);
 	}
 
 	return hfp;
@@ -202,43 +259,67 @@ TString HistFitParams::exportEntry() const
 	else
 		out += " ";
 
+	char sep;
+
 	out = TString::Format(
 		"%s%s\t%s %s %d %.0f %.0f",
 		out.Data(), histname.Data(), f_sig.Data(), f_bg.Data(), rebin, fun_l, fun_u);
 
-// 	PR(allparnum);
-	for (int i = 0; i < allparnum; ++i) {
+	for (int i = 0; i < allparnum; ++i)
+	{
 		Double_t val = funSum->GetParameter(i);
-// 		TString v = TString::Format("%g", val).Strip(TString::kTrailing, '0');
-// 		TString l = TString::Format("%g", pars[i].l).Strip(TString::kTrailing, '0');
-// 		TString u = TString::Format("%g", pars[i].u).Strip(TString::kTrailing, '0');
 		TString v = TString::Format("%g", val);
 		TString l = TString::Format("%g", pars[i].l);
 		TString u = TString::Format("%g", pars[i].u);
 
-		if (pars[i].l or pars[i].u)
-			out += TString::Format(" %s : %s %s", v.Data(), l.Data(), u.Data());
-		else
+		switch (pars[i].flag)
+		{
+			case ParamValues::FREE:
+				if (pars[i].has_limits)
+					sep = ':';
+				else
+					sep = ' ';
+				break;
+			case ParamValues::FIXED:
+				if (pars[i].has_limits)
+					sep = 'F';
+				else
+					sep = 'f';
+				break;
+			default:
+				sep = ' ';
+				break;
+		}
+
+//		pars[i].print();
+		if (pars[i].flag == ParamValues::FREE and pars[i].has_limits == 0)
 			out += TString::Format(" %s", v.Data());
+		else if (pars[i].flag == ParamValues::FIXED and pars[i].has_limits == 0)
+			out += TString::Format(" %s %c", v.Data(), sep);
+		else
+			out += TString::Format(" %s %c %s %s", v.Data(), sep, l.Data(), u.Data());
 	}
 
 	return out;
 }
 
-void HistFitParams::Print() const {
+void HistFitParams::Print() const
+{
 	std::cout << "@ hist name = " << histname.Data() << std::endl;
 	std::cout << "  func name = " << funname.Data() << std::endl;
 	std::cout << " | rebin = " << rebin << std::endl;
 	std::cout << "  range = " << fun_l << " -- " << fun_u << std::endl;
 	std::cout << "  param num = " << allparnum << std::endl;
 	std::cout << "  params list:" << std::endl;
-	PR(pars);
-	for (int i = 0; i < allparnum; ++i) {
+
+	for (int i = 0; i < allparnum; ++i)
+	{
 		std::cout << "  * " << i << ": " << pars[i].val << " " << pars[i].l << " " << pars[i].u << std::endl;
 	}
 }
 
-void HistFitParams::PrintInline() const {
+void HistFitParams::PrintInline() const
+{
 	std::cout << "  hn=" << histname.Data() << std::endl;
 	if (rebin > 0)
 		std::cout << " R=" << rebin;
@@ -444,7 +525,7 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 		return true;
 
 	TF1 * tfLambdaSig = hfp.funSig;
-	TF1 * tfLambdaBg = hfp.funBg;
+	TF1 * tfLambdaBkg = hfp.funBg;
 	TF1 * tfLambdaSum = hfp.funSum;
 
 	hist->GetListOfFunctions()->Clear();
@@ -453,8 +534,8 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 // 	tfLambdaSum->Draw();
 
 	tfLambdaSig->SetBit(TF1::kNotDraw);
-	tfLambdaBg->SetBit(TF1::kNotDraw);
-	tfLambdaSum->SetBit(TF1::kNotDraw);
+	tfLambdaBkg->SetBit(TF1::kNotDraw);
+// 	tfLambdaSum->SetBit(TF1::kNotDraw);
 
 	const size_t par_num = tfLambdaSum->GetNpar();
 
@@ -467,7 +548,7 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 
 	// TODO remove it at some point
 	// this trick differences amplitudes, having two amplitudes of the same value is unprobable
-	if ( fabs(pars_backup_old[0] - pars_backup_old[3]) < 0.1 )
+	if ( fabs(pars_backup_old[0] - pars_backup_old[3]) < (pars_backup_old[0] * 0.01) )
 	{
 		printf(" + applying trick\n");
 		tfLambdaSum->SetParameter(0, pars_backup_old[0] * 1.5);
@@ -479,11 +560,17 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	// print them
 	printf("* %s old: ",  hist->GetName());
 	for (uint i = 0; i < par_num; ++i)
-		printf("%f ", pars_backup_old[i]);
+		printf("%g ", pars_backup_old[i]);
 	printf(" --> chi2:  %f -- *\n", chi2_backup_old);
 
 // 	RootTools::Smooth(hist, 50);
 	hist->Fit(tfLambdaSum, pars, gpars, hfp.fun_l, hfp.fun_u);
+
+// 	TVirtualFitter * fitter = TVirtualFitter::GetFitter();
+// 	TMatrixDSym cov;
+// 	fitter->GetCovarianceMatrix()
+// 	cov.Use(fitter->GetNumberTotalParameters(), fitter->GetCovarianceMatrix());
+// 	cov.Print();
 
 	// backup new parameters
 	double * pars_backup_new = new double[par_num];
@@ -492,16 +579,16 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 
 	printf("  %s new: ",  hist->GetName());
 	for (uint i = 0; i < par_num; ++i)
-		printf("%f ", pars_backup_new[i]);
-	printf(" --> chi2:  %f -- *\n", chi2_backup_new);
+		printf("%g ", pars_backup_new[i]);
+	printf(" --> chi2:  %f -- *", chi2_backup_new);
 
 // 	double chi2_new = tfLambdaSum->GetChisquare();
 // 	printf(" %s Chi2 -- old:   %12.2g\t new:   %12.2g\n", hist->GetName(), chi2_backup, chi2_new);
-	if (chi2_backup_new >= chi2_backup_old)
+	if (chi2_backup_new > chi2_backup_old)
 	{
 		tfLambdaSum->SetParameters(pars_backup_old);
 		((TF1*)hist->GetListOfFunctions()->At(0))->SetParameters(pars_backup_old);
-		printf("\tFIT-ERROR: Fit get worst -> %f\n", hist->Chisquare(tfLambdaSum, "R"));
+		printf("\n\tFIT-ERROR: Fit got worse -> restoring params for chi2 = %g", hist->Chisquare(tfLambdaSum, "R"));
 
 // 		double * pars_backup2 = new double[par_num];
 // 		tfLambdaSum->GetParameters(pars_backup2);
@@ -515,7 +602,7 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	{
 		tfLambdaSum->SetParameters(pars_backup_old);
 		((TF1*)hist->GetListOfFunctions()->At(0))->SetParameters(pars_backup_old);
-		printf("\tMAX-ERROR: %g vs. %g -> %f\n", tfLambdaSum->GetMaximum(), hist->GetMaximum(), hist->Chisquare(tfLambdaSum, "R") );
+		printf("\n\tMAX-ERROR: %g vs. %g -> %f", tfLambdaSum->GetMaximum(), hist->GetMaximum(), hist->Chisquare(tfLambdaSum, "R") );
 
 // 		double * pars_backup2 = new double[par_num];
 // 		tfLambdaSum->GetParameters(pars_backup2);
@@ -527,15 +614,31 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	}
 	else
 	{
-		printf("\taccepted\n");
+		printf("\t [ OK ]");
 	}
 // 	printf("   %f\n", hist->Chisquare(tfLambdaSum, "R"));
 
-	tfLambdaSig->SetParameters(tfLambdaSum->GetParameters());
-	tfLambdaBg->SetParameters(tfLambdaSum->GetParameters());
+	printf("\n");
+
+	tfLambdaSum->SetChisquare(hist->Chisquare(tfLambdaSum, "R"));
+	((TF1*)hist->GetListOfFunctions()->At(0))->SetChisquare(hist->Chisquare(tfLambdaSum, "R"));
+
+	const size_t npar = tfLambdaSum->GetNpar();
+
+	for (uint i = 0; i < npar; ++i)
+	{
+		double par = tfLambdaSum->GetParameter(i);
+		double err = tfLambdaSum->GetParError(i);
+
+		tfLambdaSig->SetParameter(i, par);
+		tfLambdaBkg->SetParameter(i, par);
+
+		tfLambdaSig->SetParError(i, err);
+		tfLambdaBkg->SetParError(i, err);
+	}
 
 	hist->GetListOfFunctions()->Add(tfLambdaSig);
-	hist->GetListOfFunctions()->Add(tfLambdaBg);
+	hist->GetListOfFunctions()->Add(tfLambdaBkg);
 
 	return true;
 }
