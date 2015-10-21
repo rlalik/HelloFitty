@@ -436,7 +436,7 @@ bool FitterFactory::import_parameters(const char * filename)
 		++cnt;
 	}
 
-	printf("Imported %u entries\n", cnt);
+	printf("Imported %u entries, total entries %d\n", cnt, hfpmap.size());
 	return true;
 }
 
@@ -591,7 +591,6 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	{
 		tfLambdaSum->SetParameters(pars_backup_old);
 		((TF1*)hist->GetListOfFunctions()->At(0))->SetParameters(pars_backup_old);
-
 		printf("\n\tMAX-ERROR: %g vs. %g -> %f", tfLambdaSum->GetMaximum(), hist->GetMaximum(),
 			   hist->Chisquare(tfLambdaSum, "R") );
 	}
