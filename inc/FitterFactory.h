@@ -42,7 +42,7 @@ class HistFitParams
 public:
 	TString histname;	// keeps hist name
 	TString funname;	// keeps func name
-	TString f_sig, f_bg;
+	TString f_sig, f_bkg;
 // 	TString func;		// fit function
 // 	TString func;		// fit function
 	Int_t allparnum;	// num of pars
@@ -53,7 +53,7 @@ public:
 
 	ParamValues * pars;
 	TF1 * funSig;
-	TF1 * funBg;
+	TF1 * funBkg;
 	TF1 * funSum;
 
 	HistFitParams();
@@ -66,11 +66,20 @@ public:
 	void Print() const;
 	void PrintInline() const;
 
+	void Delete();
+	inline void SetOwner(bool owner);
+
 	TString exportEntry() const;
 
 	static const HistFitParams parseEntryFromFile(const TString & line);
 
+	static void printStats(char * infotext = nullptr);
 // 	TF1 *fitV;
+private:
+	bool is_owner;
+
+	static long int cnt_total;
+	static long int cnt_owned;
 };
 
 class FitterFactory
@@ -79,7 +88,10 @@ public:
 	enum FLAGS { ALWAYS_REF, ALWAYS_AUX, ALWAYS_NEWER };
 	enum FIND_FLAGS { NOT_FOUND, USE_FOUND, USE_DEFAULT };
 
-	FitterFactory(FLAGS flags = ALWAYS_NEWER) : flags(flags), has_defaults(false), par_ref(nullptr), par_aux(nullptr) {}
+	FitterFactory(FLAGS flags = ALWAYS_NEWER) : flags(flags), has_defaults(false), par_ref(nullptr), par_aux(nullptr), min_entries(0) {}
+	virtual ~FitterFactory();
+
+	void Delete();
 
 	FLAGS setFlags(FLAGS new_flags);
 	void setDefaultParameters(HistFitParams defs);
@@ -91,9 +103,13 @@ public:
 	FIND_FLAGS findParams(const char * name, HistFitParams & hfp, bool use_defaults = true) const;
 
 	bool fit(TH1 * hist, const char * pars = "B,Q", const char * gpars = "");
-	static bool fit(HistFitParams & hfp, TH1 * hist, const char * pars = "B,Q", const char * gpars = "");
+	static bool fit(HistFitParams & hfp, TH1 * hist, const char * pars = "B,Q", const char * gpars = "", double min_entries = 0);
 
 	void print() const;
+
+	static void setVerbose(bool verbose) { verbose_flag = verbose; }
+
+	inline void setEntriesLowLimit(double min) { min_entries = min; }
 
 private:
 	bool import_parameters(const char * filename);
@@ -102,12 +118,15 @@ private:
 	FitterFactory::FLAGS flags;
 
 	bool has_defaults;
+	static bool verbose_flag;
 
 	const char * par_ref;
 	const char * par_aux;
 
 	HistFitParams defpars;
 	std::map<TString, HistFitParams> hfpmap;
+
+	double min_entries;
 };
 
 #endif // FITTERFACTORY_H

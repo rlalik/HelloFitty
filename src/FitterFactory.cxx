@@ -45,16 +45,32 @@
 
 #define PR(x) std::cout << "++DEBUG: " << #x << " = |" << x << "| (" << __FILE__ << ", " << __LINE__ << ")\n";
 
+bool FitterFactory::verbose_flag = true;
+
 void ParamValues::print()
 {
 	printf("   %g ( %g, %g ), %d, %d\n", val, l, u, flag, has_limits);
 }
 
+long int HistFitParams::cnt_total = 0;
+long int HistFitParams::cnt_owned = 0;
+
+void HistFitParams::printStats(char * infotext)
+{
+	if (infotext)
+		printf(" (%s) FitParams: total=%ld, owned=%ld\n", infotext, cnt_total, cnt_owned);
+	else
+		printf(" FitParams: total=%ld, owned=%ld\n", cnt_total, cnt_owned);
+}
+
 HistFitParams::HistFitParams() :
 	allparnum(0), rebin(0),
 	fit_disabled(kFALSE), pars(0),
-	funSig(0), funBg(0), funSum(0)
+	funSig(nullptr), funBkg(nullptr), funSum(nullptr),
+	is_owner(true)
 {
+	++cnt_total;
+	++cnt_owned;
 }
 
 HistFitParams::HistFitParams(const HistFitParams & hfp)
@@ -62,7 +78,7 @@ HistFitParams::HistFitParams(const HistFitParams & hfp)
 	histname = hfp.histname;
 	funname = hfp.funname;
 	f_sig = hfp.f_sig;
-	f_bg = hfp.f_bg;
+	f_bkg = hfp.f_bkg;
 
 	allparnum = hfp.allparnum;
 	rebin = hfp.rebin;
@@ -70,25 +86,45 @@ HistFitParams::HistFitParams(const HistFitParams & hfp)
 	fun_u = hfp.fun_u;
 	fit_disabled = hfp.fit_disabled;
 
-	funSig = hfp.funSig;
-	funBg = hfp.funBg;
-	funSum = hfp.funSum;
+	funSig = new TF1();
+	funBkg = new TF1();
+	funSum = new TF1();
+
+	if (hfp.funSig) hfp.funSig->Copy(*funSig);
+	if (hfp.funBkg) hfp.funBkg->Copy(*funBkg);
+	if (hfp.funSum) hfp.funSum->Copy(*funSum);
 
 	if (funSum)
 	{
 		pars = new ParamValues[funSum->GetNpar()];
 		memcpy(pars, hfp.pars, sizeof(ParamValues)*funSum->GetNpar());
 	} else {
-		pars = NULL;
+		pars = nullptr;
 	}
+
+	is_owner = true;
+
+	++cnt_total;
+	++cnt_owned;
 }
 
 HistFitParams& HistFitParams::operator=(const HistFitParams& hfp)
 {
+	// remove old structures
+	--cnt_total;
+	if (is_owner)
+	{
+		--cnt_owned;
+		Delete();
+	}
+	if (pars) delete [] pars;
+	pars = nullptr;
+
+	// create new structures
 	histname = hfp.histname;
 	funname = hfp.funname;
 	f_sig = hfp.f_sig;
-	f_bg = hfp.f_bg;
+	f_bkg = hfp.f_bkg;
 
 	allparnum = hfp.allparnum;
 	rebin = hfp.rebin;
@@ -96,10 +132,17 @@ HistFitParams& HistFitParams::operator=(const HistFitParams& hfp)
 	fun_u = hfp.fun_u;
 	fit_disabled = hfp.fit_disabled;
 
+// 	funSig = hfp.funSig;
+// 	funBkg = hfp.funBkg;
+// 	funSum = hfp.funSum;
 
-	funSig = hfp.funSig;
-	funBg = hfp.funBg;
-	funSum = hfp.funSum;
+	if (!funSig)	funSig = new TF1();
+	if (!funBkg)	funBkg = new TF1();
+	if (!funSum)	funSum = new TF1();
+
+	if (hfp.funSig) hfp.funSig->Copy(*funSig);
+	if (hfp.funBkg) hfp.funBkg->Copy(*funBkg);
+	if (hfp.funSum) hfp.funSum->Copy(*funSum);
 
 	if (pars) delete [] pars;
 
@@ -111,12 +154,49 @@ HistFitParams& HistFitParams::operator=(const HistFitParams& hfp)
 		pars = NULL;
 	}
 
+	is_owner = true;
+
+	++cnt_total;
+	++cnt_owned;
+
 	return *this;
 }
 
 HistFitParams::~HistFitParams()
 {
+	--cnt_total;
+	if (is_owner)
+	{
+		--cnt_owned;
+		Delete();
+	}
+
 	delete [] pars;
+}
+
+void HistFitParams::Delete()
+{
+	if (funSig) delete funSig;
+	if (funBkg) delete funBkg;
+	if (funSum) delete funSum;
+
+	funSig = nullptr;
+	funBkg = nullptr;
+	funSum = nullptr;
+}
+
+inline void HistFitParams::SetOwner(bool owner)
+{
+	if (is_owner and !owner)
+	{
+		--cnt_owned;
+	}
+	else if (!is_owner and owner)
+	{
+		++cnt_owned;
+	}
+
+	is_owner = owner;
 }
 
 void HistFitParams::Init(const TString & h, const TString & fsig, const TString & fbg, Int_t rbn, Double_t f_l, Double_t f_u)
@@ -130,12 +210,12 @@ void HistFitParams::Init(const TString & h, const TString & fsig, const TString 
 	rebin = rbn;
 	funname = "f_" + histname;
 	f_sig = fsig;
-	f_bg = fbg;
+	f_bkg = fbg;
 	TString funcSig = "f_" + histname + "_sig";
-	TString funcBg = "f_" + histname + "_bg";
+	TString funcBg = "f_" + histname + "_bkg";
 
 	funSig = new TF1(funcSig, fsig, f_l, f_u);
-	funBg = new TF1(funcBg, fbg, f_l, f_u);
+	funBkg = new TF1(funcBg, fbg, f_l, f_u);
 
 	funSum = new TF1("f_" + histname, fsig + "+" + fbg, f_l, f_u);
 	allparnum = funSum->GetNpar();
@@ -263,7 +343,7 @@ TString HistFitParams::exportEntry() const
 
 	out = TString::Format(
 		"%s%s\t%s %s %d %.0f %.0f",
-		out.Data(), histname.Data(), f_sig.Data(), f_bg.Data(), rebin, fun_l, fun_u);
+		out.Data(), histname.Data(), f_sig.Data(), f_bkg.Data(), rebin, fun_l, fun_u);
 
 	for (int i = 0; i < allparnum; ++i)
 	{
@@ -323,6 +403,15 @@ void HistFitParams::PrintInline() const
 	std::cout << "  hn=" << histname.Data() << std::endl;
 	if (rebin > 0)
 		std::cout << " R=" << rebin;
+}
+
+FitterFactory::~FitterFactory()
+{
+	std::map<TString, HistFitParams>::iterator it;
+	for (it = hfpmap.begin(); it != hfpmap.end(); ++it)
+		it->second.Delete();
+
+	hfpmap.clear();
 }
 
 FitterFactory::FLAGS FitterFactory::setFlags(FitterFactory::FLAGS new_flags)
@@ -432,11 +521,12 @@ bool FitterFactory::import_parameters(const char * filename)
 	while (std::getline(ifs, line))
 	{
 		HistFitParams imfit = HistFitParams::parseEntryFromFile(line);
-		hfpmap.insert(std::pair<TString,HistFitParams>(imfit.histname, imfit));
+		std::pair<TString,HistFitParams> hfp(imfit.histname, imfit);
+		hfpmap.insert(hfp);
 		++cnt;
 	}
 
-	printf("Imported %u entries, total entries %d\n", cnt, hfpmap.size());
+	printf("Imported %lu entries, total entries %lu\n", cnt, hfpmap.size());
 	return true;
 }
 
@@ -493,42 +583,56 @@ FitterFactory::FIND_FLAGS FitterFactory::findParams(const char * name, HistFitPa
 			return NOT_FOUND;
 		}
 	}
-
 }
 
 bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
 {
+// 	HistFitParams::printStats();
 	HistFitParams hfp;
 	int res = findParams(hist->GetName(), hfp, true);
+
+// 	HistFitParams::printStats();
 	if (res == NOT_FOUND)
 		return false;
 
-	return fit(hfp, hist, pars, gpars);
+	bool status = fit(hfp, hist, pars, gpars, min_entries);
+// 	HistFitParams::printStats();
+
+	return status;
 }
 
-bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const char* gpars)
+bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const char* gpars, double min_entries)
 {
-	std::pair<Double_t, Double_t> res;
+// 	std::pair<Double_t, Double_t> res;
 
-	bool was_rebin = false;
+// 	bool was_rebin = false;
 
 	Int_t bin_l = hist->FindBin(hfp.fun_l);
 	Int_t bin_u = hist->FindBin(hfp.fun_u);
 
 	if (hfp.rebin != 0)
 	{
-		was_rebin = true;
+// 		was_rebin = true;
 		hist->Rebin(hfp.rebin);
 	}
 
+	if (hist->GetEntries() < min_entries)
+		return false;
+
 	if (hist->Integral(bin_l, bin_u) == 0)
-		return true;
+		return false;
 
-	TF1 * tfLambdaSig = hfp.funSig;
-	TF1 * tfLambdaBkg = hfp.funBg;
-	TF1 * tfLambdaSum = hfp.funSum;
+	TF1 * tfLambdaSig = new TF1();
+	TF1 * tfLambdaBkg = new TF1();
+	TF1 * tfLambdaSum = new TF1();
 
+	if (hfp.funSig) hfp.funSig->Copy(*tfLambdaSig);
+	if (hfp.funBkg) hfp.funBkg->Copy(*tfLambdaBkg);
+	if (hfp.funSum) hfp.funSum->Copy(*tfLambdaSum);
+
+// 	PR(hist->GetListOfFunctions()->GetEntries());
 	hist->GetListOfFunctions()->Clear();
+	hist->GetListOfFunctions()->SetOwner(kTRUE);
 
 	// FIXME ??? why this?
 // 	tfLambdaSum->Draw();
@@ -550,20 +654,25 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	// this trick differences amplitudes, having two amplitudes of the same value is unprobable
 	if ( fabs(pars_backup_old[0] - pars_backup_old[3]) < (pars_backup_old[0] * 0.01) )
 	{
-		printf(" + applying trick\n");
+		if (verbose_flag) printf(" + applying trick\n");
 		tfLambdaSum->SetParameter(0, pars_backup_old[0] * 1.5);
 		tfLambdaSum->SetParameter(3, pars_backup_old[3] * 0.5);
 
 		chi2_backup_old *= 2.;
 	}
 
-	// print them
-	printf("* old: ");
-	for (uint i = 0; i < par_num; ++i)
-		printf("%g ", pars_backup_old[i]);
-	printf(" --> chi2:  %f -- *\n", chi2_backup_old);
+	if (verbose_flag)
+	{
+		// print them
+		printf("* old: ");
+		for (uint i = 0; i < par_num; ++i)
+			printf("%g ", pars_backup_old[i]);
+		printf(" --> chi2:  %f -- *\n", chi2_backup_old);
+	}
 
 	hist->Fit(tfLambdaSum, pars, gpars, hfp.fun_l, hfp.fun_u);
+
+	TF1 * new_sig_func = ((TF1*)hist->GetListOfFunctions()->At(0));
 
 // 	TVirtualFitter * fitter = TVirtualFitter::GetFitter();
 // 	TMatrixDSym cov;
@@ -576,32 +685,54 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	tfLambdaSum->GetParameters(pars_backup_new);
 	double chi2_backup_new = hist->Chisquare(tfLambdaSum, "R");
 
-	printf("  new: ");
-	for (uint i = 0; i < par_num; ++i)
-		printf("%g ", pars_backup_new[i]);
-	printf(" --> chi2:  %f -- *", chi2_backup_new);
+	if (verbose_flag)
+	{
+		printf("  new: ");
+		for (uint i = 0; i < par_num; ++i)
+			printf("%g ", pars_backup_new[i]);
+		printf(" --> chi2:  %f -- *", chi2_backup_new);
+	}
 
 	if (chi2_backup_new > chi2_backup_old)
 	{
 		tfLambdaSum->SetParameters(pars_backup_old);
-		((TF1*)hist->GetListOfFunctions()->At(0))->SetParameters(pars_backup_old);
+		new_sig_func->SetParameters(pars_backup_old);
 		printf("\n\tFIT-ERROR: Fit got worse -> restoring params for chi2 = %g", hist->Chisquare(tfLambdaSum, "R"));
 	}
 	else if (tfLambdaSum->GetMaximum() > 2.0 * hist->GetMaximum())
 	{
 		tfLambdaSum->SetParameters(pars_backup_old);
-		((TF1*)hist->GetListOfFunctions()->At(0))->SetParameters(pars_backup_old);
-		printf("\n\tMAX-ERROR: %g vs. %g -> %f", tfLambdaSum->GetMaximum(), hist->GetMaximum(),
-			   hist->Chisquare(tfLambdaSum, "R") );
+		new_sig_func->SetParameters(pars_backup_old);
+		printf("\n\tMAX-ERROR: %g vs. %g -> %f (entries=%g)", tfLambdaSum->GetMaximum(), hist->GetMaximum(),
+			   hist->Chisquare(tfLambdaSum, "R"), hist->GetEntries() );
+		printf("\n");
+
+		printf("  old: ");
+		for (uint i = 0; i < par_num; ++i)
+			printf("%g ", pars_backup_old[i]);
+		printf(" --> chi2:  %f -- *\n", chi2_backup_old);
+
+		printf("  new: ");
+		for (uint i = 0; i < par_num; ++i)
+			printf("%g ", pars_backup_new[i]);
+		printf(" --> chi2:  %f -- *\n", chi2_backup_new);
+
+		for (int i = 0; i < hist->GetNbinsX(); ++i)
+			printf(" %g", hist->GetBinContent(i+1));
+		printf("\n");
+
 	}
 	else
 	{
-		printf("\t [ OK ]");
+// 		printf("\n\tIS-OK: %g vs. %g -> %f", tfLambdaSum->GetMaximum(), hist->GetMaximum(),
+// 			   hist->Chisquare(tfLambdaSum, "R") );
+
+		if (verbose_flag) printf("\t [ OK ]\n");
 	}
-	printf("\n");
 
 	tfLambdaSum->SetChisquare(hist->Chisquare(tfLambdaSum, "R"));
-	((TF1*)hist->GetListOfFunctions()->At(0))->SetChisquare(hist->Chisquare(tfLambdaSum, "R"));
+
+	new_sig_func->SetChisquare(hist->Chisquare(tfLambdaSum, "R"));
 
 	const size_t npar = tfLambdaSum->GetNpar();
 
@@ -620,6 +751,11 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	hist->GetListOfFunctions()->Add(tfLambdaSig);
 	hist->GetListOfFunctions()->Add(tfLambdaBkg);
 
+// 	hfp.SetOwner(false);
+	delete tfLambdaSum;
+	delete [] pars_backup_old;
+	delete [] pars_backup_new;
+
 	return true;
 }
 
@@ -628,4 +764,13 @@ void FitterFactory::print() const
 	std::map<TString, HistFitParams>::const_iterator it;
 	for (it = hfpmap.begin(); it != hfpmap.end(); ++it)
 		it->second.Print();
+}
+
+void FitterFactory::Delete()
+{
+	std::map<TString, HistFitParams>::iterator it;
+	for (it = hfpmap.begin(); it != hfpmap.end(); ++it)
+		it->second.Delete();
+
+	hfpmap.clear();
 }
