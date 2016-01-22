@@ -65,6 +65,7 @@ public:
 	void SetParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValues::ParamFlags flag);
 	void Print() const;
 	void PrintInline() const;
+	bool Update(TF1 * f);
 
 	void Delete();
 	inline void SetOwner(bool owner);
@@ -101,6 +102,8 @@ public:
 
 	FIND_FLAGS findParams(TH1 * hist, HistFitParams & hfp, bool use_defaults = true) const;
 	FIND_FLAGS findParams(const char * name, HistFitParams & hfp, bool use_defaults = true) const;
+	bool updateParams(TH1 * hist, HistFitParams & hfp);
+	bool updateParams(TH1 * hist, TF1 * f);
 
 	bool fit(TH1 * hist, const char * pars = "B,Q", const char * gpars = "");
 	static bool fit(HistFitParams & hfp, TH1 * hist, const char * pars = "B,Q", const char * gpars = "", double min_entries = 0);

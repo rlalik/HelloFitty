@@ -405,6 +405,19 @@ void HistFitParams::PrintInline() const
 		std::cout << " R=" << rebin;
 }
 
+bool HistFitParams::Update(TF1 * f)
+{
+	if (allparnum == f->GetNpar())
+	{
+		for (int i = 0; i < allparnum; ++i)
+			pars[i].val = f->GetParameter(i);
+	}
+	else
+			return false;
+
+	return true;
+}
+
 FitterFactory::~FitterFactory()
 {
 	std::map<TString, HistFitParams>::iterator it;
@@ -552,6 +565,34 @@ bool FitterFactory::export_parameters(const char* filename)
 	return true;
 }
 
+bool FitterFactory::updateParams(TH1 * hist, HistFitParams & hfp)
+{
+	std::map<TString, HistFitParams>::iterator it = hfpmap.find(hist->GetName());
+	if (it != hfpmap.end())
+	{
+		it->second = hfp;
+	}
+	else
+		return false;
+
+	return true;
+}
+
+bool FitterFactory::updateParams(TH1 * hist, TF1 * f)
+{
+	std::map<TString, HistFitParams>::iterator it = hfpmap.find(hist->GetName());
+	if (it != hfpmap.end())
+	{
+		HistFitParams hfp = it->second;
+
+		return hfp.Update(f);
+	}
+	else
+		return false;
+
+	return true;
+}
+
 FitterFactory::FIND_FLAGS FitterFactory::findParams(TH1 * hist, HistFitParams & hfp, bool use_defaults) const
 {
 	return findParams(hist->GetName(), hfp, use_defaults);
@@ -597,6 +638,9 @@ bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
 
 	bool status = fit(hfp, hist, pars, gpars, min_entries);
 // 	HistFitParams::printStats();
+
+	if (status)
+		updateParams(hist, hfp);
 
 	return status;
 }
@@ -721,6 +765,7 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 			printf(" %g", hist->GetBinContent(i+1));
 		printf("\n");
 
+		hfp.Update(tfLambdaBkg);
 	}
 	else
 	{
