@@ -60,15 +60,15 @@ public:
 	HistFitParams(const HistFitParams & hfp);
 	~HistFitParams();
 	HistFitParams & operator=(const HistFitParams & hfp);
-	void Init(const TString & h, const TString & fsig, const TString & fbg, Int_t bgn, Double_t f_l, Double_t f_u);
-	void SetParam(Int_t par, Double_t val, ParamValues::ParamFlags flag);
-	void SetParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValues::ParamFlags flag);
-	void Print() const;
-	void PrintInline() const;
-	bool Update(TF1 * f);
+	void init(const TString & h, const TString & fsig, const TString & fbg, Int_t bgn, Double_t f_l, Double_t f_u);
+	void setParam(Int_t par, Double_t val, ParamValues::ParamFlags flag);
+	void setParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValues::ParamFlags flag);
+	void print() const;
+	void printInline() const;
+	bool update(TF1 * f);
 
-	void Delete();
-	inline void SetOwner(bool owner);
+	void cleanup();
+	inline void setOwner(bool owner);
 
 	TString exportEntry() const;
 
@@ -92,7 +92,7 @@ public:
 	FitterFactory(FLAGS flags = ALWAYS_NEWER) : flags(flags), has_defaults(false), par_ref(nullptr), par_aux(nullptr), min_entries(0) {}
 	virtual ~FitterFactory();
 
-	void Delete();
+	void cleanup();
 
 	FLAGS setFlags(FLAGS new_flags);
 	void setDefaultParameters(HistFitParams defs);

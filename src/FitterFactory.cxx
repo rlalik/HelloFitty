@@ -115,7 +115,7 @@ HistFitParams& HistFitParams::operator=(const HistFitParams& hfp)
 	if (is_owner)
 	{
 		--cnt_owned;
-		Delete();
+		cleanup();
 	}
 	if (pars) delete [] pars;
 	pars = nullptr;
@@ -168,13 +168,13 @@ HistFitParams::~HistFitParams()
 	if (is_owner)
 	{
 		--cnt_owned;
-		Delete();
+		cleanup();
 	}
 
 	delete [] pars;
 }
 
-void HistFitParams::Delete()
+void HistFitParams::cleanup()
 {
 	if (funSig) delete funSig;
 	if (funBkg) delete funBkg;
@@ -185,7 +185,7 @@ void HistFitParams::Delete()
 	funSum = nullptr;
 }
 
-inline void HistFitParams::SetOwner(bool owner)
+inline void HistFitParams::setOwner(bool owner)
 {
 	if (is_owner and !owner)
 	{
@@ -199,7 +199,7 @@ inline void HistFitParams::SetOwner(bool owner)
 	is_owner = owner;
 }
 
-void HistFitParams::Init(const TString & h, const TString & fsig, const TString & fbg, Int_t rbn, Double_t f_l, Double_t f_u)
+void HistFitParams::init(const TString & h, const TString & fsig, const TString & fbg, Int_t rbn, Double_t f_l, Double_t f_u)
 {
 	histname = h;
 	if (h[0] == '@') {
@@ -224,7 +224,7 @@ void HistFitParams::Init(const TString & h, const TString & fsig, const TString 
 	fun_u = f_u;
 }
 
-void HistFitParams::SetParam(Int_t par, Double_t val, ParamValues::ParamFlags flag)
+void HistFitParams::setParam(Int_t par, Double_t val, ParamValues::ParamFlags flag)
 {
 	if (!(par < allparnum)) return;
 	pars[par].val = val;
@@ -238,7 +238,7 @@ void HistFitParams::SetParam(Int_t par, Double_t val, ParamValues::ParamFlags fl
 }
 
 
-void HistFitParams::SetParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValues::ParamFlags flag)
+void HistFitParams::setParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValues::ParamFlags flag)
 {
 	if (!(par < allparnum)) return;
 	pars[par].val = val;
@@ -267,7 +267,7 @@ const HistFitParams HistFitParams::parseEntryFromFile(const TString & line)
 	if (arr->GetEntries() < 5)
 		return hfp;
 
-	hfp.Init(
+	hfp.init(
 		((TObjString *)arr->At(0))->String(),			// hist name
 		((TObjString *)arr->At(1))->String(),			// func val
 		((TObjString *)arr->At(2))->String(),			// func val
@@ -323,9 +323,9 @@ const HistFitParams HistFitParams::parseEntryFromFile(const TString & line)
 
 // 		std::cout << parnum << ", " << par_ << ", " << l_ << ", " << u_ << ", " << flag_ << "\n";
 		if (has_limits_)
-			hfp.SetParam(parnum, par_, l_, u_, flag_);
+			hfp.setParam(parnum, par_, l_, u_, flag_);
 		else
-			hfp.SetParam(parnum, par_, flag_);
+			hfp.setParam(parnum, par_, flag_);
 	}
 
 	return hfp;
@@ -383,7 +383,7 @@ TString HistFitParams::exportEntry() const
 	return out;
 }
 
-void HistFitParams::Print() const
+void HistFitParams::print() const
 {
 	std::cout << "@ hist name = " << histname.Data() << std::endl;
 	std::cout << "  func name = " << funname.Data() << std::endl;
@@ -398,14 +398,14 @@ void HistFitParams::Print() const
 	}
 }
 
-void HistFitParams::PrintInline() const
+void HistFitParams::printInline() const
 {
 	std::cout << "  hn=" << histname.Data() << std::endl;
 	if (rebin > 0)
 		std::cout << " R=" << rebin;
 }
 
-bool HistFitParams::Update(TF1 * f)
+bool HistFitParams::update(TF1 * f)
 {
 	if (allparnum == f->GetNpar())
 	{
@@ -422,7 +422,7 @@ FitterFactory::~FitterFactory()
 {
 	std::map<TString, HistFitParams>::iterator it;
 	for (it = hfpmap.begin(); it != hfpmap.end(); ++it)
-		it->second.Delete();
+		it->second.cleanup();
 
 	hfpmap.clear();
 }
@@ -585,7 +585,7 @@ bool FitterFactory::updateParams(TH1 * hist, TF1 * f)
 	{
 		HistFitParams hfp = it->second;
 
-		return hfp.Update(f);
+		return hfp.update(f);
 	}
 	else
 		return false;
@@ -765,7 +765,7 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 			printf(" %g", hist->GetBinContent(i+1));
 		printf("\n");
 
-		hfp.Update(tfLambdaBkg);
+		hfp.update(tfLambdaBkg);
 	}
 	else
 	{
@@ -808,14 +808,14 @@ void FitterFactory::print() const
 {
 	std::map<TString, HistFitParams>::const_iterator it;
 	for (it = hfpmap.begin(); it != hfpmap.end(); ++it)
-		it->second.Print();
+		it->second.print();
 }
 
-void FitterFactory::Delete()
+void FitterFactory::cleanup()
 {
 	std::map<TString, HistFitParams>::iterator it;
 	for (it = hfpmap.begin(); it != hfpmap.end(); ++it)
-		it->second.Delete();
+		it->second.cleanup();
 
 	hfpmap.clear();
 }
