@@ -347,8 +347,11 @@ TString HistFitParams::exportEntry() const
 
 	for (int i = 0; i < allparnum; ++i)
 	{
-		Double_t val = funSum->GetParameter(i);
-		TString v = TString::Format("%g", val);
+		// BUG why val from funSum?
+// 		Double_t val = funSum->GetParameter(i);
+// 		TString v = TString::Format("%g", val);
+
+		TString v = TString::Format("%g", pars[i].val);
 		TString l = TString::Format("%g", pars[i].l);
 		TString u = TString::Format("%g", pars[i].u);
 
@@ -545,10 +548,10 @@ bool FitterFactory::import_parameters(const char * filename)
 
 bool FitterFactory::export_parameters(const char* filename)
 {
-	if (!par_aux)
+	if (!filename)
 		return false;
 
-	std::ofstream fparfile(par_aux);
+	std::ofstream fparfile(filename);
 	if (!fparfile.is_open())
 	{
 		std::cerr << "Can't create AUX file " << filename << ". Skipping..." << std::endl;
@@ -764,8 +767,6 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 		for (int i = 0; i < hist->GetNbinsX(); ++i)
 			printf(" %g", hist->GetBinContent(i+1));
 		printf("\n");
-
-		hfp.update(tfLambdaBkg);
 	}
 	else
 	{
@@ -773,6 +774,8 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 // 			   hist->Chisquare(tfLambdaSum, "R") );
 
 		if (verbose_flag) printf("\t [ OK ]\n");
+
+		hfp.update(tfLambdaSum);
 	}
 
 	tfLambdaSum->SetChisquare(hist->Chisquare(tfLambdaSum, "R"));
