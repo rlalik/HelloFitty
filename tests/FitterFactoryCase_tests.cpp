@@ -29,7 +29,9 @@ void FitterFactoryCase_tests::MyTest()
 	std::string s1 = "_suff1";
 
 	std::string tn1 = "test_name";
-	std::string tn2 = p1 + "test_name" + s1;
+	std::string tn2 = p1 + tn1 + s1;
+	std::string tn3 = "replaced";
+	std::string tn4 = p1 + tn3 + s1;
 
 	ff.setPrefix(p1);
 	ff.setSuffix(s1);
@@ -60,4 +62,7 @@ void FitterFactoryCase_tests::MyTest()
 	ff.setPrefixManipulator(FitterFactory::PS_SUBSTRACT);
 	ff.setSuffixManipulator(FitterFactory::PS_SUBSTRACT);
 	CPPUNIT_ASSERT_EQUAL(tn1, ff.format_name(tn2));
+
+	ff.setReplacement(tn1, tn3);
+	CPPUNIT_ASSERT_EQUAL(tn3, ff.format_name(tn2));
 }
