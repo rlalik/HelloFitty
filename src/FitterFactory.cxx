@@ -610,7 +610,7 @@ FitterFactory::FIND_FLAGS FitterFactory::findParams(TH1 * hist, HistFitParams & 
 
 FitterFactory::FIND_FLAGS FitterFactory::findParams(const char * name, HistFitParams & hfp, bool use_defaults) const
 {
-	std::map<TString, HistFitParams>::const_iterator it = hfpmap.find(prefix + name + suffix);
+	std::map<TString, HistFitParams>::const_iterator it = hfpmap.find(format_name(name));
 	if (it != hfpmap.end())
 	{std::cout << "     Found:  " << prefix + name + suffix << std::endl;
 		hfp = (*it).second;
@@ -830,8 +830,11 @@ void FitterFactory::cleanup()
 	hfpmap.clear();
 }
 
-std::string FitterFactory::format_name(std::string & name)
+std::string FitterFactory::format_name(const std::string & name) const
 {
+	if (ps_prefix == PS_IGNORE and ps_suffix == PS_IGNORE and !rep_src.length())
+		return name;
+
 	std::string formatted = name;
 
 	if (ps_prefix == PS_APPEND and ps_suffix == PS_APPEND)
@@ -855,6 +858,13 @@ std::string FitterFactory::format_name(std::string & name)
 		size_t pos = formatted.find(suffix, formatted.length() - suffix.length());
 		if (pos != std::string::npos)
 			formatted = formatted.substr(0, pos);
+	}
+
+	if (rep_src.length())
+	{
+		size_t pos = formatted.find(rep_src);
+		if (pos != std::string::npos)
+			formatted = formatted.replace(pos, rep_src.length(), rep_dst);
 	}
 
 	return formatted;

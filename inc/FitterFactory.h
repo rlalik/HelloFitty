@@ -117,11 +117,12 @@ public:
 
 	inline void setPrefix(const std::string & str) { prefix = str; }
 	inline void setSuffix(const std::string & str) { suffix = str; }
+	inline void setReplacement(const std::string & src, const std::string & dst) { rep_src = src; rep_dst = dst; }
 
 	inline void setPrefixManipulator(PSFIX manip = PS_IGNORE) { ps_prefix = manip; }
 	inline void setSuffixManipulator(PSFIX manip = PS_IGNORE) { ps_suffix = manip; }
 
-	std::string format_name(std::string & name);
+	std::string format_name(const std::string & name) const;
 
 private:
 	bool import_parameters(const char * filename);
@@ -145,6 +146,9 @@ private:
 
 	PSFIX ps_prefix;
 	PSFIX ps_suffix;
+
+	std::string rep_src;
+	std::string rep_dst;
 };
 
 #endif // FITTERFACTORY_H
