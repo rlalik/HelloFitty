@@ -612,7 +612,7 @@ FitterFactory::FIND_FLAGS FitterFactory::findParams(const char * name, HistFitPa
 {
 	std::map<TString, HistFitParams>::const_iterator it = hfpmap.find(format_name(name));
 	if (it != hfpmap.end())
-	{std::cout << "     Found:  " << prefix + name + suffix << std::endl;
+	{
 		hfp = (*it).second;
 
 // 		printf(" + Fitting Invariant Mass with custom function");
@@ -620,7 +620,7 @@ FitterFactory::FIND_FLAGS FitterFactory::findParams(const char * name, HistFitPa
 		return USE_FOUND;
 	}
 	else
-	{std::cout << " Not Found:  " << prefix + name + suffix << std::endl;
+	{
 		if (use_defaults and has_defaults)
 		{
 			hfp = defpars;
