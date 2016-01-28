@@ -88,8 +88,9 @@ class FitterFactory
 public:
 	enum FLAGS { ALWAYS_REF, ALWAYS_AUX, ALWAYS_NEWER };
 	enum FIND_FLAGS { NOT_FOUND, USE_FOUND, USE_DEFAULT };
+	enum PSFIX { PS_APPEND, PS_IGNORE, PS_SUBSTRACT };
 
-	FitterFactory(FLAGS flags = ALWAYS_NEWER) : flags(flags), has_defaults(false), par_ref(nullptr), par_aux(nullptr), min_entries(0) {}
+	FitterFactory(FLAGS flags = ALWAYS_NEWER);
 	virtual ~FitterFactory();
 
 	void cleanup();
@@ -114,6 +115,14 @@ public:
 
 	inline void setEntriesLowLimit(double min) { min_entries = min; }
 
+	inline void setPrefix(const std::string & str) { prefix = str; }
+	inline void setSuffix(const std::string & str) { suffix = str; }
+
+	inline void setPrefixManipulator(PSFIX manip = PS_IGNORE) { ps_prefix = manip; }
+	inline void setSuffixManipulator(PSFIX manip = PS_IGNORE) { ps_suffix = manip; }
+
+	std::string format_name(std::string & name);
+
 private:
 	bool import_parameters(const char * filename);
 	bool export_parameters(const char * filename);
@@ -130,6 +139,12 @@ private:
 	std::map<TString, HistFitParams> hfpmap;
 
 	double min_entries;
+
+	std::string prefix;
+	std::string suffix;
+
+	PSFIX ps_prefix;
+	PSFIX ps_suffix;
 };
 
 #endif // FITTERFACTORY_H

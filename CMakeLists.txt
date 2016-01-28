@@ -75,6 +75,9 @@ install(TARGETS FitterFactory
 install(EXPORT ${CMAKE_PROJECT_NAME}Targets
 	DESTINATION ${CMAKE_INSTALL_CMAKEDIR} COMPONENT dev)
 
+enable_testing()
+add_subdirectory(tests)
+
 # messages
 MESSAGE(STATUS "<<< Configuration >>>
 Project:	${CMAKE_PROJECT_NAME}
