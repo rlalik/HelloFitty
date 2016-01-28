@@ -421,6 +421,13 @@ bool HistFitParams::update(TF1 * f)
 	return true;
 }
 
+FitterFactory::FitterFactory(FLAGS flags) :
+	flags(flags), has_defaults(false),
+	par_ref(nullptr), par_aux(nullptr), min_entries(0),
+	ps_prefix(PS_IGNORE), ps_suffix(PS_IGNORE)
+{
+}
+
 FitterFactory::~FitterFactory()
 {
 	std::map<TString, HistFitParams>::iterator it;
@@ -603,9 +610,9 @@ FitterFactory::FIND_FLAGS FitterFactory::findParams(TH1 * hist, HistFitParams & 
 
 FitterFactory::FIND_FLAGS FitterFactory::findParams(const char * name, HistFitParams & hfp, bool use_defaults) const
 {
-	std::map<TString, HistFitParams>::const_iterator it = hfpmap.find(name);
+	std::map<TString, HistFitParams>::const_iterator it = hfpmap.find(prefix + name + suffix);
 	if (it != hfpmap.end())
-	{
+	{std::cout << "     Found:  " << prefix + name + suffix << std::endl;
 		hfp = (*it).second;
 
 // 		printf(" + Fitting Invariant Mass with custom function");
@@ -613,7 +620,7 @@ FitterFactory::FIND_FLAGS FitterFactory::findParams(const char * name, HistFitPa
 		return USE_FOUND;
 	}
 	else
-	{
+	{std::cout << " Not Found:  " << prefix + name + suffix << std::endl;
 		if (use_defaults and has_defaults)
 		{
 			hfp = defpars;
@@ -821,4 +828,34 @@ void FitterFactory::cleanup()
 		it->second.cleanup();
 
 	hfpmap.clear();
+}
+
+std::string FitterFactory::format_name(std::string & name)
+{
+	std::string formatted = name;
+
+	if (ps_prefix == PS_APPEND and ps_suffix == PS_APPEND)
+		return prefix + name + suffix;
+
+	if (ps_prefix == PS_APPEND)
+		formatted = prefix + formatted;
+
+	if (ps_suffix == PS_APPEND)
+		formatted = formatted + suffix;
+
+	if (ps_prefix == PS_SUBSTRACT)
+	{
+		size_t pos = formatted.find(prefix);
+		if (pos == 0)
+			formatted = formatted.substr(prefix.length(), std::string::npos);
+	}
+
+	if (ps_suffix == PS_SUBSTRACT)
+	{
+		size_t pos = formatted.find(suffix, formatted.length() - suffix.length());
+		if (pos != std::string::npos)
+			formatted = formatted.substr(0, pos);
+	}
+
+	return formatted;
 }
