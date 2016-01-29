@@ -684,12 +684,8 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	if (hfp.funBkg) hfp.funBkg->Copy(*tfLambdaBkg);
 	if (hfp.funSum) hfp.funSum->Copy(*tfLambdaSum);
 
-// 	PR(hist->GetListOfFunctions()->GetEntries());
 	hist->GetListOfFunctions()->Clear();
 	hist->GetListOfFunctions()->SetOwner(kTRUE);
-
-	// FIXME ??? why this?
-// 	tfLambdaSum->Draw();
 
 	tfLambdaSig->SetBit(TF1::kNotDraw);
 	tfLambdaBkg->SetBit(TF1::kNotDraw);
@@ -701,19 +697,6 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	double * pars_backup_old = new double[par_num];
 	tfLambdaSum->GetParameters(pars_backup_old);
 	double chi2_backup_old = hist->Chisquare(tfLambdaSum, "R");
-
-// 	tfLambdaSum->SetRange(hfp.fun_l, hfp.fun_u);
-
-	// TODO remove it at some point
-	// this trick differences amplitudes, having two amplitudes of the same value is unprobable
-	if ( fabs(pars_backup_old[0] - pars_backup_old[3]) < (pars_backup_old[0] * 0.01) )
-	{
-		if (verbose_flag) printf(" + applying trick\n");
-		tfLambdaSum->SetParameter(0, pars_backup_old[0] * 1.5);
-		tfLambdaSum->SetParameter(3, pars_backup_old[3] * 0.5);
-
-		chi2_backup_old *= 2.;
-	}
 
 	if (verbose_flag)
 	{
@@ -806,7 +789,6 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	hist->GetListOfFunctions()->Add(tfLambdaSig);
 	hist->GetListOfFunctions()->Add(tfLambdaBkg);
 
-// 	hfp.SetOwner(false);
 	delete tfLambdaSum;
 	delete [] pars_backup_old;
 	delete [] pars_backup_new;
