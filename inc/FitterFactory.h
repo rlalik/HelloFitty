@@ -63,6 +63,7 @@ public:
 	void init(const TString & h, const TString & fsig, const TString & fbg, Int_t bgn, Double_t f_l, Double_t f_u);
 	void setParam(Int_t par, Double_t val, ParamValues::ParamFlags flag);
 	void setParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValues::ParamFlags flag);
+	void setNewName(const TString & new_name);
 	void print() const;
 	void printInline() const;
 	bool update(TF1 * f);
