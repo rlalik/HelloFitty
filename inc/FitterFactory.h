@@ -128,6 +128,7 @@ public:
 	std::string format_name(const std::string & name) const;
 
 	void insertParameters(const HistFitParams & hfp);
+	void insertParameters(const TString & name, const HistFitParams & hfp);
 	void insertParameters(const HfpEntry & par);
 
 private:

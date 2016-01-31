@@ -549,6 +549,12 @@ void FitterFactory::insertParameters(const HistFitParams & hfp)
 	hfpmap.insert(par);
 }
 
+void FitterFactory::insertParameters(const TString & name, const HistFitParams & hfp)
+{
+	HfpEntry par(name, hfp);
+	hfpmap.insert(par);
+}
+
 void FitterFactory::insertParameters(const HfpEntry & par)
 {
 	hfpmap.insert(par);
