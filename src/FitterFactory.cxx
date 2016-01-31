@@ -543,9 +543,15 @@ bool FitterFactory::exportFactoryToFile()
 	return export_parameters(par_aux);
 }
 
-void FitterFactory::insertParameters(const HfpEntry & hfp)
+void FitterFactory::insertParameters(const HistFitParams & hfp)
 {
-	hfpmap.insert(hfp);
+	HfpEntry par(hfp.histname, hfp);
+	hfpmap.insert(par);
+}
+
+void FitterFactory::insertParameters(const HfpEntry & par)
+{
+	hfpmap.insert(par);
 }
 
 bool FitterFactory::import_parameters(const char * filename)
