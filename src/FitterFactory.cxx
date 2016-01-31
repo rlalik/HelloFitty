@@ -543,6 +543,11 @@ bool FitterFactory::exportFactoryToFile()
 	return export_parameters(par_aux);
 }
 
+void FitterFactory::insertParameters(const HfpEntry & hfp)
+{
+	hfpmap.insert(hfp);
+}
+
 bool FitterFactory::import_parameters(const char * filename)
 {
 	std::ifstream ifs(filename);
@@ -557,7 +562,7 @@ bool FitterFactory::import_parameters(const char * filename)
 	{
 		HistFitParams imfit = HistFitParams::parseEntryFromFile(line);
 		std::pair<TString,HistFitParams> hfp(imfit.histname, imfit);
-		hfpmap.insert(hfp);
+		insertParameters(hfp);
 		++cnt;
 	}
 
