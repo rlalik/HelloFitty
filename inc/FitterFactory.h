@@ -84,6 +84,8 @@ private:
 	static long int cnt_owned;
 };
 
+typedef std::pair<TString, HistFitParams> HfpEntry;
+
 class FitterFactory
 {
 public:
@@ -124,6 +126,8 @@ public:
 	inline void setSuffixManipulator(PSFIX manip = PS_IGNORE) { ps_suffix = manip; }
 
 	std::string format_name(const std::string & name) const;
+
+	void insertParameters(const HfpEntry & par);
 
 private:
 	bool import_parameters(const char * filename);
