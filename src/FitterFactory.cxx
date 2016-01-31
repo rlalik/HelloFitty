@@ -589,7 +589,7 @@ bool FitterFactory::export_parameters(const char* filename)
 
 bool FitterFactory::updateParams(TH1 * hist, HistFitParams & hfp)
 {
-	std::map<TString, HistFitParams>::iterator it = hfpmap.find(hist->GetName());
+	std::map<TString, HistFitParams>::iterator it = hfpmap.find(format_name(hist->GetName()));
 	if (it != hfpmap.end())
 	{
 		it->second = hfp;
@@ -602,7 +602,7 @@ bool FitterFactory::updateParams(TH1 * hist, HistFitParams & hfp)
 
 bool FitterFactory::updateParams(TH1 * hist, TF1 * f)
 {
-	std::map<TString, HistFitParams>::iterator it = hfpmap.find(hist->GetName());
+	std::map<TString, HistFitParams>::iterator it = hfpmap.find(format_name(hist->GetName()));
 	if (it != hfpmap.end())
 	{
 		HistFitParams hfp = it->second;
@@ -626,9 +626,6 @@ FitterFactory::FIND_FLAGS FitterFactory::findParams(const char * name, HistFitPa
 	if (it != hfpmap.end())
 	{
 		hfp = (*it).second;
-
-// 		printf(" + Fitting Invariant Mass with custom function");
-// 		hfp.PrintInline();
 		return USE_FOUND;
 	}
 	else
@@ -636,9 +633,6 @@ FitterFactory::FIND_FLAGS FitterFactory::findParams(const char * name, HistFitPa
 		if (use_defaults and has_defaults)
 		{
 			hfp = defpars;
-
-// 			printf(" + Fitting Invariant Mass with standard function");
-// 			hfp.PrintInline();
 			return USE_DEFAULT;
 		}
 		else
@@ -650,16 +644,13 @@ FitterFactory::FIND_FLAGS FitterFactory::findParams(const char * name, HistFitPa
 
 bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
 {
-// 	HistFitParams::printStats();
 	HistFitParams hfp;
 	int res = findParams(hist->GetName(), hfp, true);
 
-// 	HistFitParams::printStats();
 	if (res == NOT_FOUND)
 		return false;
 
 	bool status = fit(hfp, hist, pars, gpars, min_entries);
-// 	HistFitParams::printStats();
 
 	if (status)
 		updateParams(hist, hfp);
@@ -669,10 +660,6 @@ bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
 
 bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const char* gpars, double min_entries)
 {
-// 	std::pair<Double_t, Double_t> res;
-
-// 	bool was_rebin = false;
-
 	Int_t bin_l = hist->FindBin(hfp.fun_l);
 	Int_t bin_u = hist->FindBin(hfp.fun_u);
 
