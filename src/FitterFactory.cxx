@@ -201,27 +201,39 @@ inline void HistFitParams::setOwner(bool owner)
 
 void HistFitParams::init(const TString & h, const TString & fsig, const TString & fbg, Int_t rbn, Double_t f_l, Double_t f_u)
 {
-	histname = h;
-	if (h[0] == '@') {
-		fit_disabled = kTRUE;
-		histname.Remove(0, 1);
-	}
-// 	func = f;
+	setNewName(h);
 	rebin = rbn;
-	funname = "f_" + histname;
 	f_sig = fsig;
 	f_bkg = fbg;
 	TString funcSig = "f_" + histname + "_sig";
-	TString funcBg = "f_" + histname + "_bkg";
+	TString funcBkg = "f_" + histname + "_bkg";
 
 	funSig = new TF1(funcSig, fsig, f_l, f_u);
-	funBkg = new TF1(funcBg, fbg, f_l, f_u);
+	funBkg = new TF1(funcBkg, fbg, f_l, f_u);
 
 	funSum = new TF1("f_" + histname, fsig + "+" + fbg, f_l, f_u);
 	allparnum = funSum->GetNpar();
 	pars = new ParamValues[allparnum];
 	fun_l = f_l;
 	fun_u = f_u;
+}
+
+void HistFitParams::setNewName(const TString & new_name)
+{
+	histname = new_name;
+	if (new_name[0] == '@')
+	{
+		fit_disabled = kTRUE;
+		histname.Remove(0, 1);
+	}
+	funname = "f_" + histname;
+	if (funSig and funBkg)
+	{
+		funSig->SetName("f_" + histname + "_sig");
+		funBkg->SetName("f_" + histname + "_bkg");
+
+		funSum->SetName("f_" + histname);
+	}
 }
 
 void HistFitParams::setParam(Int_t par, Double_t val, ParamValues::ParamFlags flag)
