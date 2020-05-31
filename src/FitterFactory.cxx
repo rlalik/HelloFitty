@@ -211,7 +211,7 @@ void HistFitParams::init(const TString & h, const TString & fsig, const TString 
 	funSig = new TF1(funcSig, fsig, f_l, f_u);
 	funBkg = new TF1(funcBkg, fbg, f_l, f_u);
 
-	funSum = new TF1("f_" + histname, fsig + "+" + fbg, f_l, f_u);
+	funSum = new TF1("f_" + histname, funcSig + "+" + funcBkg, f_l, f_u);
 	allparnum = funSum->GetNpar();
 	pars = new ParamValues[allparnum];
 	fun_l = f_l;
@@ -704,8 +704,11 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	hist->GetListOfFunctions()->SetOwner(kTRUE);
 
 	tfLambdaSig->SetBit(TF1::kNotDraw);
+//     tfLambdaSig->SetBit(TF1::kNotGlobal);
 	tfLambdaBkg->SetBit(TF1::kNotDraw);
+//     tfLambdaBkg->SetBit(TF1::kNotGlobal);
 // 	tfLambdaSum->SetBit(TF1::kNotDraw);
+    tfLambdaSum->SetBit(TF1::kNotGlobal);
 
 	const size_t par_num = tfLambdaSum->GetNpar();
 
@@ -795,12 +798,6 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 		double par = tfLambdaSum->GetParameter(i);
 		double err = tfLambdaSum->GetParError(i);
 
-		tfLambdaSig->SetParameter(i, par);
-		tfLambdaBkg->SetParameter(i, par);
-
-		tfLambdaSig->SetParError(i, err);
-		tfLambdaBkg->SetParError(i, err);
-
 		hfp.funSum->SetParameter(i, par);
 		hfp.funSum->SetParError(i, err);
 	}
@@ -808,15 +805,27 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 	uint parnsig = tfLambdaSig->GetNpar();
 	for (uint i = 0; i < tfLambdaSig->GetNpar(); ++i)
 	{
-		hfp.funSig->SetParameter(i, tfLambdaSum->GetParameter(i));
-		hfp.funSig->SetParError(i, tfLambdaSum->GetParError(i));
+		double par = tfLambdaSum->GetParameter(i);
+		double err = tfLambdaSum->GetParError(i);
+
+		hfp.funSig->SetParameter(i, par);
+		hfp.funSig->SetParError(i, err);
+
+		tfLambdaSig->SetParameter(i, par);
+		tfLambdaSig->SetParError(i, err);
 	}
 
 	for (uint i = 0; i < tfLambdaBkg->GetNpar(); ++i)
 	{
-		hfp.funBkg->SetParameter(i, tfLambdaSum->GetParameter(parnsig+i));
-		hfp.funBkg->SetParError(i, tfLambdaSum->GetParError(parnsig+i));
-	}
+		double par = tfLambdaSum->GetParameter(parnsig+i);
+		double err = tfLambdaSum->GetParError(parnsig+i);
+
+		hfp.funBkg->SetParameter(i, par);
+		hfp.funBkg->SetParError(i, err);
+
+		tfLambdaBkg->SetParameter(i, par);
+		tfLambdaBkg->SetParError(i, err);
+    }
 
 	hist->GetListOfFunctions()->Add(tfLambdaSig);
 	hist->GetListOfFunctions()->Add(tfLambdaBkg);
