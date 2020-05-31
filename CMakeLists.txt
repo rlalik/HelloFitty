@@ -36,7 +36,7 @@ find_package(ROOT QUIET
 include(${ROOT_USE_FILE})
 message(STATUS "BITS: ${CMAKE_SIZEOF_VOID_P}")
 ##### directories
-include_directories(${ROOT_INCLUDE_DIR} inc)
+include_directories(${ROOT_INCLUDE_DIR} BEFORE inc)
 link_directories(${ROOT_LIBRARIES_DIR})
 
 ##### make targets

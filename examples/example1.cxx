@@ -1,4 +1,5 @@
 #include <FitterFactory.h>
+#include <TH1.h>
 
 #include <fstream>
 
@@ -6,11 +7,11 @@ int main()
 {
 	const char * parname = "testpars.txt";
 	// make input par file
-	std::fstream parfile(parname, fstream::in);
+	std::ifstream parfile(parname, std::ifstream::in);
 	if (!parfile.is_open())
 	{
 		std::cout << "Creating parameter file" << std::endl;
-		std::fstream parfile2(parname, fstream::out);
+		std::ofstream parfile2(parname, std::ofstream::out);
 		if (parfile2.is_open())
 		{
 			parfile2 << " test_hist gaus(0) expo(3)  0 0 10 10 1 1 1 -1" << std::endl;
@@ -134,8 +135,9 @@ int main()
 	ff.initFactoryFromFile("testpars.txt", "testpars.out");
 
 	HistFitParams hfp;
-	ff.findParams("test_hist", hfp);
+	ff.findParams("xtest_hist", hfp);
 	ff.fit(hfp, unnamed);
+	ff.updateParams(unnamed, hfp);
 	ff.exportFactoryToFile();
 
 	return 0;

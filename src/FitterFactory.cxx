@@ -185,7 +185,7 @@ void HistFitParams::cleanup()
 	funSum = nullptr;
 }
 
-inline void HistFitParams::setOwner(bool owner)
+void HistFitParams::setOwner(bool owner)
 {
 	if (is_owner and !owner)
 	{
@@ -435,7 +435,7 @@ bool HistFitParams::update(TF1 * f)
 
 FitterFactory::FitterFactory(FLAGS flags) :
 	flags(flags), has_defaults(false),
-	par_ref(nullptr), par_aux(nullptr), min_entries(0),
+	min_entries(0),
 	ps_prefix(PS_IGNORE), ps_suffix(PS_IGNORE)
 {
 }
@@ -472,11 +472,11 @@ bool FitterFactory::initFactoryFromFile(const char * filename, const char * auxn
 	par_ref = filename;
 	par_aux = auxname;
 
-	if (!par_ref)
+	if (!filename)
 	{
 		fprintf(stderr, "No reference input file given\n");
 	}
-	if (!par_aux)
+	if (!auxname)
 	{
 		fprintf(stderr, "No output file given\n");
 	}
@@ -485,18 +485,18 @@ bool FitterFactory::initFactoryFromFile(const char * filename, const char * auxn
 	long long int mod_aux = 0;
 
 //	#ifdef HAVE_ST_MTIM
-	if (stat(par_ref, &st_ref))
+	if (stat(filename, &st_ref))
 	{
-		perror(par_ref);
+		perror(filename);
 	}
 	else
 	{
 		mod_ref = (long long)st_ref.st_mtim.tv_sec;
 	}
 
-	if (stat(par_aux, &st_aux))
+	if (stat(auxname, &st_aux))
 	{
-		perror(par_aux);
+		perror(auxname);
 	}
 	else
 	{
@@ -506,14 +506,14 @@ bool FitterFactory::initFactoryFromFile(const char * filename, const char * auxn
 	bool aux_newer = mod_aux > mod_ref;
 
 	std::cout << "Parameter files:";
-	if (!par_ref)
+	if (!filename)
 		std::cout << " [x] REF";
 	else if (!aux_newer)
 		std::cout << " [*] REF";
 	else
 		std::cout << " [ ] REF";
 
-	if (!par_aux)
+	if (!auxname)
 		std::cout << " [x] AUX";
 	else if (aux_newer)
 		std::cout << " [*] AUX";
@@ -522,17 +522,17 @@ bool FitterFactory::initFactoryFromFile(const char * filename, const char * auxn
 	std::cout << std::endl;
 
 	if (flags == ALWAYS_REF)
-		return import_parameters(par_ref);
+		return import_parameters(filename);
 
 	if (flags == ALWAYS_AUX)
-		return import_parameters(par_ref);
+		return import_parameters(auxname);
 
 	if (flags == ALWAYS_NEWER)
 	{
 		if (aux_newer)
-			return import_parameters(par_aux);
+			return import_parameters(auxname);
 		else
-			return import_parameters(par_ref);
+			return import_parameters(filename);
 	}
 
 	return false;
@@ -560,9 +560,9 @@ void FitterFactory::insertParameters(const HfpEntry & par)
 	hfpmap.insert(par);
 }
 
-bool FitterFactory::import_parameters(const char * filename)
+bool FitterFactory::import_parameters(const std::string & filename)
 {
-	std::ifstream ifs(filename);
+	std::ifstream ifs(filename.c_str());
 	if (!ifs.is_open()) {
 		std::cerr << "No file " << filename << " to open." << std::endl;
 		return false;
@@ -582,9 +582,9 @@ bool FitterFactory::import_parameters(const char * filename)
 	return true;
 }
 
-bool FitterFactory::export_parameters(const char* filename)
+bool FitterFactory::export_parameters(const std::string & filename)
 {
-	if (!filename)
+	if (filename.empty())
 		return false;
 
 	std::ofstream fparfile(filename);
@@ -800,6 +800,22 @@ bool FitterFactory::fit(HistFitParams & hfp, TH1* hist, const char* pars, const 
 
 		tfLambdaSig->SetParError(i, err);
 		tfLambdaBkg->SetParError(i, err);
+
+		hfp.funSum->SetParameter(i, par);
+		hfp.funSum->SetParError(i, err);
+	}
+
+	uint parnsig = tfLambdaSig->GetNpar();
+	for (uint i = 0; i < tfLambdaSig->GetNpar(); ++i)
+	{
+		hfp.funSig->SetParameter(i, tfLambdaSum->GetParameter(i));
+		hfp.funSig->SetParError(i, tfLambdaSum->GetParError(i));
+	}
+
+	for (uint i = 0; i < tfLambdaBkg->GetNpar(); ++i)
+	{
+		hfp.funBkg->SetParameter(i, tfLambdaSum->GetParameter(parnsig+i));
+		hfp.funBkg->SetParError(i, tfLambdaSum->GetParError(parnsig+i));
 	}
 
 	hist->GetListOfFunctions()->Add(tfLambdaSig);
