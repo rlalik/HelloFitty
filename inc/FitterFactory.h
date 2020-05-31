@@ -69,7 +69,7 @@ public:
 	bool update(TF1 * f);
 
 	void cleanup();
-	inline void setOwner(bool owner);
+	void setOwner(bool owner);
 
 	TString exportEntry() const;
 
@@ -132,16 +132,16 @@ public:
 	void insertParameters(const HfpEntry & par);
 
 private:
-	bool import_parameters(const char * filename);
-	bool export_parameters(const char * filename);
+	bool import_parameters(const std::string & filename);
+	bool export_parameters(const std::string & filename);
 
 	FitterFactory::FLAGS flags;
 
 	bool has_defaults;
 	static bool verbose_flag;
 
-	const char * par_ref;
-	const char * par_aux;
+	std::string par_ref;
+	std::string par_aux;
 
 	HistFitParams defpars;
 	std::map<TString, HistFitParams> hfpmap;
