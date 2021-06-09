@@ -4,6 +4,6 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class FitterFactory+;
+#pragma link C++ class FitterFactory + ;
 
 #endif
