@@ -1,100 +1,111 @@
-cmake_minimum_required(VERSION 2.6)
-project(FitterFactory C CXX)
-string(TOUPPER "${PROJECT_NAME}" CAPS_PROJECT_NAME)
-
-##### the version number
-set (VERSION_MAJOR 0)
-set (VERSION_MINOR 1)
-set (VERSION_PATCH 1)
-set(PROJECT_VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
+cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
+project(FitterFactory
+    VERSION 0.1.2
+    LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-else()
-	set(CMAKE_INSTALL_LIBDIR lib32)
-	set(FIND_LIBRARY_USE_LIB64_PATHS OFF)
-endif()
-
-##### set paths
-if(WIN32 AND NOT CYGWIN)
-	set(DEF_CMAKE_INSTALL_CMAKEDIR cmake)
-else()
-	set(DEF_CMAKE_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME})
-endif()
-set(CMAKE_INSTALL_CMAKEDIR ${DEF_CMAKE_INSTALL_CMAKEDIR} CACHE PATH "Installation directory for CMake files")
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME})
 
 ##### find ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
-find_package(ROOT QUIET
-	REQUIRED COMPONENTS Core  RIO Net Hist Graf Graf3d Gpad Tree Rint Postscript Matrix Physics MathCore Thread
-	OPTIONAL_COMPONENTS Cling Cint)
+find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)
 
-include(${ROOT_USE_FILE})
-message(STATUS "BITS: ${CMAKE_SIZEOF_VOID_P}")
-##### directories
-include_directories(${ROOT_INCLUDE_DIR} BEFORE inc)
-link_directories(${ROOT_LIBRARIES_DIR})
+add_library(${CMAKE_PROJECT_NAME} SHARED
+    src/FitterFactory.cxx
+)
+add_library(RT::${CMAKE_PROJECT_NAME} ALIAS ${CMAKE_PROJECT_NAME})
 
-##### make targets
-ROOT_STANDARD_LIBRARY_PACKAGE(FitterFactory DEPENDENCIES ${ROOT_LIBRARIES})
+target_include_directories(${CMAKE_PROJECT_NAME}
+    PUBLIC
+        $<INSTALL_INTERFACE:include>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/inc
+)
 
-add_subdirectory(examples)
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    PUBLIC
+        ROOT::Core
+        ROOT::Hist
+)
+
+set_target_properties(${CMAKE_PROJECT_NAME}
+    PROPERTIES
+        SOVERSION ${PROJECT_VERSION_MAJOR}
+        VERSION ${PROJECT_VERSION}
+        PUBLIC_HEADER
+            "inc/FitterFactory.h"
+)
+
+ROOT_GENERATE_DICTIONARY(G__${CMAKE_PROJECT_NAME}_cc
+    FitterFactory.h
+    MODULE ${CMAKE_PROJECT_NAME}
+    LINKDEF LinkDef.h
+)
 
 # Export the package for use from the build-tree
 # (this registers the build-tree with a global CMake-registry)
 export(PACKAGE ${CMAKE_PROJECT_NAME})
 
-include(CMakePackageConfigHelpers)
-configure_package_config_file(Config.cmake.in ${CMAKE_PROJECT_NAME}Config.cmake
-	INSTALL_DESTINATION ${CMAKE_INSTALL_CMAKEDIR}
-	PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR CMAKE_INSTALL_BINDIR)
-
-write_basic_package_version_file(${CMAKE_PROJECT_NAME}ConfigVersion.cmake
-	VERSION ${PROJECT_VERSION}
-	COMPATIBILITY SameMajorVersion)
-                                 
-install(FILES
-	${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}Config.cmake
-	${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}ConfigVersion.cmake
-	DESTINATION ${CMAKE_INSTALL_CMAKEDIR})
-
-# Add all targets to the build-tree export set
-export(TARGETS FitterFactory
-	FILE ${CMAKE_PROJECT_NAME}Targets.cmake)
-
 # Install the export set for use with the install-tree
-install(TARGETS FitterFactory
-	EXPORT ${CMAKE_PROJECT_NAME}Targets
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	COMPONENT shlib COMPONENT dev)
+install(TARGETS ${CMAKE_PROJECT_NAME}
+    EXPORT ${CMAKE_PROJECT_NAME}Targets
+    LIBRARY
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    PUBLIC_HEADER
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 
 install(EXPORT ${CMAKE_PROJECT_NAME}Targets
-	DESTINATION ${CMAKE_INSTALL_CMAKEDIR} COMPONENT dev)
+    FILE ${CMAKE_PROJECT_NAME}Targets.cmake
+    NAMESPACE RT::
+    DESTINATION ${CMAKE_INSTALL_CMAKEDIR} COMPONENT dev)
 
-enable_testing()
-add_subdirectory(tests)
+include(CMakePackageConfigHelpers)
+configure_package_config_file(Config.cmake.in ${CMAKE_PROJECT_NAME}Config.cmake
+    INSTALL_DESTINATION ${CMAKE_INSTALL_CMAKEDIR}
+    PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR CMAKE_INSTALL_BINDIR)
+
+write_basic_package_version_file(${CMAKE_PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}Config.cmake
+    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}ConfigVersion.cmake
+    DESTINATION ${CMAKE_INSTALL_CMAKEDIR})
+
+option(BUILD_EXAMPLES "Build examples" ON)
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
+
+option(ENABLE_TESTING "Build tests" ON)
+if(ENABLE_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
 # messages
 MESSAGE(STATUS "<<< Configuration >>>
-Project:	${CMAKE_PROJECT_NAME}
+Project:        ${CMAKE_PROJECT_NAME}
 
-Build type	${CMAKE_BUILD_TYPE}
-Install path	${CMAKE_INSTALL_PREFIX}
+Architecture:   ${CMAKE_LIBRARY_ARCHITECTURE}
+Build type      ${CMAKE_BUILD_TYPE}
+Install path    ${CMAKE_INSTALL_PREFIX}
 
 Compiler:
-C		${CMAKE_C_COMPILER}
-C++		${CMAKE_CXX_COMPILER}
+C               ${CMAKE_C_COMPILER}
+C++             ${CMAKE_CXX_COMPILER}
 
 Linker:
-Ld		${CMAKE_LINKER}
+Ld              ${CMAKE_LINKER}
 
 Compiler flags:
-C		${CMAKE_C_FLAGS}
-C++		${CMAKE_CXX_FLAGS}
+C               ${CMAKE_C_FLAGS}
+C++             ${CMAKE_CXX_FLAGS}
 
 Linker flags:
 Executable      ${CMAKE_EXE_LINKER_FLAGS}
@@ -102,5 +113,5 @@ Module          ${CMAKE_MODULE_LINKER_FLAGS}
 Shared          ${CMAKE_SHARED_LINKER_FLAGS}\n")
 
 foreach(p LIB BIN INCLUDE CMAKE)
-	message(STATUS "CMAKE_INSTALL_${p}DIR: ${CMAKE_INSTALL_${p}DIR}")
+    message(STATUS "CMAKE_INSTALL_${p}DIR: ${CMAKE_INSTALL_${p}DIR}")
 endforeach()

@@ -1,21 +1,31 @@
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR})
-find_package(cppunit)
+find_package(GTest)
 
-file(GLOB UnitTests_SRCS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} "*_tests.cpp" )
+#configure_file(tests_config.h.in tests_config.h)
 
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(tests_SRCS
+    tests_FitterFactory.cpp
+)
 
-add_executable(UnitTester test_runner.cpp ${UnitTests_SRCS})
-target_link_libraries(UnitTester FitterFactory ${CPPUNIT_LIBRARIES})
+add_executable(
+    gtests
+    ${tests_SRCS}
+)
 
-foreach(test ${UnitTests_SRCS})
-	get_filename_component(TestName ${test} NAME_WE)
-	message(STATUS "Adding test ${TestName}")
-	add_test(${TestName} ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/UnitTester ${TestName})
-endforeach(test)
+if (TARGET GTest::gtest_main)
+    # new cmake provided
+    set(GTEST_TRG GTest::gtest_main)
+else()
+    # old cmake and pc files
+    set(GTEST_TRG gtest gtest_main)
+endif()
 
-# add_custom_command(TARGET MainTest
-# 	POST_BUILD
-# 	COMMAND ctest --output-on-failure)
+target_link_libraries(
+    gtests
+    PRIVATE
+        FitterFactory
+        ROOT::Core
+        ${GTEST_TRG}
+)
+#target_code_coverage(gtests ALL)
 
-# add_custom_target(MainTest ALL UnitTester)
+gtest_discover_tests(gtests)
