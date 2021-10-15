@@ -85,8 +85,7 @@ public:
     void setParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValue::FitMode mode);
     void print(bool detailed = false) const;
     void printInline() const;
-    bool update();
-    bool update(TF1* f);
+    bool load(TF1* f);
 
     void clear();
 

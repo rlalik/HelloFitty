@@ -259,9 +259,7 @@ void HistogramFitParams::printInline() const
     if (rebin > 0) std::cout << " R=" << rebin;
 }
 
-bool HistogramFitParams::update() { return update(&function_sum); }
-
-bool HistogramFitParams::update(TF1* f)
+bool HistogramFitParams::load(TF1* f)
 {
     auto s = pars.size();
     if (s == f->GetNpar())
@@ -602,13 +600,15 @@ bool FitterFactory::fit(HistogramFitParams* hfp, TH1* hist, const char* pars, co
     new_sig_func->SetChisquare(hist->Chisquare(tfSum, "R"));
 
     uint parnsig = tfSig->GetNpar();
-    for (int i = 0; i < tfSig->GetNpar(); ++i)
+    for (int i = 0; i < parnsig; ++i)
     {
         double par = tfSum->GetParameter(i);
         double err = tfSum->GetParError(i);
 
         tfSig->SetParameter(i, par);
         tfSig->SetParError(i, err);
+
+        hfp->pars[i].val = par;
     }
 
     for (int i = parnsig; i < tfBkg->GetNpar(); ++i)
@@ -618,6 +618,8 @@ bool FitterFactory::fit(HistogramFitParams* hfp, TH1* hist, const char* pars, co
 
         tfBkg->SetParameter(i, par);
         tfBkg->SetParError(i, err);
+
+        hfp->pars[i].val = par;
     }
 
     hist->GetListOfFunctions()->Add(tfSig);
