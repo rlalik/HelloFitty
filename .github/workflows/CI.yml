@@ -12,9 +12,9 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  build:
+  builds-matrix:
     # The type of runner that the job will run on
-    name: "${{ matrix.compiler.name }} (CMake: ${{ matrix.cmake-version }}, ROOT: ${{ matrix.root-version.name }})"
+    name: " ${{matrix.os-version }} ${{ matrix.compiler }} (CMake: ${{ matrix.cmake-version }}, ROOT: ${{ matrix.root-version.name }})"
     runs-on: ${{ matrix.os-version }}
 
     strategy:
@@ -22,36 +22,8 @@ jobs:
       matrix:
         os-version: [ ubuntu-latest ]
         build_type: [ Release ]
-        compiler:
-        - {
-            name: "GCC-9",
-            os: ubuntu-latest,
-            cc: "gcc-9",
-            cxx: "g++-9",
-            package: g++-9,
-          }
-        - {
-            name: "GCC-10",
-            os: ubuntu-latest,
-            cc: "gcc-10",
-            cxx: "g++-10",
-            package: g++-10,
-          }
-        - {
-            name: "Clang-11",
-            os: ubuntu-latest,
-            cc: "clang-11",
-            cxx: "clang++-11",
-            package: clang-11,
-          }
-        - {
-            name: "Clang-12",
-            os: ubuntu-latest,
-            cc: "clang-12",
-            cxx: "clang++-12",
-            package: clang-12,
-          }
-        cmake-version: [ "", "3.16" ]
+        compiler: [ gcc-9, gcc-10, gcc-11, clang-9, clang-10, clang-11 ]
+        cmake-version: [ "3.16" ]
         root-version:
         - {
             name: 6.22.08,
@@ -60,6 +32,9 @@ jobs:
         - {
             name: 6.24.00,
           }
+        - {
+            name: 6.24.06,
+          }
 
     steps:
       - name: Print env
@@ -67,21 +42,20 @@ jobs:
           echo github.event.action: ${{ github.event.action }}
           echo github.event_name: ${{ github.event_name }}
 
+      - name: Setup gcc compiler
+        id: setup_cc
+        uses: rlalik/setup-cpp-compiler@v1.1
+        with:
+          compiler: ${{ matrix.compiler }}
+
       - name: Install common dependencies
         run: |
           sudo apt update
-          sudo apt install ${{ matrix.compiler.package }} -y
-          sudo apt install cmake libgtest-dev lcov -y
-          sudo apt install python3-numpy libtbb-dev libxxhash0 libafterimage-dev -y
+          sudo apt install cmake wget libgtest-dev lcov -y
+          sudo apt install python3-numpy libtbb-dev libxxhash0 -y
           cmake --version
           wget http://gccb.if.uj.edu.pl/code/root-cpp17_${{ matrix.root-version.name }}_amd64.deb
           sudo dpkg -i root-cpp17_${{ matrix.root-version.name }}_amd64.deb
-          . /etc/profile
-          git clone https://github.com/rlalik/RootTools
-          mkdir build_roottools
-          cmake -S RootTools -B build_roottools -DCMAKE_INSTALL_PREFIX=/usr ${{ matrix.root-version.cmake_args }}
-          cmake --build build_roottools
-          sudo cmake --install build_roottools
 
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout repository
@@ -95,6 +69,9 @@ jobs:
           cmake-version: ${{ matrix.cmake-version }}
 
       - name: Configure
+        env:
+          CC: ${{ steps.setup_cc.outputs.cc }}
+          CXX: ${{ steps.setup_cc.outputs.cxx }}
         shell: bash
         run: |
           . /etc/profile
@@ -105,7 +82,6 @@ jobs:
             -S . \
             -B build \
             -DENABLE_TESTING=On \
-            -DBUILD_EXAMPLES=On \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_INSTALL_PREFIX:PATH=instdir \
             ${{ matrix.root-version.cmake_args }}
