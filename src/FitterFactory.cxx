@@ -43,10 +43,13 @@ using std::make_unique;
 
 bool FitterFactory::verbose_flag = true;
 
-void ParamValue::print()
+constexpr void ParamValue::print() const
 {
-    printf("   %g ( %g, %g ), %s, %d\n", val, l, u, mode == FitMode::Free ? "Free" : "Fixed",
-           has_limits);
+    printf("%8g   Mode: %-5s   Limits: ", val, mode == FitMode::Free ? "Free" : "Fixed");
+    if (has_limits)
+        printf(" %g, %g\n", l, u);
+    else
+        printf(" none\n");
 }
 
 HistogramFitParams::HistogramFitParams(const TString& hist_name, const TString& formula_s,
@@ -58,6 +61,11 @@ HistogramFitParams::HistogramFitParams(const TString& hist_name, const TString& 
       function_bkg("", formula_b, range_lower, range_upper, TF1::EAddToList::kNo),
       function_sum("", formula_s + "+" + formula_b, range_lower, range_upper, TF1::EAddToList::kNo)
 {
+    if (hist_name[0] == '@')
+    {
+        fit_disabled = true;
+    }
+
     pars.resize(function_sum.GetNpar());
 }
 
@@ -68,14 +76,8 @@ auto HistogramFitParams::clone(const TString& new_name) const -> std::unique_ptr
 
 void HistogramFitParams::clear() { drop(); }
 
-void HistogramFitParams::init(const TString& function_format_name)
+void HistogramFitParams::init()
 {
-    if (hist_name[0] == '@')
-    {
-        fit_disabled = true;
-        return;
-    }
-
     for (auto i = 0; i < pars.size(); ++i)
         if (pars[i].mode == ParamValue::FitMode::Fixed)
             function_sum.FixParameter(i, pars[i].val);
@@ -236,18 +238,14 @@ TString HistogramFitParams::exportEntry() const
 
 void HistogramFitParams::print(bool detailed) const
 {
-    std::cout << "@ hist name = " << hist_name.Data() << std::endl;
-    std::cout << "  func name = " << hist_name.Data() << std::endl;
-    std::cout << " | rebin = " << rebin << std::endl;
-    std::cout << "  range = " << range_l << " -- " << range_u << std::endl;
-    std::cout << "  param num = " << pars.size() << std::endl;
-    std::cout << "  params list:" << std::endl;
+    std::cout << "## name: " << hist_name.Data() << "   rebin: " << rebin << "   range: " << range_l
+              << " -- " << range_u << "  param num: " << pars.size() << "\n";
 
     auto s = pars.size();
     for (decltype(s) i = 0; i < s; ++i)
     {
-        std::cout << "  * " << i << ": " << pars[i].val << " " << pars[i].l << " " << pars[i].u
-                  << std::endl;
+        std::cout << "   " << i << ": ";
+        pars[i].print();
     }
 
     if (detailed)
@@ -260,12 +258,6 @@ void HistogramFitParams::print(bool detailed) const
         function_sum.Print("V");
         std::cout << "++++++++++++++++++++++++++++++++" << std::endl;
     }
-}
-
-void HistogramFitParams::printInline() const
-{
-    std::cout << "  hn=" << hist_name.Data() << std::endl;
-    if (rebin > 0) std::cout << " R=" << rebin;
 }
 
 bool HistogramFitParams::load(TF1* f)
@@ -284,18 +276,9 @@ bool HistogramFitParams::load(TF1* f)
 
 void HistogramFitParams::push()
 {
-    int n = function_sum.GetNpar();
-    if (backup_p.size() == 0)
-    {
-        backup_p.resize(n);
-        backup_e.resize(n);
-
-        for (int i = 0; i < n; ++i)
-        {
-            backup_p[i] = function_sum.GetParameter(i);
-            backup_e[i] = function_sum.GetParError(i);
-        }
-    }
+    backup_p.clear();
+    for (auto & p : pars)
+        backup_p.push_back(p.val);
 }
 
 void HistogramFitParams::pop()
@@ -306,43 +289,19 @@ void HistogramFitParams::pop()
 
 void HistogramFitParams::apply()
 {
-    auto s = pars.size();
-    auto n = function_sum.GetNpar();
+    if (backup_p.size() != pars.size()) return;
 
-    if (s != n) return;
-
-    for (int i = 0; i < n; ++i)
-    {
-        function_sum.SetParameter(i, backup_p[i]);
-        function_sum.SetParError(i, backup_e[i]);
-    }
+    auto n = pars.size();
+    for (decltype(n) i = 0; i < n; ++i)
+        pars[i].val = backup_p[i];
 }
 
 void HistogramFitParams::drop()
 {
     backup_p.clear();
-    backup_e.clear();
-}
-
-FitterFactory::FitterFactory(PriorityMode mode)
-    : mode(mode), has_defaults(false), defpars(nullptr), min_entries(0)
-{
 }
 
 FitterFactory::~FitterFactory() { clear(); }
-
-FitterFactory::PriorityMode FitterFactory::setFlags(FitterFactory::PriorityMode new_mode)
-{
-    FitterFactory::PriorityMode old = mode;
-    mode = new_mode;
-    return old;
-}
-
-void FitterFactory::setDefaultParameters(HistogramFitParams* defs)
-{
-    has_defaults = true;
-    defpars = defs;
-}
 
 bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxname)
 {
@@ -416,7 +375,6 @@ void FitterFactory::insertParameters(std::unique_ptr<HistogramFitParams> hfp)
 
 void FitterFactory::insertParameters(const TString& name, std::unique_ptr<HistogramFitParams> hfp)
 {
-    hfp->init(format_name(name, name_decorator));
     hfpmap.insert({name, std::move(hfp)});
 }
 
@@ -487,26 +445,25 @@ bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
     }
 
     hfp->push();
-    bool status = fit(hfp, hist, pars, gpars, min_entries);
+    bool status = fit(hfp, hist, pars, gpars);
 
     if (!status) hfp->pop();
 
     return status;
 }
 
-bool FitterFactory::fit(HistogramFitParams* hfp, TH1* hist, const char* pars, const char* gpars,
-                        double min_entries)
+bool FitterFactory::fit(HistogramFitParams* hfp, TH1* hist, const char* pars, const char* gpars)
 {
     Int_t bin_l = hist->FindBin(hfp->range_l);
     Int_t bin_u = hist->FindBin(hfp->range_u);
+
+    hfp->init();
 
     if (hfp->rebin != 0)
     {
         // was_rebin = true;
         hist->Rebin(hfp->rebin);
     }
-
-    if (hist->GetEntries() < min_entries) return false;
 
     if (hist->Integral(bin_l, bin_u) == 0) return false;
 

@@ -41,13 +41,13 @@ struct ParamValue
     } mode{FitMode::Free};
     bool has_limits{false};
 
-    ParamValue() = default;
-    ParamValue(double val, ParamValue::FitMode mode) : val(val), mode(mode) {}
-    ParamValue(double val, double l, double u, ParamValue::FitMode mode)
+    constexpr ParamValue() = default;
+    constexpr ParamValue(double val, ParamValue::FitMode mode) : val(val), mode(mode) {}
+    constexpr ParamValue(double val, double l, double u, ParamValue::FitMode mode)
         : val(val), l(l), u(u), mode(mode), has_limits(true)
     {
     }
-    void print();
+    constexpr void print() const;
 };
 
 using ParamVector = std::vector<ParamValue>;
@@ -70,7 +70,7 @@ public:
     TF1 function_bkg;
     TF1 function_sum;
 
-    HistogramFitParams() = delete;
+    constexpr HistogramFitParams() = delete;
     HistogramFitParams(const TString& hist_name, const TString& formula_s, const TString& formula_b,
                        Double_t range_lower, Double_t range_upper);
     HistogramFitParams(HistogramFitParams&& other) = default;
@@ -78,13 +78,12 @@ public:
 
     ~HistogramFitParams() = default;
 
-    void init(const TString& function_format_name);
+    void init();
     auto clone(const TString& new_name) const -> std::unique_ptr<HistogramFitParams>;
     void setParam(Int_t par, ParamValue value);
     void setParam(Int_t par, Double_t val, ParamValue::FitMode mode);
     void setParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValue::FitMode mode);
     void print(bool detailed = false) const;
-    void printInline() const;
     bool load(TF1* f);
 
     void clear();
@@ -104,7 +103,6 @@ private:
 
 private:
     std::vector<Double_t> backup_p; // backup for parameters
-    std::vector<Double_t> backup_e; // backup for par errors
 };
 
 using HfpEntry = std::pair<TString, std::unique_ptr<HistogramFitParams>>;
@@ -119,13 +117,13 @@ public:
         Newer
     };
 
-    FitterFactory(PriorityMode flags = PriorityMode::Newer);
+    FitterFactory(PriorityMode mode = PriorityMode::Newer) : mode(mode), defpars(nullptr) {}
     virtual ~FitterFactory();
 
     void clear();
 
-    PriorityMode setFlags(PriorityMode new_mode);
-    void setDefaultParameters(HistogramFitParams* defs);
+    constexpr void setFlags(PriorityMode new_mode) { mode = new_mode; }
+    constexpr void setDefaultParameters(HistogramFitParams* defs) { defpars = defs; }
 
     bool initFactoryFromFile(const char* filename, const char* auxname = 0);
     bool exportFactoryToFile();
@@ -134,16 +132,13 @@ public:
     HistogramFitParams* findParams(const char* name) const;
 
     bool fit(TH1* hist, const char* pars = "B,Q", const char* gpars = "");
-    bool fit(HistogramFitParams* hfp, TH1* hist, const char* pars = "B,Q", const char* gpars = "",
-             double min_entries = 0);
+    bool fit(HistogramFitParams* hfp, TH1* hist, const char* pars = "B,Q", const char* gpars = "");
 
     void print() const;
 
     static void setVerbose(bool verbose) { verbose_flag = verbose; }
 
-    inline void setEntriesLowLimit(double min) { min_entries = min; }
-
-    inline void setReplacement(const TString& src, const TString& dst)
+    void setReplacement(const TString& src, const TString& dst)
     {
         rep_src = src;
         rep_dst = dst;
@@ -164,7 +159,6 @@ private:
 
     PriorityMode mode;
 
-    bool has_defaults;
     static bool verbose_flag;
 
     TString par_ref;
@@ -172,8 +166,6 @@ private:
 
     HistogramFitParams* defpars;
     std::map<TString, std::unique_ptr<HistogramFitParams>> hfpmap;
-
-    double min_entries;
 
     TString name_decorator{"*"};
     TString function_decorator{"f_*"};
