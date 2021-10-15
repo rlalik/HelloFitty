@@ -159,8 +159,8 @@ public:
     void setFunctionDecorator(const TString& decorator) { function_decorator = decorator; };
 
 private:
-    bool import_parameters(std::string_view filename);
-    bool export_parameters(std::string_view filename);
+    bool import_parameters(const std::string& filename);
+    bool export_parameters(const std::string& filename);
 
     PriorityMode mode;
 

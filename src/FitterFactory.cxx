@@ -32,6 +32,15 @@
 #define PR(x)                                                                                      \
     std::cout << "++DEBUG: " << #x << " = |" << x << "| (" << __FILE__ << ", " << __LINE__ << ")\n";
 
+#if __cplusplus < 201402L
+template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+#else
+using std::make_unique;
+#endif
+
 bool FitterFactory::verbose_flag = true;
 
 void ParamValue::print()
@@ -54,7 +63,7 @@ HistogramFitParams::HistogramFitParams(const TString& hist_name, const TString& 
 
 auto HistogramFitParams::clone(const TString& new_name) const -> std::unique_ptr<HistogramFitParams>
 {
-    return std::make_unique<HistogramFitParams>(new_name, sig_string, bkg_string, range_l, range_u);
+    return make_unique<HistogramFitParams>(new_name, sig_string, bkg_string, range_l, range_u);
 }
 
 void HistogramFitParams::clear() { drop(); }
@@ -113,12 +122,12 @@ std::unique_ptr<HistogramFitParams> HistogramFitParams::parseEntryFromFile(const
         abort();
     };
 
-    auto hfp = std::make_unique<HistogramFitParams>(
-        ((TObjString*)arr->At(0))->String(),        // hist name
-        ((TObjString*)arr->At(1))->String(),        // func val
-        ((TObjString*)arr->At(2))->String(),        // func val
-        ((TObjString*)arr->At(4))->String().Atof(), // low range
-        ((TObjString*)arr->At(5))->String().Atof());
+    auto hfp =
+        make_unique<HistogramFitParams>(((TObjString*)arr->At(0))->String(),        // hist name
+                                        ((TObjString*)arr->At(1))->String(),        // func val
+                                        ((TObjString*)arr->At(2))->String(),        // func val
+                                        ((TObjString*)arr->At(4))->String().Atof(), // low range
+                                        ((TObjString*)arr->At(5))->String().Atof());
 
     Double_t par_, l_, u_;
     Int_t step = 0;
@@ -397,7 +406,7 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
     return false;
 }
 
-bool FitterFactory::exportFactoryToFile() { return export_parameters(par_aux); }
+bool FitterFactory::exportFactoryToFile() { return export_parameters(par_aux.Data()); }
 
 void FitterFactory::insertParameters(std::unique_ptr<HistogramFitParams> hfp)
 {
@@ -411,10 +420,9 @@ void FitterFactory::insertParameters(const TString& name, std::unique_ptr<Histog
     hfpmap.insert({name, std::move(hfp)});
 }
 
-bool FitterFactory::import_parameters(std::string_view filename)
+bool FitterFactory::import_parameters(const std::string& filename)
 {
-    std::string fn(filename);
-    std::ifstream fparfile(fn);
+    std::ifstream fparfile(filename);
     if (!fparfile.is_open())
     {
         std::cerr << "No file " << filename << " to open." << std::endl;
@@ -432,10 +440,9 @@ bool FitterFactory::import_parameters(std::string_view filename)
     return true;
 }
 
-bool FitterFactory::export_parameters(std::string_view filename)
+bool FitterFactory::export_parameters(const std::string& filename)
 {
-    std::string fn(filename);
-    std::ofstream fparfile(fn);
+    std::ofstream fparfile(filename);
     if (!fparfile.is_open())
     {
         std::cerr << "Can't create AUX file " << filename << ". Skipping..." << std::endl;
