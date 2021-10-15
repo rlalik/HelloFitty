@@ -23,12 +23,6 @@ jobs:
           echo github.event.action: ${{ github.event.action }}
           echo github.event_name: ${{ github.event_name }}
 
-      - name: Setup gcc compiler
-        id: setup_cc
-        uses: rlalik/setup-cpp-compiler@v1.1
-        with:
-          compiler: gcc-11
-
       - name: Install common dependencies
         run: |
           sudo apt update
@@ -51,8 +45,6 @@ jobs:
 
       - name: Configure
         env:
-          CC: ${{ steps.setup_cc.outputs.cc }}
-          CXX: ${{ steps.setup_cc.outputs.cxx }}
           CFLAGS: -fprofile-arcs -ftest-coverage
           CXXFLAGS: -fprofile-arcs -ftest-coverage
           LDFLAGS: -lgcov
@@ -80,14 +72,14 @@ jobs:
       - name: Examples
         shell: bash
         run: |
-          cd build
-          examples/example1
-          examples/example2 examples/testhist.root testpars.out results.root
+          build/examples/example1
+          build/examples/example2 build/examples/testhist.root testpars.out results.root
 
       - name: lcov-action
-        uses: danielealbano/lcov-action@v1
+        uses: rlalik/lcov-action@v2-beta
         with:
           remove_patterns: build
+          build_dir: build
 
       - name: Publish to coveralls.io
         uses: coverallsapp/github-action@v1.1.2
