@@ -70,6 +70,64 @@ TEST(tests_HistogramFitParam, cloning)
     ASSERT_EQ(hfp1.fit_disabled, hfp2->fit_disabled);
 }
 
+TEST(tests_HistogramFitParam, backups)
+{
+    HistogramFitParams hfp1("h1", "gaus(0)", "expo(3)", 1, 10);
+
+    ParamValue p1;
+    auto p2 = ParamValue();
+    auto p3 = ParamValue(3, ParamValue::FitMode::Fixed);
+    auto p4 = ParamValue(4, 1, 10, ParamValue::FitMode::Free);
+
+    hfp1.setParam(0, p1);
+    hfp1.setParam(1, p2);
+    hfp1.setParam(2, p3);
+    hfp1.setParam(3, p4);
+
+    hfp1.push();
+
+    ASSERT_EQ(hfp1.pars[0].val, 0);
+    ASSERT_EQ(hfp1.pars[1].val, 0);
+    ASSERT_EQ(hfp1.pars[2].val, 3);
+    ASSERT_EQ(hfp1.pars[3].val, 4);
+
+    hfp1.pars[0].val = 10;
+    hfp1.pars[1].val = 20;
+    hfp1.pars[2].val = 30;
+    hfp1.pars[3].val = 40;
+
+    hfp1.apply();
+
+    ASSERT_EQ(hfp1.pars[0].val, 0);
+    ASSERT_EQ(hfp1.pars[1].val, 0);
+    ASSERT_EQ(hfp1.pars[2].val, 3);
+    ASSERT_EQ(hfp1.pars[3].val, 4);
+
+    hfp1.pars[0].val = 10;
+    hfp1.pars[1].val = 20;
+    hfp1.pars[2].val = 30;
+    hfp1.pars[3].val = 40;
+
+    hfp1.pop();
+
+    ASSERT_EQ(hfp1.pars[0].val, 0);
+    ASSERT_EQ(hfp1.pars[1].val, 0);
+    ASSERT_EQ(hfp1.pars[2].val, 3);
+    ASSERT_EQ(hfp1.pars[3].val, 4);
+
+    hfp1.pars[0].val = 10;
+    hfp1.pars[1].val = 20;
+    hfp1.pars[2].val = 30;
+    hfp1.pars[3].val = 40;
+
+    hfp1.pop();
+
+    ASSERT_EQ(hfp1.pars[0].val, 10);
+    ASSERT_EQ(hfp1.pars[1].val, 20);
+    ASSERT_EQ(hfp1.pars[2].val, 30);
+    ASSERT_EQ(hfp1.pars[3].val, 40);
+}
+
 TEST(tests_FitterFactory, prefix_suffix_test)
 {
     std::string f1 = "pref1_*";

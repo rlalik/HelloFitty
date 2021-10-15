@@ -154,8 +154,16 @@ int main()
     auto hfp = ff.findParams("test_hist");
     if (hfp)
     {
+        printf("\nBefore fitting:\n");
+        hfp->print();
+        printf("\n");
+
         hfp->push();
         if (!ff.fit(hfp, unnamed)) hfp->pop();
+
+        printf("\nAfter fitting:\n");
+        hfp->print();
+        printf("\n");
     }
     else
     {
