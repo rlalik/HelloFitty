@@ -1,6 +1,11 @@
 #include <FitterFactory.h>
-#include <TH1.h>
 
+#include "ffconfig.h"
+
+#include <TH1.h>
+#include <TFile.h>
+
+#include <iostream>
 #include <fstream>
 
 int main()
@@ -131,10 +136,17 @@ int main()
     unnamed->SetBinContent(100, 55);
     unnamed->SetEntries(210000);
 
+    auto rfn = TString(build_path) + "/testhist.root";
+    TFile * fp = TFile::Open(rfn, "RECREATE");
+    if (fp) unnamed->Write();
+    else { std::cerr << "File " << rfn << " not open\n"; abort(); }
+
+    fp->Close();
+
     FitterFactory ff;
     ff.initFactoryFromFile("testpars.txt", "testpars.out");
 
-    HistFitParams* hfp = ff.findParams("test_hist");
+    auto hfp = ff.findParams("test_hist");
     if (hfp)
     {
         hfp->push();

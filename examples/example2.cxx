@@ -1,17 +1,17 @@
 #include <FitterFactory.h>
 
+#include "ffconfig.h"
+
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
 
+#include <TH1.h>
 #include <TFile.h>
 #include <TKey.h>
 #include <TMath.h>
 #include <TROOT.h>
 
-#include <FitterFactory.h>
-
-#include "ffconfig.h"
 
 #ifdef HAS_ROOTTOOLS
 #include <RootTools.h>
