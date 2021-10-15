@@ -55,8 +55,8 @@ using ParamVector = std::vector<ParamValue>;
 class HistogramFitParams
 {
 public:
-    TString hist_name;     // histogram name
-    TString sig_string;    // signal and background functions
+    TString hist_name;  // histogram name
+    TString sig_string; // signal and background functions
     TString bkg_string;
 
     Double_t range_l; // function range
