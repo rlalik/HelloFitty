@@ -52,6 +52,24 @@ TEST(tests_HistogramFitParam, basic)
     ASSERT_EQ(hfp1.fit_disabled, false);
 }
 
+TEST(tests_HistogramFitParam, cloning)
+{
+    HistogramFitParams hfp1("h1", "gaus(0)", "expo(3)", 1, 10);
+
+    auto hfp2 = hfp1.clone("h2");
+
+    ASSERT_STRNE(hfp1.hist_name, hfp2->hist_name);
+    ASSERT_STREQ(hfp2->hist_name, "h2");
+    ASSERT_STREQ(hfp1.sig_string, hfp2->sig_string);
+    ASSERT_STREQ(hfp1.bkg_string, hfp2->bkg_string);
+
+    ASSERT_EQ(hfp1.range_l, hfp2->range_l);
+    ASSERT_EQ(hfp1.range_u, hfp2->range_u);
+
+    ASSERT_EQ(hfp1.rebin, hfp2->rebin);
+    ASSERT_EQ(hfp1.fit_disabled, hfp2->fit_disabled);
+}
+
 TEST(tests_FitterFactory, prefix_suffix_test)
 {
     std::string f1 = "pref1_*";

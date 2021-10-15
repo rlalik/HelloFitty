@@ -1,0 +1,85 @@
+# This is a basic workflow to help you get started with Actions
+name: C++ Standards Checks
+
+# Controls when the action will run. Triggers the workflow on push
+on:
+  push:
+  pull_request:
+  release:
+    # tags:
+    # - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  builds-matrix:
+    # The type of runner that the job will run on
+    name: " ${{matrix.os-version }} ${{ matrix.compiler }} (CMake: ${{ matrix.cmake-version }}, ROOT: ${{ matrix.root-version }} ${{ matrix.cxx-standard }})"
+    runs-on: ${{ matrix.os-version }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os-version: [ ubuntu-latest ]
+        build_type: [ Release ]
+        compiler: [ gcc-9, gcc-10, gcc-11, clang-9, clang-10, clang-11 ]
+        cmake-version: [ 3.16 ]
+        root-version: [ 6.24.06 ]
+        cxx-standard: [ 11, 14, 17 ]
+
+    steps:
+      - name: Print env
+        run: |
+          echo github.event.action: ${{ github.event.action }}
+          echo github.event_name: ${{ github.event_name }}
+
+      - name: Setup gcc compiler
+        id: setup_cc
+        uses: rlalik/setup-cpp-compiler@v1.1
+        with:
+          compiler: ${{ matrix.compiler }}
+
+      - name: Install common dependencies
+        run: |
+          sudo apt update
+          sudo apt install cmake wget libgtest-dev lcov -y
+          sudo apt install python3-numpy libtbb-dev libxxhash0 -y
+          cmake --version
+          wget http://gccb.if.uj.edu.pl/code/root-cpp${{ matrix.cxx-standard }}_${{ matrix.root-version }}_amd64.deb
+          sudo dpkg -i root-cpp${{ matrix.cxx-standard }}_${{ matrix.root-version }}_amd64.deb
+
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        with:
+          submodules: recursive
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v1.9
+        with:
+          cmake-version: ${{ matrix.cmake-version }}
+
+      - name: Configure
+        env:
+          CC: ${{ steps.setup_cc.outputs.cc }}
+          CXX: ${{ steps.setup_cc.outputs.cxx }}
+        shell: bash
+        run: |
+          . /etc/profile
+          root-config --version
+          root-config --cflags
+          root-config --features
+          cmake \
+            -S . \
+            -B build \
+            -DENABLE_TESTING=On \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_INSTALL_PREFIX:PATH=instdir
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config ${{ matrix.build_type }} -v
+
+      - name: Test
+        shell: bash
+        run: cmake --build build --target test
