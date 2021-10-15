@@ -155,8 +155,7 @@ int main()
     if (hfp)
     {
         hfp->push();
-        if (!ff.fit(hfp, unnamed))
-            hfp->pop();
+        if (!ff.fit(hfp, unnamed)) hfp->pop();
     }
     else
     {

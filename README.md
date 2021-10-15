@@ -1,3 +1,12 @@
+![FitterFactory: fitting tool](https://img.shields.io/badge/FitterFactory-fitting%20tool-orange)
+![Coveralls](https://img.shields.io/coveralls/github/rlalik/FitterFactory)
+[![Coverage Status](https://coveralls.io/repos/github/rlalik/FitterFactory/badge.svg?branch=master)](https://coveralls.io/github/github/rlalik/FitterFactory?branch=master)
+[![Compiler Checks](https://github.com/rlalik/FitterFactory/actions/workflows/CI.yml/badge.svg)](https://github.com/rlalik/FitterFactory/actions/workflows/CI.yml)
+[![clang-format Check](https://github.com/rlalik/FitterFactory/actions/workflows/clang-format-check.yml/badge.svg)](https://github.com/rlalik/FitterFactory/actions/workflows/clang-format-check.yml)
+![GitHub](https://img.shields.io/github/license/rlalik/FitterFactory)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/rlalik/FitterFactory)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/rlalik/FitterFactory)
+
 FitterFactory allows for massive fitting of the histograms. It is a tool designed for use with CERN's ROOT framework.
 
 See example below for usage case.
@@ -109,7 +118,7 @@ and create file `test_parameters.txt` containing fitting function and parameters
 
 #### Case 1
 
-Using an `HistogramFitParams` object. Run code:
+Using a `HistogramFitParams` object. Run code:
 ```c++
 FitterFactory ff;	// create FitterFactory object
 ff.initFactoryFromFile("testpars.txt", "testpars.out"); // specify input file and output file

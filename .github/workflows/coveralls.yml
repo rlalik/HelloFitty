@@ -1,0 +1,96 @@
+# This is a basic workflow to help you get started with Actions
+name: Coveralls
+
+# Controls when the action will run. Triggers the workflow on push
+on:
+  push:
+  pull_request:
+  release:
+    # tags:
+    # - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    name: "Coveralls"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Print env
+        run: |
+          echo github.event.action: ${{ github.event.action }}
+          echo github.event_name: ${{ github.event_name }}
+
+      - name: Setup gcc compiler
+        id: setup_cc
+        uses: rlalik/setup-cpp-compiler@v1.1
+        with:
+          compiler: gcc-11
+
+      - name: Install common dependencies
+        run: |
+          sudo apt update
+          sudo apt install cmake wget libgtest-dev lcov -y
+          sudo apt install python3-numpy libtbb-dev libxxhash0 -y
+          cmake --version
+          wget http://gccb.if.uj.edu.pl/code/root-cpp17_6.24.00_amd64.deb
+          sudo dpkg -i root-cpp17_6.24.00_amd64.deb
+
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        with:
+          submodules: recursive
+
+      - name: Setup CMake
+        uses: jwlawson/actions-setup-cmake@v1.9
+        with:
+          cmake-version: 3.16
+
+      - name: Configure
+        env:
+          CC: ${{ steps.setup_cc.outputs.cc }}
+          CXX: ${{ steps.setup_cc.outputs.cxx }}
+          CFLAGS: -fprofile-arcs -ftest-coverage
+          CXXFLAGS: -fprofile-arcs -ftest-coverage
+          LDFLAGS: -lgcov
+        shell: bash
+        run: |
+          . /etc/profile
+          root-config --version
+          root-config --cflags
+          root-config --features
+          cmake \
+            -S . \
+            -B build \
+            -DENABLE_TESTING=On \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_INSTALL_PREFIX:PATH=instdir
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config Debug -v
+
+      - name: Test
+        shell: bash
+        run: cmake --build build --target test
+
+      - name: Examples
+        shell: bash
+        run: |
+          cd build
+          examples/example1
+          examples/example2 examples/testhist.root testpars.out results.root
+
+      - name: lcov-action
+        uses: danielealbano/lcov-action@v1
+        with:
+          remove_patterns: build
+
+      - name: Publish to coveralls.io
+        uses: coverallsapp/github-action@v1.1.2
+        with:
+          github-token: ${{ github.token }}
+          path-to-lcov: coverage.info
