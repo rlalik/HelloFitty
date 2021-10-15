@@ -1,7 +1,12 @@
 #ifndef FFCONFIG_H
 #define FFCONFIG_H
 
+#include <string>
+
 #cmakedefine HAS_ROOTTOOLS @RootTools_FOUND@
+
+const std::string tests_path = "@CMAKE_CURRENT_SOURCE_DIR@/";
+const std::string build_path = "@CMAKE_CURRENT_BINARY_DIR@/";
 
 #endif /* FFCONFIG_H */
 

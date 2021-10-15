@@ -20,68 +20,79 @@
 #define FITTERFACTORY_H
 
 #include <map>
+#include <memory>
+#include <string_view>
 
 #include <TF1.h>
-#include <TH1.h>
+#include <TFormula.h>
+#include <TString.h>
 
-struct ParamValues
+class TH1;
+
+struct ParamValue
 {
-    double val; // value
-    double l;   // lower limit
-    double u;   // upper limit
+    double val{0}; // value
+    double l{0};   // lower limit
+    double u{0};   // upper limit
     enum class FitMode
     {
-        FREE,
-        FIXED
-    } mode;
-    bool has_limits;
+        Free,
+        Fixed
+    } mode{FitMode::Free};
+    bool has_limits{false};
 
-    ParamValues() : val(0), l(0), u(0), mode(FitMode::FREE), has_limits(false) {}
+    ParamValue() = default;
+    ParamValue(double val, ParamValue::FitMode mode) : val(val), mode(mode) {}
+    ParamValue(double val, double l, double u, ParamValue::FitMode mode)
+        : val(val), l(l), u(u), mode(mode), has_limits(true)
+    {
+    }
     void print();
 };
 
-class HistFitParams
+using ParamVector = std::vector<ParamValue>;
+
+class HistogramFitParams
 {
 public:
-    TString histname; // keeps hist name
-    TString funname;  // keeps func name
-    TString f_sig, f_bkg;
-    // 	TString func;		// fit function
-    // 	TString func;		// fit function
-    Int_t allparnum; // num of pars
-    Int_t rebin;     // rebin, 0 == no rebin
-    Double_t fun_l;  // function range
-    Double_t fun_u;  // function range
-    Bool_t fit_disabled;
+    TString hist_name;     // histogram name
+    TString sig_string;    // signal and background functions
+    TString bkg_string;
 
-    ParamValues* pars;
-    TF1* funSig;
-    TF1* funBkg;
-    TF1* funSum;
+    Double_t range_l; // function range
+    Double_t range_u; // function range
 
-    HistFitParams();
-    ~HistFitParams();
+    int rebin{0}; // rebin, 0 == no rebin
+    bool fit_disabled{false};
 
-    void init(const TString& h, const TString& fsig, const TString& fbg, Int_t bgn, Double_t f_l,
-              Double_t f_u);
-    HistFitParams* clone(const TString& h) const;
-    void setParam(Int_t par, Double_t val, ParamValues::FitMode mode);
-    void setParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValues::FitMode mode);
-    void setNewName(const TString& new_name);
+    ParamVector pars;
+    TF1 function_sig;
+    TF1 function_bkg;
+    TF1 function_sum;
+
+    HistogramFitParams() = delete;
+    HistogramFitParams(const TString& hist_name, const TString& formula_s, const TString& formula_b,
+                       Double_t range_lower, Double_t range_upper);
+    HistogramFitParams(HistogramFitParams&& other) = default;
+    HistogramFitParams& operator=(HistogramFitParams&& other) = default;
+
+    ~HistogramFitParams() = default;
+
+    void init(const TString& function_format_name);
+    auto clone(const TString& new_name) const -> std::unique_ptr<HistogramFitParams>;
+    void setParam(Int_t par, ParamValue value);
+    void setParam(Int_t par, Double_t val, ParamValue::FitMode mode);
+    void setParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValue::FitMode mode);
     void print(bool detailed = false) const;
     void printInline() const;
     bool update();
     bool update(TF1* f);
 
-    void cleanup();
-    void setOwner(bool owner);
+    void clear();
 
     TString exportEntry() const;
 
-    static HistFitParams* parseEntryFromFile(const TString& line);
-
-    static void printStats(char* infotext = nullptr);
-    // 	TF1 *fitV;
+    static std::unique_ptr<HistogramFitParams> parseEntryFromFile(const TString& line);
 
     void push();
     void pop();
@@ -89,56 +100,43 @@ public:
     void drop();
 
 private:
-    HistFitParams(const HistFitParams& hfp) = delete;
-    HistFitParams& operator=(const HistFitParams& hfp) = delete;
+    HistogramFitParams(const HistogramFitParams& hfp) = delete;
+    HistogramFitParams& operator=(const HistogramFitParams& hfp) = delete;
 
 private:
-    bool is_owner;
-
-    static long int cnt_total;
-    static long int cnt_owned;
-
-    double* backup_p; // backup for parameters
-    double* backup_e; // backup for par errors
+    std::vector<Double_t> backup_p; // backup for parameters
+    std::vector<Double_t> backup_e; // backup for par errors
 };
 
-typedef std::pair<TString, HistFitParams*> HfpEntry;
+using HfpEntry = std::pair<TString, std::unique_ptr<HistogramFitParams>>;
 
 class FitterFactory
 {
 public:
-    enum class Flags
+    enum class PriorityMode
     {
-        ALWAYS_REF,
-        ALWAYS_AUX,
-        ALWAYS_NEWER
-    };
-    enum class PSFIX
-    {
-        APPEND,
-        IGNORE,
-        SUBSTRACT
+        Reference,
+        Auxilary,
+        Newer
     };
 
-    FitterFactory(Flags flags = Flags::ALWAYS_NEWER);
+    FitterFactory(PriorityMode flags = PriorityMode::Newer);
     virtual ~FitterFactory();
 
-    void cleanup();
+    void clear();
 
-    Flags setFlags(Flags new_flags);
-    void setDefaultParameters(HistFitParams* defs);
+    PriorityMode setFlags(PriorityMode new_mode);
+    void setDefaultParameters(HistogramFitParams* defs);
 
     bool initFactoryFromFile(const char* filename, const char* auxname = 0);
     bool exportFactoryToFile();
 
-    HistFitParams* findParams(TH1* hist) const;
-    HistFitParams* findParams(const char* name) const;
-    // 	bool updateParams(TH1 * hist, HistFitParams & hfp);
-    // 	bool updateParams(TH1 * hist, TF1 * f);
+    HistogramFitParams* findParams(TH1* hist) const;
+    HistogramFitParams* findParams(const char* name) const;
 
     bool fit(TH1* hist, const char* pars = "B,Q", const char* gpars = "");
-    static bool fit(HistFitParams* hfp, TH1* hist, const char* pars = "B,Q", const char* gpars = "",
-                    double min_entries = 0);
+    bool fit(HistogramFitParams* hfp, TH1* hist, const char* pars = "B,Q", const char* gpars = "",
+             double min_entries = 0);
 
     void print() const;
 
@@ -146,48 +144,43 @@ public:
 
     inline void setEntriesLowLimit(double min) { min_entries = min; }
 
-    inline void setPrefix(const std::string& str) { prefix = str; }
-    inline void setSuffix(const std::string& str) { suffix = str; }
-    inline void setReplacement(const std::string& src, const std::string& dst)
+    inline void setReplacement(const TString& src, const TString& dst)
     {
         rep_src = src;
         rep_dst = dst;
     }
+    TString format_name(const TString& name, const TString& decorator) const;
 
-    inline void setPrefixManipulator(PSFIX manip = PSFIX::IGNORE) { ps_prefix = manip; }
-    inline void setSuffixManipulator(PSFIX manip = PSFIX::IGNORE) { ps_suffix = manip; }
+    void insertParameters(std::unique_ptr<HistogramFitParams> hfp);
+    void insertParameters(const TString& name, std::unique_ptr<HistogramFitParams> hfp);
 
-    std::string format_name(const std::string& name) const;
+    void setNameDecorator(const TString& decorator) { name_decorator = decorator; };
+    void clearNameDecorator() { name_decorator = "*"; };
 
-    void insertParameters(HistFitParams* hfp);
-    void insertParameters(const TString& name, HistFitParams* hfp);
-    void insertParameters(const HfpEntry& par);
+    void setFunctionDecorator(const TString& decorator) { function_decorator = decorator; };
 
 private:
-    bool import_parameters(const std::string& filename);
-    bool export_parameters(const std::string& filename);
+    bool import_parameters(std::string_view filename);
+    bool export_parameters(std::string_view filename);
 
-    Flags flags;
+    PriorityMode mode;
 
     bool has_defaults;
     static bool verbose_flag;
 
-    std::string par_ref;
-    std::string par_aux;
+    TString par_ref;
+    TString par_aux;
 
-    HistFitParams* defpars;
-    std::map<TString, HistFitParams*> hfpmap;
+    HistogramFitParams* defpars;
+    std::map<TString, std::unique_ptr<HistogramFitParams>> hfpmap;
 
     double min_entries;
 
-    std::string prefix;
-    std::string suffix;
+    TString name_decorator{"*"};
+    TString function_decorator{"f_*"};
 
-    PSFIX ps_prefix;
-    PSFIX ps_suffix;
-
-    std::string rep_src;
-    std::string rep_dst;
+    TString rep_src;
+    TString rep_dst;
 };
 
 #endif // FITTERFACTORY_H

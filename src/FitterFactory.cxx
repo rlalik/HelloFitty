@@ -18,191 +18,112 @@
 
 #include "FitterFactory.h"
 
+#include <TF1.h>
+#include <TH1.h>
+#include <TList.h>
+#include <TObjArray.h>
+#include <TObjString.h>
+#include <TSystem.h>
+
 #include <fstream>
-#include <getopt.h>
 #include <string>
 #include <sys/stat.h>
-
-#include <TCanvas.h>
-#include <TChain.h>
-#include <TDirectory.h>
-#include <TError.h>
-#include <TGaxis.h>
-#include <TH2.h>
-#include <TImage.h>
-#include <TLatex.h>
-#include <TLegend.h>
-#include <TMath.h>
-#include <TObjString.h>
-#include <TString.h>
-#include <TStyle.h>
-#include <TSystem.h>
-#include <TVector.h>
-
-#include <TMatrixDSym.h>
-#include <TVirtualFitter.h>
 
 #define PR(x)                                                                                      \
     std::cout << "++DEBUG: " << #x << " = |" << x << "| (" << __FILE__ << ", " << __LINE__ << ")\n";
 
 bool FitterFactory::verbose_flag = true;
 
-void ParamValues::print() { printf("   %g ( %g, %g ), %d, %d\n", val, l, u, mode, has_limits); }
-
-long int HistFitParams::cnt_total = 0;
-long int HistFitParams::cnt_owned = 0;
-
-void HistFitParams::printStats(char* infotext)
+void ParamValue::print()
 {
-    if (infotext)
-        printf(" (%s) FitParams: total=%ld, owned=%ld\n", infotext, cnt_total, cnt_owned);
-    else
-        printf(" FitParams: total=%ld, owned=%ld\n", cnt_total, cnt_owned);
+    printf("   %g ( %g, %g ), %s, %d\n", val, l, u, mode == FitMode::Free ? "Free" : "Fixed",
+           has_limits);
 }
 
-HistFitParams::HistFitParams()
-    : allparnum(0), rebin(0), fit_disabled(kFALSE), pars(0), funSig(nullptr), funBkg(nullptr),
-      funSum(nullptr), is_owner(true), backup_p(nullptr), backup_e(nullptr)
+HistogramFitParams::HistogramFitParams(const TString& hist_name, const TString& formula_s,
+                                       const TString& formula_b, Double_t range_lower,
+                                       Double_t range_upper)
+    : hist_name(hist_name), sig_string(formula_s), bkg_string(formula_b), range_l(range_lower),
+      range_u(range_upper),
+      function_sig("", formula_s, range_lower, range_upper, TF1::EAddToList::kNo),
+      function_bkg("", formula_b, range_lower, range_upper, TF1::EAddToList::kNo),
+      function_sum("", formula_s + "+" + formula_b, range_lower, range_upper, TF1::EAddToList::kNo)
 {
-    ++cnt_total;
-    ++cnt_owned;
+    pars.resize(function_sum.GetNpar());
 }
 
-HistFitParams::~HistFitParams()
+auto HistogramFitParams::clone(const TString& new_name) const -> std::unique_ptr<HistogramFitParams>
 {
-    --cnt_total;
-    if (is_owner)
+    return std::make_unique<HistogramFitParams>(new_name, sig_string, bkg_string, range_l, range_u);
+}
+
+void HistogramFitParams::clear() { drop(); }
+
+void HistogramFitParams::init(const TString& function_format_name)
+{
+    if (hist_name[0] == '@')
     {
-        --cnt_owned;
-        cleanup();
+        fit_disabled = true;
+        return;
     }
 
-    delete[] pars;
+    for (auto i = 0; i < pars.size(); ++i)
+        if (pars[i].mode == ParamValue::FitMode::Fixed)
+            function_sum.FixParameter(i, pars[i].val);
+        else
+            function_sum.SetParameter(i, pars[i].val);
 }
 
-void HistFitParams::cleanup()
+void HistogramFitParams::setParam(Int_t par, ParamValue value)
 {
-    if (funSig) delete funSig;
-    if (funBkg) delete funBkg;
-    if (funSum) delete funSum;
-
-    funSig = nullptr;
-    funBkg = nullptr;
-    funSum = nullptr;
-
-    drop();
+    if (!(par < pars.size())) return;
+    pars[par] = value;
 }
 
-void HistFitParams::setOwner(bool owner)
+void HistogramFitParams::setParam(Int_t par, Double_t val, ParamValue::FitMode mode)
 {
-    if (is_owner and !owner) { --cnt_owned; }
-    else if (!is_owner and owner)
-    {
-        ++cnt_owned;
-    }
-
-    is_owner = owner;
-}
-
-void HistFitParams::init(const TString& h, const TString& fsig, const TString& fbg, Int_t rbn,
-                         Double_t f_l, Double_t f_u)
-{
-    setNewName(h);
-    rebin = rbn;
-    f_sig = fsig;
-    f_bkg = fbg;
-    TString funcSig = "f_" + histname + "_sig";
-    TString funcBkg = "f_" + histname + "_bkg";
-
-    funSig = new TF1(funcSig, fsig, f_l, f_u);
-    funBkg = new TF1(funcBkg, fbg, f_l, f_u);
-
-    funSum = new TF1("f_" + histname, fsig + "+" + fbg, f_l, f_u);
-    allparnum = funSum->GetNpar();
-    pars = new ParamValues[allparnum];
-    fun_l = f_l;
-    fun_u = f_u;
-}
-
-HistFitParams* HistFitParams::clone(const TString& h) const
-{
-    HistFitParams* hfp = new HistFitParams;
-    hfp->init(h, f_sig, f_bkg, rebin, fun_l, fun_u);
-    return hfp;
-}
-
-void HistFitParams::setNewName(const TString& new_name)
-{
-    histname = new_name;
-    if (new_name[0] == '@')
-    {
-        fit_disabled = kTRUE;
-        histname.Remove(0, 1);
-    }
-    funname = "f_" + histname;
-    if (funSig and funBkg)
-    {
-        funSig->SetName("f_" + histname + "_sig");
-        funBkg->SetName("f_" + histname + "_bkg");
-
-        funSum->SetName("f_" + histname);
-    }
-}
-
-void HistFitParams::setParam(Int_t par, Double_t val, ParamValues::FitMode mode)
-{
-    if (!(par < allparnum)) return;
+    if (!(par < pars.size())) return;
     pars[par].val = val;
+    pars[par].l = 0;
+    pars[par].u = 0;
     pars[par].mode = mode;
     pars[par].has_limits = false;
-
-    if (mode == ParamValues::FitMode::FIXED)
-        funSum->FixParameter(par, val);
-    else
-        funSum->SetParameter(par, val);
 }
 
-void HistFitParams::setParam(Int_t par, Double_t val, Double_t l, Double_t u,
-                             ParamValues::FitMode mode)
+void HistogramFitParams::setParam(Int_t par, Double_t val, Double_t l, Double_t u,
+                                  ParamValue::FitMode mode)
 {
-    if (!(par < allparnum)) return;
+    if (!(par < pars.size())) return;
     pars[par].val = val;
     pars[par].l = l;
     pars[par].u = u;
     pars[par].mode = mode;
     pars[par].has_limits = true;
-
-    if (mode == ParamValues::FitMode::FIXED)
-        funSum->FixParameter(par, val);
-    else
-    {
-        funSum->SetParameter(par, val);
-        funSum->SetParLimits(par, l, u);
-    }
 }
 
-HistFitParams* HistFitParams::parseEntryFromFile(const TString& line)
+std::unique_ptr<HistogramFitParams> HistogramFitParams::parseEntryFromFile(const TString& line)
 {
     TString line_ = line;
     line_.ReplaceAll("\t", " ");
     TObjArray* arr = line_.Tokenize(" ");
 
-    HistFitParams* hfp = new HistFitParams;
+    if (arr->GetEntries() < 5)
+    {
+        std::cerr << "Error parsing line:\n " << line << "\n";
+        abort();
+    };
 
-    if (arr->GetEntries() < 5) return hfp;
-
-    hfp->init(((TObjString*)arr->At(0))->String(),        // hist name
-              ((TObjString*)arr->At(1))->String(),        // func val
-              ((TObjString*)arr->At(2))->String(),        // func val
-              ((TObjString*)arr->At(3))->String().Atoi(), // bg par offset
-              ((TObjString*)arr->At(4))->String().Atof(), // low range
-              ((TObjString*)arr->At(5))->String().Atof()  // upper range
-    );
+    auto hfp = std::make_unique<HistogramFitParams>(
+        ((TObjString*)arr->At(0))->String(),        // hist name
+        ((TObjString*)arr->At(1))->String(),        // func val
+        ((TObjString*)arr->At(2))->String(),        // func val
+        ((TObjString*)arr->At(4))->String().Atof(), // low range
+        ((TObjString*)arr->At(5))->String().Atof());
 
     Double_t par_, l_, u_;
     Int_t step = 0;
     Int_t parnum = 0;
-    ParamValues::FitMode flag_;
+    ParamValue::FitMode flag_;
     bool has_limits_ = false;
 
     for (int i = 6; i < arr->GetEntries(); /*++i*/ i += step, ++parnum)
@@ -217,7 +138,7 @@ HistFitParams* HistFitParams::parseEntryFromFile(const TString& line)
             l_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 2))->String().Atof() : 0;
             u_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 3))->String().Atof() : 0;
             step = 4;
-            flag_ = ParamValues::FitMode::FREE;
+            flag_ = ParamValue::FitMode::Free;
             has_limits_ = true;
         }
         else if (nval == "F")
@@ -225,7 +146,7 @@ HistFitParams* HistFitParams::parseEntryFromFile(const TString& line)
             l_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 2))->String().Atof() : 0;
             u_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 3))->String().Atof() : 0;
             step = 4;
-            flag_ = ParamValues::FitMode::FIXED;
+            flag_ = ParamValue::FitMode::Fixed;
             has_limits_ = true;
         }
         else if (nval == "f")
@@ -233,7 +154,7 @@ HistFitParams* HistFitParams::parseEntryFromFile(const TString& line)
             l_ = 0;
             u_ = 0;
             step = 2;
-            flag_ = ParamValues::FitMode::FIXED;
+            flag_ = ParamValue::FitMode::Fixed;
             has_limits_ = false;
         }
         else
@@ -241,12 +162,10 @@ HistFitParams* HistFitParams::parseEntryFromFile(const TString& line)
             l_ = 0;
             u_ = 0;
             step = 1;
-            flag_ = ParamValues::FitMode::FREE;
+            flag_ = ParamValue::FitMode::Free;
             has_limits_ = false;
         }
 
-        // 		std::cout << parnum << ", " << par_ << ", " << l_ << ", " << u_ << ", " << flag_ <<
-        // "\n";
         if (has_limits_)
             hfp->setParam(parnum, par_, l_, u_, flag_);
         else
@@ -256,7 +175,7 @@ HistFitParams* HistFitParams::parseEntryFromFile(const TString& line)
     return hfp;
 }
 
-TString HistFitParams::exportEntry() const
+TString HistogramFitParams::exportEntry() const
 {
     TString out;
     if (fit_disabled)
@@ -266,28 +185,25 @@ TString HistFitParams::exportEntry() const
 
     char sep;
 
-    out = TString::Format("%s%s\t%s %s %d %.0f %.0f", out.Data(), histname.Data(), f_sig.Data(),
-                          f_bkg.Data(), rebin, fun_l, fun_u);
+    out = TString::Format("%s%s\t%s %s %d %.0f %.0f", out.Data(), hist_name.Data(),
+                          sig_string.Data(), bkg_string.Data(), rebin, range_l, range_u);
+    auto limit = pars.size();
 
-    for (int i = 0; i < allparnum; ++i)
+    for (decltype(limit) i = 0; i < limit; ++i)
     {
-        // BUG why val from funSum?
-        // 		Double_t val = funSum->GetParameter(i);
-        // 		TString v = TString::Format("%g", val);
-
         TString v = TString::Format("%g", pars[i].val);
         TString l = TString::Format("%g", pars[i].l);
         TString u = TString::Format("%g", pars[i].u);
 
         switch (pars[i].mode)
         {
-            case ParamValues::FitMode::FREE:
+            case ParamValue::FitMode::Free:
                 if (pars[i].has_limits)
                     sep = ':';
                 else
                     sep = ' ';
                 break;
-            case ParamValues::FitMode::FIXED:
+            case ParamValue::FitMode::Fixed:
                 if (pars[i].has_limits)
                     sep = 'F';
                 else
@@ -298,10 +214,9 @@ TString HistFitParams::exportEntry() const
                 break;
         }
 
-        //		pars[i].print();
-        if (pars[i].mode == ParamValues::FitMode::FREE and pars[i].has_limits == 0)
+        if (pars[i].mode == ParamValue::FitMode::Free and pars[i].has_limits == 0)
             out += TString::Format(" %s", v.Data());
-        else if (pars[i].mode == ParamValues::FitMode::FIXED and pars[i].has_limits == 0)
+        else if (pars[i].mode == ParamValue::FitMode::Fixed and pars[i].has_limits == 0)
             out += TString::Format(" %s %c", v.Data(), sep);
         else
             out += TString::Format(" %s %c %s %s", v.Data(), sep, l.Data(), u.Data());
@@ -310,16 +225,17 @@ TString HistFitParams::exportEntry() const
     return out;
 }
 
-void HistFitParams::print(bool detailed) const
+void HistogramFitParams::print(bool detailed) const
 {
-    std::cout << "@ hist name = " << histname.Data() << std::endl;
-    std::cout << "  func name = " << funname.Data() << std::endl;
+    std::cout << "@ hist name = " << hist_name.Data() << std::endl;
+    std::cout << "  func name = " << hist_name.Data() << std::endl;
     std::cout << " | rebin = " << rebin << std::endl;
-    std::cout << "  range = " << fun_l << " -- " << fun_u << std::endl;
-    std::cout << "  param num = " << allparnum << std::endl;
+    std::cout << "  range = " << range_l << " -- " << range_u << std::endl;
+    std::cout << "  param num = " << pars.size() << std::endl;
     std::cout << "  params list:" << std::endl;
 
-    for (int i = 0; i < allparnum; ++i)
+    auto s = pars.size();
+    for (decltype(s) i = 0; i < s; ++i)
     {
         std::cout << "  * " << i << ": " << pars[i].val << " " << pars[i].l << " " << pars[i].u
                   << std::endl;
@@ -328,28 +244,29 @@ void HistFitParams::print(bool detailed) const
     if (detailed)
     {
         std::cout << "+++++++++ SIG function +++++++++" << std::endl;
-        if (funSig) funSig->Print("V");
+        function_sig.Print("V");
         std::cout << "+++++++++ BKG function +++++++++" << std::endl;
-        if (funBkg) funBkg->Print("V");
+        function_bkg.Print("V");
         std::cout << "+++++++++ SUM function +++++++++" << std::endl;
-        if (funSum) funSum->Print("V");
+        function_sum.Print("V");
         std::cout << "++++++++++++++++++++++++++++++++" << std::endl;
     }
 }
 
-void HistFitParams::printInline() const
+void HistogramFitParams::printInline() const
 {
-    std::cout << "  hn=" << histname.Data() << std::endl;
+    std::cout << "  hn=" << hist_name.Data() << std::endl;
     if (rebin > 0) std::cout << " R=" << rebin;
 }
 
-bool HistFitParams::update() { return update(funSum); }
+bool HistogramFitParams::update() { return update(&function_sum); }
 
-bool HistFitParams::update(TF1* f)
+bool HistogramFitParams::update(TF1* f)
 {
-    if (allparnum == f->GetNpar())
+    auto s = pars.size();
+    if (s == f->GetNpar())
     {
-        for (int i = 0; i < allparnum; ++i)
+        for (int i = 0; i < s; ++i)
             pars[i].val = f->GetParameter(i);
     }
     else
@@ -358,73 +275,63 @@ bool HistFitParams::update(TF1* f)
     return true;
 }
 
-void HistFitParams::push()
+void HistogramFitParams::push()
 {
-    int n = funSum->GetNpar();
-    if (!backup_p)
+    int n = function_sum.GetNpar();
+    if (backup_p.size() == 0)
     {
-        backup_p = new double[n];
-        backup_e = new double[n];
-    }
+        backup_p.resize(n);
+        backup_e.resize(n);
 
-    for (int i = 0; i < n; ++i)
-    {
-        backup_p[i] = funSum->GetParameter(i);
-        backup_e[i] = funSum->GetParError(i);
+        for (int i = 0; i < n; ++i)
+        {
+            backup_p[i] = function_sum.GetParameter(i);
+            backup_e[i] = function_sum.GetParError(i);
+        }
     }
 }
 
-void HistFitParams::pop()
+void HistogramFitParams::pop()
 {
     apply();
     drop();
 }
 
-void HistFitParams::apply()
+void HistogramFitParams::apply()
 {
-    if (!backup_p) return;
+    auto s = pars.size();
+    auto n = function_sum.GetNpar();
 
-    int n = funSum->GetNpar();
+    if (s != n) return;
+
     for (int i = 0; i < n; ++i)
     {
-        funSum->SetParameter(i, backup_p[i]);
-        funSum->SetParError(i, backup_e[i]);
+        function_sum.SetParameter(i, backup_p[i]);
+        function_sum.SetParError(i, backup_e[i]);
     }
 }
 
-void HistFitParams::drop()
+void HistogramFitParams::drop()
 {
-    if (backup_p)
-    {
-        delete[] backup_p;
-        delete[] backup_e;
-    }
-
-    backup_p = backup_e = nullptr;
+    backup_p.clear();
+    backup_e.clear();
 }
 
-FitterFactory::FitterFactory(Flags flags)
-    : flags(flags), has_defaults(false), defpars(nullptr), min_entries(0), ps_prefix(PSFIX::IGNORE),
-      ps_suffix(PSFIX::IGNORE)
+FitterFactory::FitterFactory(PriorityMode mode)
+    : mode(mode), has_defaults(false), defpars(nullptr), min_entries(0)
 {
 }
 
-FitterFactory::~FitterFactory()
-{
-    for (auto it = hfpmap.begin(); it != hfpmap.end(); ++it)
-        it->second->cleanup();
+FitterFactory::~FitterFactory() { clear(); }
 
-    hfpmap.clear();
-}
-
-FitterFactory::Flags FitterFactory::setFlags(FitterFactory::Flags new_flags)
+FitterFactory::PriorityMode FitterFactory::setFlags(FitterFactory::PriorityMode new_mode)
 {
-    FitterFactory::Flags old = flags;
-    flags = new_flags;
+    FitterFactory::PriorityMode old = mode;
+    mode = new_mode;
     return old;
 }
 
-void FitterFactory::setDefaultParameters(HistFitParams* defs)
+void FitterFactory::setDefaultParameters(HistogramFitParams* defs)
 {
     has_defaults = true;
     defpars = defs;
@@ -477,11 +384,11 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
         std::cout << " [ ] AUX";
     std::cout << std::endl;
 
-    if (flags == Flags::ALWAYS_REF) return import_parameters(filename);
+    if (mode == PriorityMode::Reference) return import_parameters(filename);
 
-    if (flags == Flags::ALWAYS_AUX) return import_parameters(auxname);
+    if (mode == PriorityMode::Auxilary) return import_parameters(auxname);
 
-    if (flags == Flags::ALWAYS_NEWER)
+    if (mode == PriorityMode::Newer)
     {
         if (aux_newer)
             return import_parameters(auxname);
@@ -494,24 +401,23 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
 
 bool FitterFactory::exportFactoryToFile() { return export_parameters(par_aux); }
 
-void FitterFactory::insertParameters(HistFitParams* hfp)
+void FitterFactory::insertParameters(std::unique_ptr<HistogramFitParams> hfp)
 {
-    HfpEntry par(hfp->histname, hfp);
-    hfpmap.insert(par);
+    auto n = hfp->hist_name;
+    insertParameters(n, std::move(hfp));
 }
 
-void FitterFactory::insertParameters(const TString& name, HistFitParams* hfp)
+void FitterFactory::insertParameters(const TString& name, std::unique_ptr<HistogramFitParams> hfp)
 {
-    HfpEntry par(name, hfp);
-    hfpmap.insert(par);
+    hfp->init(format_name(name, name_decorator));
+    hfpmap.insert({name, std::move(hfp)});
 }
 
-void FitterFactory::insertParameters(const HfpEntry& par) { hfpmap.insert(par); }
-
-bool FitterFactory::import_parameters(const std::string& filename)
+bool FitterFactory::import_parameters(std::string_view filename)
 {
-    std::ifstream ifs(filename.c_str());
-    if (!ifs.is_open())
+    std::string fn(filename);
+    std::ifstream fparfile(fn);
+    if (!fparfile.is_open())
     {
         std::cerr << "No file " << filename << " to open." << std::endl;
         return false;
@@ -519,22 +425,19 @@ bool FitterFactory::import_parameters(const std::string& filename)
 
     size_t cnt = 0;
     std::string line;
-    while (std::getline(ifs, line))
+    while (std::getline(fparfile, line))
     {
-        HistFitParams* imfit = HistFitParams::parseEntryFromFile(line);
-        insertParameters(imfit);
+        insertParameters(HistogramFitParams::parseEntryFromFile(line));
         ++cnt;
     }
 
-    printf("Imported %lu entries, total entries %lu\n", cnt, hfpmap.size());
     return true;
 }
 
-bool FitterFactory::export_parameters(const std::string& filename)
+bool FitterFactory::export_parameters(std::string_view filename)
 {
-    if (filename.empty()) return false;
-
-    std::ofstream fparfile(filename);
+    std::string fn(filename);
+    std::ofstream fparfile(fn);
     if (!fparfile.is_open())
     {
         std::cerr << "Can't create AUX file " << filename << ". Skipping..." << std::endl;
@@ -551,51 +454,31 @@ bool FitterFactory::export_parameters(const std::string& filename)
     return true;
 }
 
-// bool FitterFactory::updateParams(TH1 * hist, HistFitParams & hfp)
-// {
-// 	auto it = hfpmap.find(format_name(hist->GetName()));
-// 	if (it != hfpmap.end())
-// 	{
-// 		it->second = hfp;
-// 	}
-// 	else
-// 		return false;
-//
-// 	return true;
-// }
-//
-// bool FitterFactory::updateParams(TH1 * hist, TF1 * f)
-// {
-// 	auto it = hfpmap.find(format_name(hist->GetName()));
-// 	if (it != hfpmap.end())
-// 	{
-// 		HistFitParams * hfp = it->second;
-//
-// 		return hfp->update(f);
-// 	}
-// 	else
-// 		return false;
-//
-// 	return true;
-// }
-
-HistFitParams* FitterFactory::findParams(TH1* hist) const { return findParams(hist->GetName()); }
-
-HistFitParams* FitterFactory::findParams(const char* name) const
+HistogramFitParams* FitterFactory::findParams(TH1* hist) const
 {
-    auto it = hfpmap.find(format_name(name));
-    if (it != hfpmap.end()) return it->second;
+    return findParams(hist->GetName());
+}
+
+HistogramFitParams* FitterFactory::findParams(const char* name) const
+{
+    auto it = hfpmap.find(format_name(name, name_decorator));
+    if (it != hfpmap.end()) return it->second.get();
 
     return nullptr;
 }
 
 bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
 {
-    HistFitParams* hfp = findParams(hist->GetName());
+    HistogramFitParams* hfp = findParams(hist->GetName());
     if (!hfp)
     {
-        hfp = defpars->clone(format_name(hist->GetName()));
-        insertParameters(hfp);
+        printf("HFP for histogram %s not found, trying from defaults.\n", hist->GetName());
+
+        if (!defpars) return false;
+
+        auto tmp = defpars->clone(format_name(hist->GetName(), name_decorator));
+        hfp = tmp.get();
+        insertParameters(std::move(tmp));
     }
 
     hfp->push();
@@ -606,15 +489,15 @@ bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
     return status;
 }
 
-bool FitterFactory::fit(HistFitParams* hfp, TH1* hist, const char* pars, const char* gpars,
+bool FitterFactory::fit(HistogramFitParams* hfp, TH1* hist, const char* pars, const char* gpars,
                         double min_entries)
 {
-    Int_t bin_l = hist->FindBin(hfp->fun_l);
-    Int_t bin_u = hist->FindBin(hfp->fun_u);
+    Int_t bin_l = hist->FindBin(hfp->range_l);
+    Int_t bin_u = hist->FindBin(hfp->range_u);
 
     if (hfp->rebin != 0)
     {
-        // 		was_rebin = true;
+        // was_rebin = true;
         hist->Rebin(hfp->rebin);
     }
 
@@ -622,19 +505,21 @@ bool FitterFactory::fit(HistFitParams* hfp, TH1* hist, const char* pars, const c
 
     if (hist->Integral(bin_l, bin_u) == 0) return false;
 
-    TF1* tfSig = hfp->funSig;
-    TF1* tfBkg = hfp->funBkg;
-    TF1* tfSum = hfp->funSum;
+    TF1* tfSig =
+        (TF1*)hfp->function_sig.Clone(format_name(hfp->hist_name, function_decorator + "_sig"));
+    TF1* tfBkg =
+        (TF1*)hfp->function_bkg.Clone(format_name(hfp->hist_name, function_decorator + "_bkg"));
+    TF1* tfSum = (TF1*)hfp->function_sum.Clone(format_name(hfp->hist_name, function_decorator));
 
     hist->GetListOfFunctions()->Clear();
-    hist->GetListOfFunctions()->SetOwner(kTRUE);
+    hist->GetListOfFunctions()->SetOwner(kTRUE); // FIXME do we ened this?
 
     tfSig->SetBit(TF1::kNotDraw);
     tfSig->SetBit(TF1::kNotGlobal);
     tfBkg->SetBit(TF1::kNotDraw);
     tfBkg->SetBit(TF1::kNotGlobal);
-    tfSum->SetBit(TF1::kNotDraw);
-    tfSum->SetBit(TF1::kNotGlobal);
+    // tfSum->SetBit(TF1::kNotDraw);
+    // tfSum->SetBit(TF1::kNotGlobal);
 
     const size_t par_num = tfSum->GetNpar();
 
@@ -652,15 +537,15 @@ bool FitterFactory::fit(HistFitParams* hfp, TH1* hist, const char* pars, const c
         printf(" --> chi2:  %f -- *\n", chi2_backup_old);
     }
 
-    hist->Fit(tfSum, pars, gpars, hfp->fun_l, hfp->fun_u);
+    hist->Fit(tfSum, pars, gpars, hfp->range_l, hfp->range_u);
 
     TF1* new_sig_func = ((TF1*)hist->GetListOfFunctions()->At(0));
 
-    // 	TVirtualFitter * fitter = TVirtualFitter::GetFitter();
-    // 	TMatrixDSym cov;
-    // 	fitter->GetCovarianceMatrix()
-    // 	cov.Use(fitter->GetNumberTotalParameters(), fitter->GetCovarianceMatrix());
-    // 	cov.Print();
+    // TVirtualFitter * fitter = TVirtualFitter::GetFitter();
+    // TMatrixDSym cov;
+    // fitter->GetCovarianceMatrix()
+    // cov.Use(fitter->GetNumberTotalParameters(), fitter->GetCovarianceMatrix());
+    // cov.Print();
 
     // backup new parameters
     double* pars_backup_new = new double[par_num];
@@ -706,8 +591,8 @@ bool FitterFactory::fit(HistFitParams* hfp, TH1* hist, const char* pars, const c
     }
     else
     {
-        // 		printf("\n\tIS-OK: %g vs. %g -> %f", tfSum->GetMaximum(), hist->GetMaximum(),
-        // 			   hist->Chisquare(tfSum, "R") );
+        // printf("\n\tIS-OK: %g vs. %g -> %f", tfSum->GetMaximum(), hist->GetMaximum(),
+        //        hist->Chisquare(tfSum, "R"));
 
         if (verbose_flag) printf("\t [ OK ]\n");
     }
@@ -735,7 +620,6 @@ bool FitterFactory::fit(HistFitParams* hfp, TH1* hist, const char* pars, const c
         tfBkg->SetParError(i, err);
     }
 
-    //     hist->GetListOfFunctions()->Add(tfSum);
     hist->GetListOfFunctions()->Add(tfSig);
     hist->GetListOfFunctions()->Add(tfBkg);
 
@@ -751,44 +635,11 @@ void FitterFactory::print() const
         it->second->print();
 }
 
-void FitterFactory::cleanup()
+void FitterFactory::clear() { hfpmap.clear(); }
+
+TString FitterFactory::format_name(const TString& name, const TString& decorator) const
 {
-    for (auto it = hfpmap.begin(); it != hfpmap.end(); ++it)
-        it->second->cleanup();
-
-    hfpmap.clear();
-}
-
-std::string FitterFactory::format_name(const std::string& name) const
-{
-    if (ps_prefix == PSFIX::IGNORE and ps_suffix == PSFIX::IGNORE and !rep_src.length())
-        return name;
-
-    std::string formatted = name;
-
-    if (ps_prefix == PSFIX::APPEND and ps_suffix == PSFIX::APPEND) return prefix + name + suffix;
-
-    if (ps_prefix == PSFIX::APPEND) formatted = prefix + formatted;
-
-    if (ps_suffix == PSFIX::APPEND) formatted = formatted + suffix;
-
-    if (ps_prefix == PSFIX::SUBSTRACT)
-    {
-        size_t pos = formatted.find(prefix);
-        if (pos == 0) formatted = formatted.substr(prefix.length(), std::string::npos);
-    }
-
-    if (ps_suffix == PSFIX::SUBSTRACT)
-    {
-        size_t pos = formatted.find(suffix, formatted.length() - suffix.length());
-        if (pos != std::string::npos) formatted = formatted.substr(0, pos);
-    }
-
-    if (rep_src.length())
-    {
-        size_t pos = formatted.find(rep_src);
-        if (pos != std::string::npos) formatted = formatted.replace(pos, rep_src.length(), rep_dst);
-    }
-
-    return formatted;
+    TString s = decorator;
+    s.ReplaceAll("*", name);
+    return s;
 }
