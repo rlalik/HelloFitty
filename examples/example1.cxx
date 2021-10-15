@@ -2,11 +2,11 @@
 
 #include "ffconfig.h"
 
-#include <TH1.h>
 #include <TFile.h>
+#include <TH1.h>
 
-#include <iostream>
 #include <fstream>
+#include <iostream>
 
 int main()
 {
@@ -137,9 +137,14 @@ int main()
     unnamed->SetEntries(210000);
 
     auto rfn = TString(build_path) + "/testhist.root";
-    TFile * fp = TFile::Open(rfn, "RECREATE");
-    if (fp) unnamed->Write();
-    else { std::cerr << "File " << rfn << " not open\n"; abort(); }
+    TFile* fp = TFile::Open(rfn, "RECREATE");
+    if (fp)
+        unnamed->Write();
+    else
+    {
+        std::cerr << "File " << rfn << " not open\n";
+        abort();
+    }
 
     fp->Close();
 
@@ -150,11 +155,8 @@ int main()
     if (hfp)
     {
         hfp->push();
-        if (!ff.fit(hfp, unnamed)) { hfp->pop(); }
-        else
-        {
-            hfp->update();
-        }
+        if (!ff.fit(hfp, unnamed))
+            hfp->pop();
     }
     else
     {

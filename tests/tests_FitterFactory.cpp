@@ -2,7 +2,8 @@
 
 #include "FitterFactory.h"
 
-TEST(tests_ParamValue, basic) {
+TEST(tests_ParamValue, basic)
+{
     ParamValue p1;
 
     ASSERT_EQ(p1.val, 0);
@@ -36,7 +37,8 @@ TEST(tests_ParamValue, basic) {
     ASSERT_EQ(p4.has_limits, true);
 }
 
-TEST(tests_HistogramFitParam, basic) {
+TEST(tests_HistogramFitParam, basic)
+{
     HistogramFitParams hfp1("h1", "gaus(0)", "expo(3)", 1, 10);
 
     ASSERT_STREQ(hfp1.hist_name, "h1");
@@ -57,7 +59,6 @@ TEST(tests_FitterFactory, prefix_suffix_test)
 
     std::string tn1 = "test_name";
     std::string tn2 = "replaced";
-
 
     FitterFactory ff1;
     FitterFactory ff2;
