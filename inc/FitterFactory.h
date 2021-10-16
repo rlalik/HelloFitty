@@ -53,7 +53,7 @@ struct ParamValue
         : val(val), l(l), u(u), mode(mode), has_limits(true)
     {
     }
-    constexpr void print() const;
+    void print() const;
 };
 
 using ParamVector = std::vector<ParamValue>;

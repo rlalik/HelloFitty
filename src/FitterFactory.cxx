@@ -47,7 +47,7 @@ using std::make_unique;
 
 bool FitterFactory::verbose_flag = true;
 
-constexpr void ParamValue::print() const
+void ParamValue::print() const
 {
     printf("%8g   Mode: %-5s   Limits: ", val, mode == FitMode::Free ? "Free" : "Fixed");
     if (has_limits)
@@ -189,11 +189,7 @@ std::unique_ptr<HistogramFitParams> HistogramFitParams::parseEntryFromFile(const
 
 TString HistogramFitParams::exportEntry() const
 {
-    TString out;
-    if (fit_disabled)
-        out += "@";
-    else
-        out += " ";
+    TString out = fit_disabled ? "@" : " ";
 
     char sep;
 
@@ -313,8 +309,13 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
     std::filesystem::file_time_type mod_ref;
     std::filesystem::file_time_type mod_aux;
 
+    bool aux_newer = false;
+
     if (std::filesystem::exists(filename)) mod_ref = std::filesystem::last_write_time(filename);
-    if (std::filesystem::exists(auxname)) mod_aux = std::filesystem::last_write_time(auxname);
+    if (std::filesystem::exists(auxname)) {
+        mod_aux = std::filesystem::last_write_time(auxname);
+        aux_newer = mod_aux > mod_ref;
+    }
 #else
     struct stat st_ref;
     struct stat st_aux;
@@ -334,9 +335,11 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
         mod_aux = (long long)st_aux.st_mtim.tv_sec;
     }
 
+    bool aux_newer = mod_aux > mod_ref;
 #endif
 
-    bool aux_newer = mod_aux > mod_ref;
+    
+    printf("Aux is newer? %d\n", aux_newer);
 
     std::cout << "Parameter files:";
     if (!filename)
@@ -411,7 +414,7 @@ bool FitterFactory::export_parameters(const std::string& filename)
     }
     else
     {
-        std::cout << "AUX file " << filename << " opened..." << std::endl;
+        std::cout << "AUX file " << filename << " opened...  Exporting " << hfpmap.size() << " entries.\n";
         for (auto it = hfpmap.begin(); it != hfpmap.end(); ++it)
         {
             fparfile << it->second->exportEntry().Data() << std::endl;
