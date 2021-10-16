@@ -1,4 +1,4 @@
-find_package(GTest)
+find_package(GTest REQUIRED)
 
 #configure_file(tests_config.h.in tests_config.h)
 
