@@ -21,6 +21,7 @@
 
 #include <map>
 #include <memory>
+#include <optional>
 #include <string_view>
 
 #include <TF1.h>
@@ -34,6 +35,53 @@
 #endif
 
 class TH1;
+
+namespace FitterFactoryTools
+{
+enum class SelectedSource
+{
+    None,
+    OnlyReference,
+    OnlyAuxilary,
+    Reference,
+    Auxilary
+};
+
+auto selectSource(const char* filename, const char* auxname = 0)
+    -> FitterFactoryTools::SelectedSource;
+
+struct DrawProperties
+{
+#if __cplusplus >= 201703L
+    std::optional<Int_t> line_color;
+    std::optional<Int_t> line_width;
+    std::optional<Int_t> line_style;
+#else
+    Int_t line_color{-1};
+    Int_t line_width{-1};
+    Int_t line_style{-1};
+#endif
+
+    DrawProperties& setLineColor(Int_t color)
+    {
+        line_color = color;
+        return *this;
+    }
+    DrawProperties& setLineWidth(Int_t width)
+    {
+        line_width = width;
+        return *this;
+    }
+    DrawProperties& setLineStyle(Int_t style)
+    {
+        line_style = style;
+        return *this;
+    }
+
+    void applyStyle(TF1* f);
+};
+
+}; // namespace FitterFactoryTools
 
 struct ParamValue
 {
@@ -159,6 +207,17 @@ public:
 
     void setFunctionDecorator(const TString& decorator) { function_decorator = decorator; };
 
+    void setDrawBits(bool sum = true, bool sig = false, bool bkg = false)
+    {
+        draw_sum = sum;
+        draw_sig = sig;
+        draw_bkg = bkg;
+    }
+
+    auto propSum() -> FitterFactoryTools::DrawProperties& { return prop_sum; }
+    auto propSig() -> FitterFactoryTools::DrawProperties& { return prop_sig; }
+    auto propBkg() -> FitterFactoryTools::DrawProperties& { return prop_bkg; }
+
 private:
     bool importParameters(const std::string& filename);
     bool exportParameters(const std::string& filename);
@@ -178,21 +237,9 @@ private:
 
     TString rep_src;
     TString rep_dst;
-};
 
-namespace FitterFactoryTools
-{
-enum class SelectedSource
-{
-    None,
-    OnlyReference,
-    OnlyAuxilary,
-    Reference,
-    Auxilary
+    bool draw_sum{true}, draw_sig{false}, draw_bkg{false};
+    FitterFactoryTools::DrawProperties prop_sum, prop_sig, prop_bkg;
 };
-
-auto selectSource(const char* filename, const char* auxname = 0)
-    -> FitterFactoryTools::SelectedSource;
-}; // namespace FitterFactoryTools
 
 #endif // FITTERFACTORY_H

@@ -222,9 +222,6 @@ TString HistogramFitParams::exportEntry() const
                 else
                     sep = 'f';
                 break;
-            default:
-                sep = ' ';
-                break;
         }
 
         if (pars[i].mode == ParamValue::FitMode::Free and pars[i].has_limits == 0)
@@ -459,20 +456,31 @@ bool FitterFactory::fit(HistogramFitParams* hfp, TH1* hist, const char* pars, co
 
     if (hist->Integral(bin_l, bin_u) == 0) return false;
 
-    TF1* tfSig =
-        (TF1*)hfp->function_sig.Clone(format_name(hfp->hist_name, function_decorator + "_sig"));
-    TF1* tfBkg =
-        (TF1*)hfp->function_bkg.Clone(format_name(hfp->hist_name, function_decorator + "_bkg"));
-    TF1* tfSum = (TF1*)hfp->function_sum.Clone(format_name(hfp->hist_name, function_decorator));
+    TF1* tfSig = &hfp->function_sig;
+    TF1* tfBkg = &hfp->function_bkg;
+    TF1* tfSum = &hfp->function_sum;
+
+    tfSig->SetName(format_name(hfp->hist_name, function_decorator + "_sig"));
+    tfBkg->SetName(format_name(hfp->hist_name, function_decorator + "_bkg"));
+    tfSum->SetName(format_name(hfp->hist_name, function_decorator));
 
     hist->GetListOfFunctions()->Clear();
-    hist->GetListOfFunctions()->SetOwner(kTRUE); // FIXME do we ened this?
+    hist->GetListOfFunctions()->SetOwner(kFALSE); // FIXME do we ened this?
 
-    tfSig->SetBit(TF1::kNotDraw);
-    tfSig->SetBit(TF1::kNotGlobal);
-    tfBkg->SetBit(TF1::kNotDraw);
-    tfBkg->SetBit(TF1::kNotGlobal);
-    // tfSum->SetBit(TF1::kNotDraw);
+    if (draw_sig)
+        propSig().applyStyle(tfSig);
+    else
+        tfSig->SetBit(TF1::kNotDraw);
+    // tfSig->SetBit(TF1::kNotGlobal);
+    if (draw_bkg)
+        propBkg().applyStyle(tfBkg);
+    else
+        tfBkg->SetBit(TF1::kNotDraw);
+    // tfBkg->SetBit(TF1::kNotGlobal);
+    if (draw_sum)
+        propSum().applyStyle(tfSum);
+    else
+        tfSum->SetBit(TF1::kNotDraw);
     // tfSum->SetBit(TF1::kNotGlobal);
 
     const size_t par_num = tfSum->GetNpar();
@@ -578,8 +586,10 @@ bool FitterFactory::fit(HistogramFitParams* hfp, TH1* hist, const char* pars, co
         hfp->pars[i].val = par;
     }
 
-    hist->GetListOfFunctions()->Add(tfSig);
-    hist->GetListOfFunctions()->Add(tfBkg);
+    hist->GetListOfFunctions()->Add(
+        tfSig->Clone(format_name(hfp->hist_name, function_decorator + "_sig")));
+    hist->GetListOfFunctions()->Add(
+        tfBkg->Clone(format_name(hfp->hist_name, function_decorator + "_bkg")));
 
     delete[] pars_backup_old;
     delete[] pars_backup_new;
@@ -634,4 +644,17 @@ FitterFactoryTools::SelectedSource FitterFactoryTools::selectSource(const char* 
 #endif
 
     return mod_aux > mod_ref ? SelectedSource::Auxilary : SelectedSource::Reference;
+}
+
+void FitterFactoryTools::DrawProperties::applyStyle(TF1* f)
+{
+#if __cplusplus >= 201703L
+    if (line_color) f->SetLineColor(*line_color);
+    if (line_width) f->SetLineWidth(*line_width);
+    if (line_style) f->SetLineStyle(*line_style);
+#else
+    if (line_color != -1) f->SetLineColor(line_color);
+    if (line_width != -1) f->SetLineWidth(line_width);
+    if (line_style != -1) f->SetLineStyle(line_style);
+#endif
 }
