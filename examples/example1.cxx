@@ -10,7 +10,7 @@
 
 int main()
 {
-    const char* parname = "testpars.txt";
+    auto parname = TString(examples_bin_path) + "testpars.txt";
     // make input par file
     std::ifstream parfile(parname, std::ifstream::in);
     if (!parfile.is_open())
@@ -30,7 +30,7 @@ int main()
     }
     else
     {
-        std::cout << "Good, parameter file exists." << std::endl;
+        std::cout << "Good, parameter file " << parname << " exists." << std::endl;
     }
 
     TH1I* unnamed = new TH1I("test_hist", "", 100, 0, 10);
@@ -136,7 +136,7 @@ int main()
     unnamed->SetBinContent(100, 55);
     unnamed->SetEntries(210000);
 
-    auto rfn = TString(build_path) + "/testhist.root";
+    auto rfn = TString(examples_bin_path) + "testhist.root";
     TFile* fp = TFile::Open(rfn, "RECREATE");
     if (fp)
         unnamed->Write();
@@ -149,7 +149,8 @@ int main()
     fp->Close();
 
     FitterFactory ff;
-    ff.initFactoryFromFile("testpars.txt", "testpars.out");
+    ff.initFactoryFromFile(TString(examples_bin_path) + "testpars.txt",
+                           TString(examples_bin_path) + "testpars.out");
 
     auto hfp = ff.findParams("test_hist");
     if (hfp)

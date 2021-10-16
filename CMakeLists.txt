@@ -8,6 +8,23 @@ include(GNUInstallDirs)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME})
 
+### conditional modules
+option(ENABLE_ADVANCE_CHECKS "Enables advanced checks like sanitizers" OFF)
+include(FetchContent)
+FetchContent_Declare(cmake-scripts
+    GIT_REPOSITORY https://github.com/StableCoder/cmake-scripts.git
+    GIT_TAG        774a07ece3945b4f72e3ddc11646ab7cc9a349e2 # from main after sanitizer updates
+)
+
+if(ENABLE_ADVANCE_CHECKS)
+    FetchContent_MakeAvailable(cmake-scripts)
+    list(APPEND CMAKE_MODULE_PATH
+        ${cmake-scripts_SOURCE_DIR}
+    )
+    message(STATUS "${cmake-scripts_SOURCE_DIR}")
+    include(sanitizers)
+endif()
+
 ##### find ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)

@@ -5,8 +5,9 @@
 
 #cmakedefine HAS_ROOTTOOLS @RootTools_FOUND@
 
-const std::string tests_path = "@CMAKE_CURRENT_SOURCE_DIR@/";
-const std::string build_path = "@CMAKE_CURRENT_BINARY_DIR@/";
+const std::string examples_src_path = "@CMAKE_CURRENT_SOURCE_DIR@/";
+const std::string examples_bin_path = "@CMAKE_CURRENT_BINARY_DIR@/";
+const std::string build_path = "@CMAKE_BINARY_DIR@/";
 
 #endif /* FFCONFIG_H */
 

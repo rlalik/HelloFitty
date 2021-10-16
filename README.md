@@ -197,8 +197,36 @@ $ cmake ..
 $ make
 $ make install # optional
 ```
+Possible options to use with cmake:
+* `BUILD_EXAMPLES` - cmake `BOOL` type, enables build of example programs; the examples are not installable
+* `ENABLE_TESTING` - cmake `BOOL` type, builds google tests based tests; requires google test dev package installed,
+* `ENABLE_ADVANCE_CHECKS` - cmake `BOOL` type, enables extra tools provided by https://github.com/StableCoder/cmake-scripts, currently only the sanitizers are included:
+  * `USE_SANITIZER` - list of sanitizers to add, e.g. `-DUSE_SANITIZER=Address,Leak,Undefined`; see the package documentation for details
 
 ## Testing
 ```bash
-$ make test
+$ make test     # runs tests wia ctest
+$ tests/gtests  # runs tests directly via gtests
+```
+
+## Examples
+Two examples are provided:
+1. `example1` - creates histogram and input file with signal and background functions and then reads the input, fits histogram and stores output
+   ```bash
+   $ examples/example1
+   ```
+1. `example2` - opens root file, searches for histograms and tries to fit them using fits from input
+   ```bash
+   $ examples/example2 examples/testhist.root examples/testpars.txt # input files created by example1
+   ```
+
+## Usage with cmake
+The cmake files provide target to link your targets against. The target is located in the `RT` namespace as `RT::FitterFactory`. Example of usage:
+```cmake
+find_package(FitterFactory)
+
+target_link_libraries(your_target
+    PUBLIC
+        RT::FitterFactory
+)
 ```
