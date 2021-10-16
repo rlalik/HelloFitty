@@ -629,9 +629,6 @@ FitterFactoryTools::SelectedSource FitterFactoryTools::selectSource(const char* 
     struct stat st_ref;
     struct stat st_aux;
 
-    long long int mod_ref = 0;
-    long long int mod_aux = 0;
-
     auto s1 = stat(filename, &st_ref) == 0;
     auto s2 = stat(auxname, &st_aux) == 0;
 

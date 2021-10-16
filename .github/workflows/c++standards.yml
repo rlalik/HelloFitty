@@ -14,7 +14,7 @@ jobs:
   # This workflow contains a single job called "build"
   builds-matrix:
     # The type of runner that the job will run on
-    name: " ${{matrix.os-version }} ${{ matrix.compiler }} (CMake: ${{ matrix.cmake-version }}, ROOT: ${{ matrix.root-version }} ${{ matrix.cxx-standard }})"
+    name: "${{matrix.os-version }} ${{ matrix.compiler }}  ROOT ${{ matrix.root-version }} ${{ matrix.cxx-standard }} CMake ${{ matrix.cmake-version }}"
     runs-on: ${{ matrix.os-version }}
 
     strategy:
