@@ -23,11 +23,15 @@
 #include <TList.h>
 #include <TObjArray.h>
 #include <TObjString.h>
-#include <TSystem.h>
 
 #include <fstream>
 #include <string>
+
+#if __cplusplus >= 201703L
+#include <filesystem>
+#else
 #include <sys/stat.h>
+#endif
 
 #define PR(x)                                                                                      \
     std::cout << "++DEBUG: " << #x << " = |" << x << "| (" << __FILE__ << ", " << __LINE__ << ")\n";
@@ -299,21 +303,27 @@ FitterFactory::~FitterFactory() { clear(); }
 
 bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxname)
 {
-    struct stat st_ref;
-    struct stat st_aux;
-
-    TSystem sys;
-
     par_ref = filename;
     par_aux = auxname;
 
     if (!filename) { fprintf(stderr, "No reference input file given\n"); }
     if (!auxname) { fprintf(stderr, "No output file given\n"); }
 
+#if __cplusplus >= 201703L
+    std::filesystem::file_time_type mod_ref;
+    std::filesystem::file_time_type mod_aux;
+
+    if (std::filesystem::exists(filename))
+        mod_ref = std::filesystem::last_write_time(filename);
+    if (std::filesystem::exists(auxname))
+        mod_aux = std::filesystem::last_write_time(auxname);
+#else
+    stat st_ref;
+    stat st_aux;
+
     long long int mod_ref = 0;
     long long int mod_aux = 0;
 
-    //	#ifdef HAVE_ST_MTIM
     if (stat(filename, &st_ref)) { perror(filename); }
     else
     {
@@ -325,6 +335,8 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
     {
         mod_aux = (long long)st_aux.st_mtim.tv_sec;
     }
+
+#endif
 
     bool aux_newer = mod_aux > mod_ref;
 
