@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16 FATAL_ERROR)
 project(FitterFactory
-    VERSION 0.9.0
+    VERSION 0.9.1
     LANGUAGES CXX)
 
 include(GNUInstallDirs)

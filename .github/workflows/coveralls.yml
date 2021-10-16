@@ -80,7 +80,7 @@ jobs:
       - name: lcov-action
         uses: rlalik/lcov-action@v2-beta
         with:
-          remove_patterns: build
+          remove_patterns: build examples tests
           build_dir: build
 
       - name: Publish to coveralls.io

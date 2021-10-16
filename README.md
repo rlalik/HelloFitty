@@ -1,5 +1,5 @@
 ![FitterFactory: fitting tool](https://img.shields.io/badge/FitterFactory-fitting%20tool-orange)
-[![Coverage Status](https://coveralls.io/repos/github/rlalik/FitterFactory/badge.svg?branch=master)](https://coveralls.io/github/rlalik/FitterFactory?branch=master)
+[![Coverage Status](https://coveralls.io/repos/github/rlalik/FitterFactory/badge.svg)](https://coveralls.io/github/rlalik/FitterFactory)
 [![Compiler Checks](https://github.com/rlalik/FitterFactory/actions/workflows/CI.yml/badge.svg)](https://github.com/rlalik/FitterFactory/actions/workflows/CI.yml)
 [![clang-format Check](https://github.com/rlalik/FitterFactory/actions/workflows/clang-format-check.yml/badge.svg)](https://github.com/rlalik/FitterFactory/actions/workflows/clang-format-check.yml)
 ![GitHub](https://img.shields.io/github/license/rlalik/FitterFactory)
