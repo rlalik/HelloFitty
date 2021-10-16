@@ -161,6 +161,7 @@ int main()
 
     auto output1_name = TString(examples_bin_path) + "test_output1.txt";
     auto output2_name = TString(examples_bin_path) + "test_output2.txt";
+    auto output3_name = TString(examples_bin_path) + "test_output3.txt";
 
     FitterFactory ff;
 
@@ -192,7 +193,30 @@ int main()
     printf("\n ---- SECOND USAGE ---\n\n");
     ff.initFactoryFromFile(input_name, output2_name);
 
+    printf("\nBefore fitting:\n");
+    ff.print();
+
     if (!ff.fit(hist)) { std::cerr << "No function found" << std::endl; }
+
+    printf("\nAfter fitting:\n");
+    ff.print();
+
+    ff.exportFactoryToFile();
+
+    FitterFactory ff2(FitterFactory::PriorityMode::Reference);
+
+    /** Third usage using histogram object **/
+    printf("\n ---- THIRD USAGE ---\n\n");
+    ff.initFactoryFromFile(input_name, output3_name);
+
+    printf("\nBefore fitting:\n");
+    ff.print();
+
+    if (!ff.fit(hist)) { std::cerr << "No function found" << std::endl; }
+
+    printf("\nAfter fitting:\n");
+    ff.print();
+
     ff.exportFactoryToFile();
 
     return 0;

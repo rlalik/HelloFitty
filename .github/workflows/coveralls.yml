@@ -72,7 +72,9 @@ jobs:
       - name: Examples
         shell: bash
         run: |
-          build/examples/example1
+          build/examples/example1   # first try
+          build/examples/example1   # second try
+          build/examples/example2 build/examples/test_hist.root build/examples/test_input.txt build/examples/results2.root
           build/examples/example2 build/examples/test_hist.root build/examples/test_input.txt build/examples/results2.root
 
       - name: lcov-action
