@@ -313,13 +313,11 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
     std::filesystem::file_time_type mod_ref;
     std::filesystem::file_time_type mod_aux;
 
-    if (std::filesystem::exists(filename))
-        mod_ref = std::filesystem::last_write_time(filename);
-    if (std::filesystem::exists(auxname))
-        mod_aux = std::filesystem::last_write_time(auxname);
+    if (std::filesystem::exists(filename)) mod_ref = std::filesystem::last_write_time(filename);
+    if (std::filesystem::exists(auxname)) mod_aux = std::filesystem::last_write_time(auxname);
 #else
-    stat st_ref;
-    stat st_aux;
+    struct stat st_ref;
+    struct stat st_aux;
 
     long long int mod_ref = 0;
     long long int mod_aux = 0;
