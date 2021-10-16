@@ -61,10 +61,7 @@ HistogramFitParams::HistogramFitParams(const TString& hist_name, const TString& 
       function_bkg("", formula_b, range_lower, range_upper, TF1::EAddToList::kNo),
       function_sum("", formula_s + "+" + formula_b, range_lower, range_upper, TF1::EAddToList::kNo)
 {
-    if (hist_name[0] == '@')
-    {
-        fit_disabled = true;
-    }
+    if (hist_name[0] == '@') { fit_disabled = true; }
 
     pars.resize(function_sum.GetNpar());
 }
@@ -277,7 +274,7 @@ bool HistogramFitParams::load(TF1* f)
 void HistogramFitParams::push()
 {
     backup_p.clear();
-    for (auto & p : pars)
+    for (auto& p : pars)
         backup_p.push_back(p.val);
 }
 
@@ -296,10 +293,7 @@ void HistogramFitParams::apply()
         pars[i].val = backup_p[i];
 }
 
-void HistogramFitParams::drop()
-{
-    backup_p.clear();
-}
+void HistogramFitParams::drop() { backup_p.clear(); }
 
 FitterFactory::~FitterFactory() { clear(); }
 
