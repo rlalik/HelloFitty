@@ -1,0 +1,1 @@
+ test_hist gaus(0) expo(3)  0 0 10 10 1 1 1 -1

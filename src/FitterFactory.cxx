@@ -49,7 +49,7 @@ bool FitterFactory::verbose_flag = true;
 
 void ParamValue::print() const
 {
-    printf("%8g   Mode: %-5s   Limits: ", val, mode == FitMode::Free ? "Free" : "Fixed");
+    printf("%10g   Mode: %-5s   Limits: ", val, mode == FitMode::Free ? "Free" : "Fixed");
     if (has_limits)
         printf(" %g, %g\n", l, u);
     else
@@ -305,74 +305,53 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
     if (!filename) { fprintf(stderr, "No reference input file given\n"); }
     if (!auxname) { fprintf(stderr, "No output file given\n"); }
 
-#if __cplusplus >= 201703L
-    std::filesystem::file_time_type mod_ref;
-    std::filesystem::file_time_type mod_aux;
+    auto selected = FitterFactoryTools::selectSource(filename, auxname);
 
-    bool aux_newer = false;
+    if (selected == FitterFactoryTools::SelectedSource::None) return false;
 
-    if (std::filesystem::exists(filename)) mod_ref = std::filesystem::last_write_time(filename);
-    if (std::filesystem::exists(auxname)) {
-        mod_aux = std::filesystem::last_write_time(auxname);
-        aux_newer = mod_aux > mod_ref;
-    }
-#else
-    struct stat st_ref;
-    struct stat st_aux;
+    printf("Available source: [%c] REF  [%c] AUX\n",
+           selected != FitterFactoryTools::SelectedSource::OnlyAuxilary and
+                   selected != FitterFactoryTools::SelectedSource::None
+               ? 'x'
+               : ' ',
+           selected != FitterFactoryTools::SelectedSource::OnlyReference and
+                   selected != FitterFactoryTools::SelectedSource::None
+               ? 'x'
+               : ' ');
+    printf("Selected source : [%c] REF  [%c] AUX\n",
+           selected == FitterFactoryTools::SelectedSource::Reference ? 'x' : ' ',
+           selected == FitterFactoryTools::SelectedSource::Auxilary ? 'x' : ' ');
 
-    long long int mod_ref = 0;
-    long long int mod_aux = 0;
-
-    if (stat(filename, &st_ref)) { perror(filename); }
-    else
+    if (mode == PriorityMode::Reference)
     {
-        mod_ref = (long long)st_ref.st_mtim.tv_sec;
+        if (selected == FitterFactoryTools::SelectedSource::OnlyAuxilary)
+            return false;
+        else
+            return importParameters(filename);
     }
 
-    if (stat(auxname, &st_aux)) { perror(auxname); }
-    else
+    if (mode == PriorityMode::Auxilary)
     {
-        mod_aux = (long long)st_aux.st_mtim.tv_sec;
+        if (selected == FitterFactoryTools::SelectedSource::OnlyReference)
+            return false;
+        else
+            return importParameters(auxname);
     }
-
-    bool aux_newer = mod_aux > mod_ref;
-#endif
-
-    
-    printf("Aux is newer? %d\n", aux_newer);
-
-    std::cout << "Parameter files:";
-    if (!filename)
-        std::cout << " [x] REF";
-    else if (!aux_newer)
-        std::cout << " [*] REF";
-    else
-        std::cout << " [ ] REF";
-
-    if (!auxname)
-        std::cout << " [x] AUX";
-    else if (aux_newer)
-        std::cout << " [*] AUX";
-    else
-        std::cout << " [ ] AUX";
-    std::cout << std::endl;
-
-    if (mode == PriorityMode::Reference) return import_parameters(filename);
-
-    if (mode == PriorityMode::Auxilary) return import_parameters(auxname);
 
     if (mode == PriorityMode::Newer)
     {
-        if (aux_newer)
-            return import_parameters(auxname);
-        else
-            return import_parameters(filename);
+        if (selected == FitterFactoryTools::SelectedSource::Auxilary or
+            selected == FitterFactoryTools::SelectedSource::OnlyAuxilary)
+            return importParameters(auxname);
+        else if (selected == FitterFactoryTools::SelectedSource::Reference or
+                 selected == FitterFactoryTools::SelectedSource::OnlyReference)
+            return importParameters(filename);
     }
 
     return false;
 }
 
-bool FitterFactory::exportFactoryToFile() { return export_parameters(par_aux.Data()); }
+bool FitterFactory::exportFactoryToFile() { return exportParameters(par_aux.Data()); }
 
 void FitterFactory::insertParameters(std::unique_ptr<HistogramFitParams> hfp)
 {
@@ -385,7 +364,7 @@ void FitterFactory::insertParameters(const TString& name, std::unique_ptr<Histog
     hfpmap.insert({name, std::move(hfp)});
 }
 
-bool FitterFactory::import_parameters(const std::string& filename)
+bool FitterFactory::importParameters(const std::string& filename)
 {
     std::ifstream fparfile(filename);
     if (!fparfile.is_open())
@@ -394,18 +373,18 @@ bool FitterFactory::import_parameters(const std::string& filename)
         return false;
     }
 
-    size_t cnt = 0;
+    hfpmap.clear();
+
     std::string line;
     while (std::getline(fparfile, line))
     {
         insertParameters(HistogramFitParams::parseEntryFromFile(line));
-        ++cnt;
     }
 
     return true;
 }
 
-bool FitterFactory::export_parameters(const std::string& filename)
+bool FitterFactory::exportParameters(const std::string& filename)
 {
     std::ofstream fparfile(filename);
     if (!fparfile.is_open())
@@ -414,7 +393,8 @@ bool FitterFactory::export_parameters(const std::string& filename)
     }
     else
     {
-        std::cout << "AUX file " << filename << " opened...  Exporting " << hfpmap.size() << " entries.\n";
+        std::cout << "AUX file " << filename << " opened...  Exporting " << hfpmap.size()
+                  << " entries.\n";
         for (auto it = hfpmap.begin(); it != hfpmap.end(); ++it)
         {
             fparfile << it->second->exportEntry().Data() << std::endl;
@@ -615,4 +595,38 @@ TString FitterFactory::format_name(const TString& name, const TString& decorator
     TString s = decorator;
     s.ReplaceAll("*", name);
     return s;
+}
+
+FitterFactoryTools::SelectedSource FitterFactoryTools::selectSource(const char* filename,
+                                                                    const char* auxname)
+{
+#if __cplusplus >= 201703L
+    auto s1 = std::filesystem::exists(filename);
+    auto s2 = std::filesystem::exists(auxname);
+
+    if (!s1 and !s2) return SelectedSource::None;
+    if (s1 and !s2) return SelectedSource::OnlyReference;
+    if (!s1 and s2) return SelectedSource::OnlyAuxilary;
+
+    std::filesystem::file_time_type mod_ref = std::filesystem::last_write_time(filename);
+    std::filesystem::file_time_type mod_aux = std::filesystem::last_write_time(auxname);
+#else
+    struct stat st_ref;
+    struct stat st_aux;
+
+    long long int mod_ref = 0;
+    long long int mod_aux = 0;
+
+    auto s1 = stat(filename, &st_ref) == 0;
+    auto s2 = stat(auxname, &st_aux) == 0;
+
+    if (!s1 and !s2) return SelectedSource::None;
+    if (s1 and !s2) return SelectedSource::OnlyReference;
+    if (!s1 and s2) return SelectedSource::OnlyAuxilary;
+
+    auto mod_ref = (long long)st_ref.st_mtim.tv_sec;
+    auto mod_aux = (long long)st_aux.st_mtim.tv_sec;
+#endif
+
+    return mod_aux > mod_ref ? SelectedSource::Auxilary : SelectedSource::Reference;
 }

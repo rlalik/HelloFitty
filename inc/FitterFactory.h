@@ -160,8 +160,8 @@ public:
     void setFunctionDecorator(const TString& decorator) { function_decorator = decorator; };
 
 private:
-    bool import_parameters(const std::string& filename);
-    bool export_parameters(const std::string& filename);
+    bool importParameters(const std::string& filename);
+    bool exportParameters(const std::string& filename);
 
     PriorityMode mode;
 
@@ -170,7 +170,7 @@ private:
     TString par_ref;
     TString par_aux;
 
-    HistogramFitParams* defpars;
+    HistogramFitParams* defpars{nullptr};
     std::map<TString, std::unique_ptr<HistogramFitParams>> hfpmap;
 
     TString name_decorator{"*"};
@@ -179,5 +179,20 @@ private:
     TString rep_src;
     TString rep_dst;
 };
+
+namespace FitterFactoryTools
+{
+enum class SelectedSource
+{
+    None,
+    OnlyReference,
+    OnlyAuxilary,
+    Reference,
+    Auxilary
+};
+
+auto selectSource(const char* filename, const char* auxname = 0)
+    -> FitterFactoryTools::SelectedSource;
+}; // namespace FitterFactoryTools
 
 #endif // FITTERFACTORY_H
