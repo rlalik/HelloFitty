@@ -6,7 +6,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class ParamValue;
-#pragma link C++ class HistogramFitParam;
+#pragma link C++ class HistogramFitParams;
 #pragma link C++ class FitterFactory;
 // clang-format on
 

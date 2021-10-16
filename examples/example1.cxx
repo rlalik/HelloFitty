@@ -8,7 +8,8 @@
 #include <fstream>
 #include <iostream>
 
-void create_input_file(const TString & filename) {
+void create_input_file(const TString& filename)
+{
     std::ifstream parfile(filename, std::ifstream::in);
     if (!parfile.is_open())
     {
@@ -31,8 +32,8 @@ void create_input_file(const TString & filename) {
     }
 };
 
-TH1I* create_root_file(const TString & filename) {
-
+TH1I* create_root_file(const TString& filename)
+{
     TH1I* unnamed = new TH1I("test_hist", "", 100, 0, 10);
     unnamed->SetBinContent(1, 7290);
     unnamed->SetBinContent(2, 6750);
@@ -152,17 +153,21 @@ TH1I* create_root_file(const TString & filename) {
 
 int main()
 {
-    auto input_name = TString(examples_bin_path) + "testpars.txt";
-    create_input_file(input_name);
-    
-    auto root_file_name = TString(examples_bin_path) + "testhist.root";
+    auto root_file_name = TString(examples_bin_path) + "test_hist.root";
     auto hist = create_root_file(root_file_name);
 
-    auto output_name = TString(examples_bin_path) + "testpars.out";
+    auto input_name = TString(examples_bin_path) + "test_input.txt";
+    create_input_file(input_name);
+
+    auto output1_name = TString(examples_bin_path) + "test_output1.txt";
+    auto output2_name = TString(examples_bin_path) + "test_output2.txt";
 
     FitterFactory ff;
-    ff.initFactoryFromFile(input_name, output_name);
-                           
+
+    /** First usage using HFP object **/
+    printf("\n ---- FIRST USAGE ---\n\n");
+    ff.initFactoryFromFile(input_name, output1_name);
+
     auto hfp = ff.findParams("test_hist");
     if (hfp)
     {
@@ -181,6 +186,13 @@ int main()
     {
         std::cerr << "No function found" << std::endl;
     }
+    ff.exportFactoryToFile();
+
+    /** Second usage using histogram object **/
+    printf("\n ---- SECOND USAGE ---\n\n");
+    ff.initFactoryFromFile(input_name, output2_name);
+
+    if (!ff.fit(hist)) { std::cerr << "No function found" << std::endl; }
     ff.exportFactoryToFile();
 
     return 0;

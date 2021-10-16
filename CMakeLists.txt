@@ -94,6 +94,8 @@ install(FILES
     ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}ConfigVersion.cmake
     DESTINATION ${CMAKE_INSTALL_CMAKEDIR})
 
+configure_file(config.h.in ffconfig.h)
+
 option(BUILD_EXAMPLES "Build examples" ON)
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
