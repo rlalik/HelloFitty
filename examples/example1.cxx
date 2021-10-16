@@ -165,8 +165,9 @@ int main()
     auto output3_name = TString(examples_bin_path) + "test_output3.txt";
 
     FitterFactory ff;
-    ff.setDrawBits(true, false, true);
+    ff.setDrawBits(true, true, true);
     ff.propBkg().setLineColor(1).setLineWidth(2).setLineStyle(9);
+    ff.propSig().setLineColor(1).setLineWidth(1).setLineStyle(2);
 
     /** First usage using HFP object **/
     printf("\n ---- FIRST USAGE ---\n\n");
