@@ -179,6 +179,9 @@ TEST(tests_HistogramFitParam, cloning)
 
     ASSERT_EQ(hfp1.rebin, hfp2->rebin);
     ASSERT_EQ(hfp1.fit_disabled, hfp2->fit_disabled);
+
+    hfp1.push();
+    hfp1.clear();
 }
 
 TEST(tests_HistogramFitParam, backups)

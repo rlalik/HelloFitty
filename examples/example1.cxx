@@ -155,6 +155,7 @@ int main()
 {
     auto root_file_name = TString(examples_bin_path) + "test_hist.root";
     auto hist = create_root_file(root_file_name);
+    auto root_outout_name = TString(examples_bin_path) + "test_output.root";
 
     auto input_name = TString(examples_bin_path) + "test_input.txt";
     create_input_file(input_name);
@@ -164,6 +165,8 @@ int main()
     auto output3_name = TString(examples_bin_path) + "test_output3.txt";
 
     FitterFactory ff;
+    ff.setDrawBits(true, false, true);
+    ff.propBkg().setLineColor(1).setLineWidth(2).setLineStyle(9);
 
     /** First usage using HFP object **/
     printf("\n ---- FIRST USAGE ---\n\n");
@@ -180,7 +183,7 @@ int main()
         if (!ff.fit(hfp, hist)) hfp->pop();
 
         printf("\nAfter fitting:\n");
-        hfp->print();
+        hfp->print(true);
         printf("\n");
     }
     else
@@ -188,6 +191,16 @@ int main()
         std::cerr << "No function found" << std::endl;
     }
     ff.exportFactoryToFile();
+
+    TFile* fp = TFile::Open(root_outout_name, "RECREATE");
+    if (fp)
+        hist->Write();
+    else
+    {
+        std::cerr << "File " << root_outout_name << " not open\n";
+        abort();
+    }
+    fp->Close();
 
     /** Second usage using histogram object **/
     printf("\n ---- SECOND USAGE ---\n\n");
