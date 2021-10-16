@@ -59,7 +59,7 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
    * third marker shows parameter #3 with fixed value `1` and preserved limits `0 -- 2`
    * parameters #4 and #5 are free without limits
 
-1. Fitting functions can be stored in a file (as shown above) or created fro mthe code level:
+1. Fitting functions can be stored in a file (as shown above) or created from the code level:
    ```c++
    HistogramFitParams hfp("h1", "gaus(0)", "expo(3)", 0, 10);
    hfp.setParam(0, 10, 0, 20, ParamValue::FitMode::Free);
@@ -78,8 +78,8 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
 
 1. If a histogram name is prepended with `@` then the histogram will not be fit.
    ```text
-    test_hist gaus(0) expo(3)  0 0 10 10 : 0 20 1 f 1 F 0 2 1 -1
-   @test_hist gaus(0) expo(3)  0 0 10 10 : 0 20 1 f 1 F 0 2 1 -1
+    test_hist   gaus(0) expo(3)  0 0 10 10 : 0 20 1 f 1 F 0 2 1 -1
+   @other_hist  gaus(0) expo(3)  0 0 10 10 : 0 20 1 f 1 F 0 2 1 -1
    ```
 
 1. You may want to have multiple sets of fit functions for a single histogram. For that you can use histogram name decorator. An example parameter file:
