@@ -27,6 +27,12 @@
 #include <TFormula.h>
 #include <TString.h>
 
+#if __cplusplus < 201402L
+#define CONSTEXPRCXX14
+#else
+#define CONSTEXPRCXX14 constexpr
+#endif
+
 class TH1;
 
 struct ParamValue
@@ -122,8 +128,8 @@ public:
 
     void clear();
 
-    constexpr void setFlags(PriorityMode new_mode) { mode = new_mode; }
-    constexpr void setDefaultParameters(HistogramFitParams* defs) { defpars = defs; }
+    CONSTEXPRCXX14 void setFlags(PriorityMode new_mode) { mode = new_mode; }
+    CONSTEXPRCXX14 void setDefaultParameters(HistogramFitParams* defs) { defpars = defs; }
 
     bool initFactoryFromFile(const char* filename, const char* auxname = 0);
     bool exportFactoryToFile();
