@@ -8,15 +8,12 @@
 #include <fstream>
 #include <iostream>
 
-int main()
-{
-    auto parname = TString(examples_bin_path) + "testpars.txt";
-    // make input par file
-    std::ifstream parfile(parname, std::ifstream::in);
+void create_input_file(const TString & filename) {
+    std::ifstream parfile(filename, std::ifstream::in);
     if (!parfile.is_open())
     {
-        std::cout << "Creating parameter file" << std::endl;
-        std::ofstream parfile2(parname, std::ofstream::out);
+        std::cout << "Creating parameter file\n";
+        std::ofstream parfile2(filename, std::ofstream::out);
         if (parfile2.is_open())
         {
             parfile2 << " test_hist gaus(0) expo(3)  0 0 10 10 1 1 1 -1" << std::endl;
@@ -30,8 +27,11 @@ int main()
     }
     else
     {
-        std::cout << "Good, parameter file " << parname << " exists." << std::endl;
+        std::cout << "Good, parameter file " << filename << " exists." << std::endl;
     }
+};
+
+TH1I* create_root_file(const TString & filename) {
 
     TH1I* unnamed = new TH1I("test_hist", "", 100, 0, 10);
     unnamed->SetBinContent(1, 7290);
@@ -136,22 +136,33 @@ int main()
     unnamed->SetBinContent(100, 55);
     unnamed->SetEntries(210000);
 
-    auto rfn = TString(examples_bin_path) + "testhist.root";
-    TFile* fp = TFile::Open(rfn, "RECREATE");
+    TFile* fp = TFile::Open(filename, "RECREATE");
     if (fp)
         unnamed->Write();
     else
     {
-        std::cerr << "File " << rfn << " not open\n";
+        std::cerr << "File " << filename << " not open\n";
         abort();
     }
 
     fp->Close();
 
-    FitterFactory ff;
-    ff.initFactoryFromFile(TString(examples_bin_path) + "testpars.txt",
-                           TString(examples_bin_path) + "testpars.out");
+    return unnamed;
+}
 
+int main()
+{
+    auto input_name = TString(examples_bin_path) + "testpars.txt";
+    create_input_file(input_name);
+    
+    auto root_file_name = TString(examples_bin_path) + "testhist.root";
+    auto hist = create_root_file(root_file_name);
+
+    auto output_name = TString(examples_bin_path) + "testpars.out";
+
+    FitterFactory ff;
+    ff.initFactoryFromFile(input_name, output_name);
+                           
     auto hfp = ff.findParams("test_hist");
     if (hfp)
     {
@@ -160,7 +171,7 @@ int main()
         printf("\n");
 
         hfp->push();
-        if (!ff.fit(hfp, unnamed)) hfp->pop();
+        if (!ff.fit(hfp, hist)) hfp->pop();
 
         printf("\nAfter fitting:\n");
         hfp->print();
