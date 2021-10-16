@@ -1,6 +1,6 @@
 /*
-    <one line to give the program's name and a brief idea of what it does.>
-    Copyright (C) 2012  <copyright holder> <email>
+    FitterFactory - mass fitting tool for CERN's ROOT applications
+    Copyright (C) 2015-2021  Rafał Lalik <rafallalik@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@ public:
 
     TString exportEntry() const;
 
-    static std::unique_ptr<HistogramFitParams> parseEntryFromFile(const TString& line);
+    static std::unique_ptr<HistogramFitParams> parseLineEntry(const TString& line);
 
     void push();
     void pop();

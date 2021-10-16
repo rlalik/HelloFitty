@@ -1,6 +1,6 @@
 /*
-    <one line to give the program's name and a brief idea of what it does.>
-    Copyright (C) 2012  <copyright holder> <email>
+    FitterFactory - mass fitting tool for CERN's ROOT applications
+    Copyright (C) 2015-2021  Rafał Lalik <rafallalik@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -113,16 +113,16 @@ void HistogramFitParams::setParam(Int_t par, Double_t val, Double_t l, Double_t 
     pars[par].has_limits = true;
 }
 
-std::unique_ptr<HistogramFitParams> HistogramFitParams::parseEntryFromFile(const TString& line)
+std::unique_ptr<HistogramFitParams> HistogramFitParams::parseLineEntry(const TString& line)
 {
     TString line_ = line;
     line_.ReplaceAll("\t", " ");
     TObjArray* arr = line_.Tokenize(" ");
 
-    if (arr->GetEntries() < 5)
+    if (arr->GetEntries() < 6)
     {
         std::cerr << "Error parsing line:\n " << line << "\n";
-        abort();
+        return nullptr;
     };
 
     auto hfp =
@@ -132,14 +132,19 @@ std::unique_ptr<HistogramFitParams> HistogramFitParams::parseEntryFromFile(const
                                         ((TObjString*)arr->At(4))->String().Atof(), // low range
                                         ((TObjString*)arr->At(5))->String().Atof());
 
+    auto npars = hfp->pars.size();
+
     Double_t par_, l_, u_;
     Int_t step = 0;
     Int_t parnum = 0;
     ParamValue::FitMode flag_;
     bool has_limits_ = false;
 
-    for (int i = 6; i < arr->GetEntries(); /*++i*/ i += step, ++parnum)
+    auto entries = arr->GetEntries();
+    for (int i = 6; i < entries; i += step, ++parnum)
     {
+        if (parnum >= npars) return nullptr;
+
         TString val = ((TObjString*)arr->At(i))->String();
         TString nval =
             ((i + 1) < arr->GetEntries()) ? ((TObjString*)arr->At(i + 1))->String() : TString();
@@ -378,7 +383,7 @@ bool FitterFactory::importParameters(const std::string& filename)
     std::string line;
     while (std::getline(fparfile, line))
     {
-        insertParameters(HistogramFitParams::parseEntryFromFile(line));
+        insertParameters(HistogramFitParams::parseLineEntry(line));
     }
 
     return true;
