@@ -37,17 +37,13 @@ int main(int argc, char* argv[])
     // create fitting factory
     FitterFactory ff;
     ff.initFactoryFromFile(argv[2], opf);
+    delete[] opf;
 
     // uncomment this to print all entries
     // ff.print();
 
     // open root file
     TFile* file = TFile::Open(argv[1], "READ");
-
-    // create root output filename
-    size_t prlen = strlen(argv[1]);
-    char* orf = new char[prlen + 5];
-    sprintf(orf, "%s%s", "out_", argv[1]);
 
     TFile* ofile = nullptr;
     if (argc >= 4)

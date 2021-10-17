@@ -122,6 +122,7 @@ std::unique_ptr<HistogramFitParams> HistogramFitParams::parseLineEntry(const TSt
     if (arr->GetEntries() < 6)
     {
         std::cerr << "Error parsing line:\n " << line << "\n";
+        delete arr;
         return nullptr;
     };
 
@@ -143,7 +144,11 @@ std::unique_ptr<HistogramFitParams> HistogramFitParams::parseLineEntry(const TSt
     auto entries = arr->GetEntries();
     for (int i = 6; i < entries; i += step, ++parnum)
     {
-        if (parnum >= npars) return nullptr;
+        if (parnum >= npars)
+        {
+            delete arr;
+            return nullptr;
+        }
 
         TString val = ((TObjString*)arr->At(i))->String();
         TString nval =
@@ -188,6 +193,8 @@ std::unique_ptr<HistogramFitParams> HistogramFitParams::parseLineEntry(const TSt
         else
             hfp->setParam(parnum, par_, flag_);
     }
+
+    delete arr;
 
     return hfp;
 }
@@ -465,7 +472,7 @@ bool FitterFactory::fit(HistogramFitParams* hfp, TH1* hist, const char* pars, co
     tfSum->SetName(format_name(hfp->hist_name, function_decorator));
 
     hist->GetListOfFunctions()->Clear();
-    hist->GetListOfFunctions()->SetOwner(kFALSE); // FIXME do we ened this?
+    hist->GetListOfFunctions()->SetOwner(kTRUE);
 
     if (draw_sig)
         propSig().applyStyle(tfSig);
