@@ -28,6 +28,7 @@ endif()
 ##### find ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)
+include(${ROOT_USE_FILE})
 
 add_library(${CMAKE_PROJECT_NAME} SHARED
     src/FitterFactory.cxx
