@@ -105,7 +105,7 @@ struct ParamValue
 
 using ParamVector = std::vector<ParamValue>;
 
-class HistogramFitParams
+class HistogramFit
 {
 public:
     TString hist_name;  // histogram name
@@ -123,16 +123,16 @@ public:
     TF1 function_bkg;
     TF1 function_sum;
 
-    constexpr HistogramFitParams() = delete;
-    HistogramFitParams(const TString& hist_name, const TString& formula_s, const TString& formula_b,
-                       Double_t range_lower, Double_t range_upper);
-    HistogramFitParams(HistogramFitParams&& other) = default;
-    HistogramFitParams& operator=(HistogramFitParams&& other) = default;
+    constexpr HistogramFit() = delete;
+    HistogramFit(const TString& hist_name, const TString& formula_s, const TString& formula_b,
+                 Double_t range_lower, Double_t range_upper);
+    HistogramFit(HistogramFit&& other) = default;
+    HistogramFit& operator=(HistogramFit&& other) = default;
 
-    ~HistogramFitParams() = default;
+    ~HistogramFit() = default;
 
     void init();
-    auto clone(const TString& new_name) const -> std::unique_ptr<HistogramFitParams>;
+    auto clone(const TString& new_name) const -> std::unique_ptr<HistogramFit>;
     void setParam(Int_t par, ParamValue value);
     void setParam(Int_t par, Double_t val, ParamValue::FitMode mode);
     void setParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValue::FitMode mode);
@@ -143,7 +143,7 @@ public:
 
     TString exportEntry() const;
 
-    static std::unique_ptr<HistogramFitParams> parseLineEntry(const TString& line);
+    static std::unique_ptr<HistogramFit> parseLineEntry(const TString& line);
 
     void push();
     void pop();
@@ -151,14 +151,12 @@ public:
     void drop();
 
 private:
-    HistogramFitParams(const HistogramFitParams& hfp) = delete;
-    HistogramFitParams& operator=(const HistogramFitParams& hfp) = delete;
+    HistogramFit(const HistogramFit& hfp) = delete;
+    HistogramFit& operator=(const HistogramFit& hfp) = delete;
 
 private:
     std::vector<Double_t> backup_p; // backup for parameters
 };
-
-using HfpEntry = std::pair<TString, std::unique_ptr<HistogramFitParams>>;
 
 class FitterFactory
 {
@@ -176,16 +174,16 @@ public:
     void clear();
 
     CONSTEXPRCXX14 void setFlags(PriorityMode new_mode) { mode = new_mode; }
-    CONSTEXPRCXX14 void setDefaultParameters(HistogramFitParams* defs) { defpars = defs; }
+    CONSTEXPRCXX14 void setDefaultParameters(HistogramFit* defs) { defpars = defs; }
 
     bool initFactoryFromFile(const char* filename, const char* auxname = 0);
     bool exportFactoryToFile();
 
-    HistogramFitParams* findParams(TH1* hist) const;
-    HistogramFitParams* findParams(const char* name) const;
+    HistogramFit* findFit(TH1* hist) const;
+    HistogramFit* findFit(const char* name) const;
 
     bool fit(TH1* hist, const char* pars = "B,Q", const char* gpars = "");
-    bool fit(HistogramFitParams* hfp, TH1* hist, const char* pars = "B,Q", const char* gpars = "");
+    bool fit(HistogramFit* hfp, TH1* hist, const char* pars = "B,Q", const char* gpars = "");
 
     void print() const;
 
@@ -198,8 +196,8 @@ public:
     }
     TString format_name(const TString& name, const TString& decorator) const;
 
-    void insertParameters(std::unique_ptr<HistogramFitParams> hfp);
-    void insertParameters(const TString& name, std::unique_ptr<HistogramFitParams> hfp);
+    void insertParameters(std::unique_ptr<HistogramFit>&& hfp);
+    void insertParameters(const TString& name, std::unique_ptr<HistogramFit>&& hfp);
 
     void setNameDecorator(const TString& decorator) { name_decorator = decorator; };
     void clearNameDecorator() { name_decorator = "*"; };
@@ -228,8 +226,8 @@ private:
     TString par_ref;
     TString par_aux;
 
-    HistogramFitParams* defpars{nullptr};
-    std::map<TString, std::unique_ptr<HistogramFitParams>> hfpmap;
+    HistogramFit* defpars{nullptr};
+    std::map<TString, std::unique_ptr<HistogramFit>> hfpmap;
 
     TString name_decorator{"*"};
     TString function_decorator{"f_*"};

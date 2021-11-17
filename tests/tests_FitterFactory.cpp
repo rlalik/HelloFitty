@@ -19,3 +19,18 @@ TEST(tests_FitterFactory, prefix_suffix_test)
     ASSERT_STREQ("p_test_name_suff1", ff2.format_name(tn1, f2));
     ASSERT_STREQ("p_replaced_suff1", ff2.format_name(tn2, f2));
 }
+
+TEST(tests_FitterFactory, insert_parameters)
+{
+    FitterFactory ff;
+
+    auto hf1 = std::make_unique<HistogramFit>("name1", "1", "0", 0, 1);
+
+    auto o1 = ff.findFit("name1");
+    ASSERT_EQ(o1, nullptr);
+
+    ff.insertParameters(std::move(hf1));
+
+    auto o2 = ff.findFit("name1");
+    ASSERT_NE(o2, nullptr);
+}

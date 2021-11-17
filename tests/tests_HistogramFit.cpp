@@ -2,9 +2,9 @@
 
 #include "FitterFactory.h"
 
-TEST(tests_HistogramFitParam, basic)
+TEST(tests_HistogramFit, basic)
 {
-    HistogramFitParams hfp1("h1", "gaus(0)", "expo(3)", 1, 10);
+    HistogramFit hfp1("h1", "gaus(0)", "expo(3)", 1, 10);
 
     ASSERT_STREQ(hfp1.hist_name, "h1");
     ASSERT_STREQ(hfp1.sig_string, "gaus(0)");
@@ -17,15 +17,14 @@ TEST(tests_HistogramFitParam, basic)
     ASSERT_EQ(hfp1.fit_disabled, false);
 }
 
-TEST(tests_HistogramFitParam, parsing_line)
+TEST(tests_HistogramFit, parsing_line)
 {
-    auto hfp0 =
-        HistogramFitParams::parseLineEntry("hist_1 gaus(0) 0  0  1 10  1  2 : 1 3  3 F 2 5  4 f");
+    auto hfp0 = HistogramFit::parseLineEntry("hist_1 gaus(0) 0  0  1 10  1  2 : 1 3  3 F 2 5  4 f");
 
     ASSERT_FALSE(hfp0.get());
 
-    auto hfp1 = HistogramFitParams::parseLineEntry(
-        "hist_1 gaus(0) pol0(3)  0  1 10  1  2 : 1 3  3 F 2 5  4 f");
+    auto hfp1 =
+        HistogramFit::parseLineEntry("hist_1 gaus(0) pol0(3)  0  1 10  1  2 : 1 3  3 F 2 5  4 f");
 
     ASSERT_STREQ(hfp1->hist_name, "hist_1");
     ASSERT_STREQ(hfp1->sig_string, "gaus(0)");
@@ -69,8 +68,8 @@ TEST(tests_HistogramFitParam, parsing_line)
     auto export1 = hfp1->exportEntry();
     ASSERT_STREQ(export1, " hist_1\tgaus(0) pol0(3) 0 1 10 1 2 : 1 3 3 F 2 5 4 f");
 
-    auto hfp2 = HistogramFitParams::parseLineEntry(
-        "hist_1 gaus(0) pol0(3)  1  1 10  1  2 : 1 3  3 F 2 5  4 f");
+    auto hfp2 =
+        HistogramFit::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1 10  1  2 : 1 3  3 F 2 5  4 f");
 
     ASSERT_STREQ(hfp2->hist_name, "hist_1");
     ASSERT_STREQ(hfp2->sig_string, "gaus(0)");
@@ -114,7 +113,7 @@ TEST(tests_HistogramFitParam, parsing_line)
     auto export2 = hfp2->exportEntry();
     ASSERT_STREQ(export2, " hist_1\tgaus(0) pol0(3) 0 1 10 1 2 : 1 3 3 F 2 5 4 f");
 
-    auto hfp3 = HistogramFitParams::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1 10");
+    auto hfp3 = HistogramFit::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1 10");
 
     ASSERT_STREQ(hfp3->hist_name, "hist_1");
     ASSERT_STREQ(hfp3->sig_string, "gaus(0)");
@@ -158,14 +157,14 @@ TEST(tests_HistogramFitParam, parsing_line)
     auto export3 = hfp3->exportEntry();
     ASSERT_STREQ(export3, " hist_1\tgaus(0) pol0(3) 0 1 10 0 0 0 0");
 
-    auto hfp4 = HistogramFitParams::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1");
+    auto hfp4 = HistogramFit::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1");
 
     ASSERT_FALSE(hfp4.get());
 }
 
-TEST(tests_HistogramFitParam, cloning)
+TEST(tests_HistogramFit, cloning)
 {
-    HistogramFitParams hfp1("h1", "gaus(0)", "expo(3)", 1, 10);
+    HistogramFit hfp1("h1", "gaus(0)", "expo(3)", 1, 10);
 
     auto hfp2 = hfp1.clone("h2");
 
@@ -184,9 +183,9 @@ TEST(tests_HistogramFitParam, cloning)
     hfp1.clear();
 }
 
-TEST(tests_HistogramFitParam, backups)
+TEST(tests_HistogramFit, backups)
 {
-    HistogramFitParams hfp1("h1", "gaus(0)", "expo(3)", 1, 10);
+    HistogramFit hfp1("h1", "gaus(0)", "expo(3)", 1, 10);
 
     ParamValue p1;
     auto p2 = ParamValue();

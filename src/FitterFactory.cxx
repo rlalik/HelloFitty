@@ -56,9 +56,8 @@ void ParamValue::print() const
         printf(" none\n");
 }
 
-HistogramFitParams::HistogramFitParams(const TString& hist_name, const TString& formula_s,
-                                       const TString& formula_b, Double_t range_lower,
-                                       Double_t range_upper)
+HistogramFit::HistogramFit(const TString& hist_name, const TString& formula_s,
+                           const TString& formula_b, Double_t range_lower, Double_t range_upper)
     : hist_name(hist_name), sig_string(formula_s), bkg_string(formula_b), range_l(range_lower),
       range_u(range_upper),
       function_sig("", formula_s, range_lower, range_upper, TF1::EAddToList::kNo),
@@ -70,14 +69,14 @@ HistogramFitParams::HistogramFitParams(const TString& hist_name, const TString& 
     pars.resize(function_sum.GetNpar());
 }
 
-auto HistogramFitParams::clone(const TString& new_name) const -> std::unique_ptr<HistogramFitParams>
+auto HistogramFit::clone(const TString& new_name) const -> std::unique_ptr<HistogramFit>
 {
-    return make_unique<HistogramFitParams>(new_name, sig_string, bkg_string, range_l, range_u);
+    return make_unique<HistogramFit>(new_name, sig_string, bkg_string, range_l, range_u);
 }
 
-void HistogramFitParams::clear() { drop(); }
+void HistogramFit::clear() { drop(); }
 
-void HistogramFitParams::init()
+void HistogramFit::init()
 {
     for (auto i = 0; i < pars.size(); ++i)
         if (pars[i].mode == ParamValue::FitMode::Fixed)
@@ -85,18 +84,17 @@ void HistogramFitParams::init()
         else
         {
             function_sum.SetParameter(i, pars[i].val);
-            if (pars[i].has_limits)
-                function_sum.SetParLimits(i, pars[i].l, pars[i].u);
+            if (pars[i].has_limits) function_sum.SetParLimits(i, pars[i].l, pars[i].u);
         }
 }
 
-void HistogramFitParams::setParam(Int_t par, ParamValue value)
+void HistogramFit::setParam(Int_t par, ParamValue value)
 {
     if (!(par < pars.size())) return;
     pars[par] = value;
 }
 
-void HistogramFitParams::setParam(Int_t par, Double_t val, ParamValue::FitMode mode)
+void HistogramFit::setParam(Int_t par, Double_t val, ParamValue::FitMode mode)
 {
     if (!(par < pars.size())) return;
     pars[par].val = val;
@@ -106,8 +104,8 @@ void HistogramFitParams::setParam(Int_t par, Double_t val, ParamValue::FitMode m
     pars[par].has_limits = false;
 }
 
-void HistogramFitParams::setParam(Int_t par, Double_t val, Double_t l, Double_t u,
-                                  ParamValue::FitMode mode)
+void HistogramFit::setParam(Int_t par, Double_t val, Double_t l, Double_t u,
+                            ParamValue::FitMode mode)
 {
     if (!(par < pars.size())) return;
     pars[par].val = val;
@@ -117,7 +115,7 @@ void HistogramFitParams::setParam(Int_t par, Double_t val, Double_t l, Double_t 
     pars[par].has_limits = true;
 }
 
-std::unique_ptr<HistogramFitParams> HistogramFitParams::parseLineEntry(const TString& line)
+std::unique_ptr<HistogramFit> HistogramFit::parseLineEntry(const TString& line)
 {
     TString line_ = line;
     line_.ReplaceAll("\t", " ");
@@ -130,12 +128,11 @@ std::unique_ptr<HistogramFitParams> HistogramFitParams::parseLineEntry(const TSt
         return nullptr;
     };
 
-    auto hfp =
-        make_unique<HistogramFitParams>(((TObjString*)arr->At(0))->String(),        // hist name
-                                        ((TObjString*)arr->At(1))->String(),        // func val
-                                        ((TObjString*)arr->At(2))->String(),        // func val
-                                        ((TObjString*)arr->At(4))->String().Atof(), // low range
-                                        ((TObjString*)arr->At(5))->String().Atof());
+    auto hfp = make_unique<HistogramFit>(((TObjString*)arr->At(0))->String(),        // hist name
+                                         ((TObjString*)arr->At(1))->String(),        // func val
+                                         ((TObjString*)arr->At(2))->String(),        // func val
+                                         ((TObjString*)arr->At(4))->String().Atof(), // low range
+                                         ((TObjString*)arr->At(5))->String().Atof());
 
     auto npars = hfp->pars.size();
 
@@ -203,7 +200,7 @@ std::unique_ptr<HistogramFitParams> HistogramFitParams::parseLineEntry(const TSt
     return hfp;
 }
 
-TString HistogramFitParams::exportEntry() const
+TString HistogramFit::exportEntry() const
 {
     TString out = fit_disabled ? "@" : " ";
 
@@ -246,7 +243,7 @@ TString HistogramFitParams::exportEntry() const
     return out;
 }
 
-void HistogramFitParams::print(bool detailed) const
+void HistogramFit::print(bool detailed) const
 {
     std::cout << "## name: " << hist_name.Data() << "   rebin: " << rebin << "   range: " << range_l
               << " -- " << range_u << "  param num: " << pars.size() << "\n";
@@ -270,7 +267,7 @@ void HistogramFitParams::print(bool detailed) const
     }
 }
 
-bool HistogramFitParams::load(TF1* f)
+bool HistogramFit::load(TF1* f)
 {
     auto s = pars.size();
     if (s == f->GetNpar())
@@ -284,20 +281,20 @@ bool HistogramFitParams::load(TF1* f)
     return true;
 }
 
-void HistogramFitParams::push()
+void HistogramFit::push()
 {
     backup_p.clear();
     for (auto& p : pars)
         backup_p.push_back(p.val);
 }
 
-void HistogramFitParams::pop()
+void HistogramFit::pop()
 {
     apply();
     drop();
 }
 
-void HistogramFitParams::apply()
+void HistogramFit::apply()
 {
     if (backup_p.size() != pars.size()) return;
 
@@ -306,7 +303,7 @@ void HistogramFitParams::apply()
         pars[i].val = backup_p[i];
 }
 
-void HistogramFitParams::drop() { backup_p.clear(); }
+void HistogramFit::drop() { backup_p.clear(); }
 
 FitterFactory::~FitterFactory() { clear(); }
 
@@ -366,13 +363,13 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
 
 bool FitterFactory::exportFactoryToFile() { return exportParameters(par_aux.Data()); }
 
-void FitterFactory::insertParameters(std::unique_ptr<HistogramFitParams> hfp)
+void FitterFactory::insertParameters(std::unique_ptr<HistogramFit>&& hfp)
 {
     auto n = hfp->hist_name;
     insertParameters(n, std::move(hfp));
 }
 
-void FitterFactory::insertParameters(const TString& name, std::unique_ptr<HistogramFitParams> hfp)
+void FitterFactory::insertParameters(const TString& name, std::unique_ptr<HistogramFit>&& hfp)
 {
     hfpmap.insert({name, std::move(hfp)});
 }
@@ -391,7 +388,7 @@ bool FitterFactory::importParameters(const std::string& filename)
     std::string line;
     while (std::getline(fparfile, line))
     {
-        insertParameters(HistogramFitParams::parseLineEntry(line));
+        insertParameters(HistogramFit::parseLineEntry(line));
     }
 
     return true;
@@ -417,12 +414,9 @@ bool FitterFactory::exportParameters(const std::string& filename)
     return true;
 }
 
-HistogramFitParams* FitterFactory::findParams(TH1* hist) const
-{
-    return findParams(hist->GetName());
-}
+HistogramFit* FitterFactory::findFit(TH1* hist) const { return findFit(hist->GetName()); }
 
-HistogramFitParams* FitterFactory::findParams(const char* name) const
+HistogramFit* FitterFactory::findFit(const char* name) const
 {
     auto it = hfpmap.find(format_name(name, name_decorator));
     if (it != hfpmap.end()) return it->second.get();
@@ -432,7 +426,7 @@ HistogramFitParams* FitterFactory::findParams(const char* name) const
 
 bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
 {
-    HistogramFitParams* hfp = findParams(hist->GetName());
+    HistogramFit* hfp = findFit(hist->GetName());
     if (!hfp)
     {
         printf("HFP for histogram %s not found, trying from defaults.\n", hist->GetName());
@@ -452,7 +446,7 @@ bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
     return status;
 }
 
-bool FitterFactory::fit(HistogramFitParams* hfp, TH1* hist, const char* pars, const char* gpars)
+bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const char* gpars)
 {
     Int_t bin_l = hist->FindBin(hfp->range_l);
     Int_t bin_u = hist->FindBin(hfp->range_u);

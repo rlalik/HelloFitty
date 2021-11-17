@@ -2,7 +2,7 @@ find_package(GTest REQUIRED)
 
 set(tests_SRCS
     tests_ParamValue.cpp
-    tests_HistogramFitParam.cpp
+    tests_HistogramFit.cpp
     tests_FitterFactory.cpp
     tests_FitterFactoryTools.cpp
 )
