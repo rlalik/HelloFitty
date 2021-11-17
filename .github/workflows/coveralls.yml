@@ -41,7 +41,7 @@ jobs:
       - name: Setup CMake
         uses: jwlawson/actions-setup-cmake@v1.9
         with:
-          cmake-version: 3.16
+          cmake-version: 3.11
 
       - name: Configure
         env:
@@ -54,20 +54,24 @@ jobs:
           root-config --version
           root-config --cflags
           root-config --features
-          cmake \
-            -S . \
-            -B build \
+          mkdir build
+          cd build
+          cmake .. \
             -DENABLE_TESTING=On \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_INSTALL_PREFIX:PATH=instdir
 
       - name: Build
         shell: bash
-        run: cmake --build build --config Debug -v
+        run: |
+            cd build
+            make
 
       - name: Test
         shell: bash
-        run: cmake --build build --target test
+        run: |
+            cd build
+            make test
 
       - name: Examples
         shell: bash
