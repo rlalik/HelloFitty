@@ -83,7 +83,11 @@ void HistogramFitParams::init()
         if (pars[i].mode == ParamValue::FitMode::Fixed)
             function_sum.FixParameter(i, pars[i].val);
         else
+        {
             function_sum.SetParameter(i, pars[i].val);
+            if (pars[i].has_limits)
+                function_sum.SetParLimits(i, pars[i].l, pars[i].u);
+        }
 }
 
 void HistogramFitParams::setParam(Int_t par, ParamValue value)
