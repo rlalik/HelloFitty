@@ -2,6 +2,15 @@
 
 #include "FitterFactory.h"
 
+#if __cplusplus < 201402L
+template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+#else
+using std::make_unique;
+#endif
+
 TEST(tests_FitterFactory, prefix_suffix_test)
 {
     std::string f1 = "pref1_*";
@@ -24,11 +33,10 @@ TEST(tests_FitterFactory, insert_parameters)
 {
     FitterFactory ff;
 
-    auto hf1 = std::make_unique<HistogramFit>("name1", "1", "0", 0, 1);
-
     auto o1 = ff.findFit("name1");
     ASSERT_EQ(o1, nullptr);
 
+    auto hf1 = make_unique<HistogramFit>("name1", "1", "0", 0, 1);
     ff.insertParameters(std::move(hf1));
 
     auto o2 = ff.findFit("name1");
