@@ -173,7 +173,7 @@ int main()
     printf("\n ---- FIRST USAGE ---\n\n");
     ff.initFactoryFromFile(input_name, output1_name);
 
-    auto hfp = ff.findParams("test_hist");
+    auto hfp = ff.findFit("test_hist");
     if (hfp)
     {
         printf("\nBefore fitting:\n");

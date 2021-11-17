@@ -60,7 +60,7 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
 
 1. Fitting functions can be stored in a file (as shown above) or created from the code level:
    ```c++
-   HistogramFitParams hfp("h1", "gaus(0)", "expo(3)", 0, 10);
+   HistogramFit hfp("h1", "gaus(0)", "expo(3)", 0, 10);
    hfp.setParam(0, 10, 0, 20, ParamValue::FitMode::Free);
    hfp.setParam(1, 1, ParamValue::FitMode::Fixed);
    hfp.setParam(2, 1, 0, 2, ParamValue::FitMode::Fixed);
@@ -71,7 +71,7 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
 
 1. Create clone of an existing functions and parameters set (to avoid duplication of histogram names, copying is forbidden).
    ```c++
-   HistogramFitParams hfp("h1", "gaus(0)", "expo(3)", 0, 10);
+   HistogramFit hfp("h1", "gaus(0)", "expo(3)", 0, 10);
    auto hfp2 = hfp.clone("h2");
    ```
 
@@ -117,12 +117,12 @@ and create file `test_parameters.txt` containing fitting function and parameters
 
 #### Case 1
 
-Using a `HistogramFitParams` object. Run code:
+Using a `HistogramFit` object. Run code:
 ```c++
 FitterFactory ff;	// create FitterFactory object
 ff.initFactoryFromFile("testpars.txt", "testpars.out"); // specify input file and output file
 
-HistogramFitParams * hfp = ff.findParams("test_hist"); // try to find parameters for histogram `test_hist`
+HistogramFit * hfp = ff.findParams("test_hist"); // try to find parameters for histogram `test_hist`
 if (hfp)
 {
     hfp->push();             // preserve default parameters, just in case, optional
@@ -140,9 +140,9 @@ The output file contains:
  test_hist      gaus(0) expo(3) 0 0 10 5005.69 3.0004 -0.501326 8.91282 -0.501843
 ```
 
-Please note, that in this example the object `hfp` does not need to be assigned to histogram named `test_hit`. In this case, you can fit any arbitrary `HistogramFitParams` object to any histogram, e.g.:
+Please note, that in this example the object `hfp` does not need to be assigned to histogram named `test_hit`. In this case, you can fit any arbitrary `HistogramFit` object to any histogram, e.g.:
 ```c++
-HistogramFitParams * hfp = ff.findParams("different_name"); // try to find parameters for histogram `test_hist`
+HistogramFit * hfp = ff.findParams("different_name"); // try to find parameters for histogram `test_hist`
 if (hfp)
 {
     hfp->push();            // preserve default parameters, just in case, optional
@@ -171,7 +171,7 @@ The output file contains:
 ```
 In this case, if the `test_hist` would be missing in the input file, the fit will fail due to missing input parameters. For a such case, you can set default parameter set which will be used as source for cloning the final set, e.g.:
 ```c++
-HistogramFitParams default_hfp("default", "gaus(0)", "expo(3)", 0, 10);
+HistogramFit default_hfp("default", "gaus(0)", "expo(3)", 0, 10);
 default_hfp.setParam(0, 10, 0, 20, ParamValue::FitMode::Free);
 default_hfp.setParam(1, 1, ParamValue::FitMode::Fixed);
 default_hfp.setParam(2, 1, 0, 2, ParamValue::FitMode::Fixed);
