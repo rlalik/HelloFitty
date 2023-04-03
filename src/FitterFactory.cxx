@@ -45,7 +45,29 @@ template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&...
 using std::make_unique;
 #endif
 
-bool FitterFactory::verbose_flag = true;
+struct FitterFactoryImpl
+{
+    FitterFactory::PriorityMode mode;
+
+    static bool verbose_flag;
+
+    TString par_ref;
+    TString par_aux;
+
+    HistogramFit* defpars{nullptr};
+    std::map<TString, std::unique_ptr<HistogramFit>> hfpmap;
+
+    TString name_decorator{"*"};
+    TString function_decorator{"f_*"};
+
+    TString rep_src;
+    TString rep_dst;
+
+    bool draw_sum{true}, draw_sig{false}, draw_bkg{false};
+    FitterFactoryTools::DrawProperties prop_sum, prop_sig, prop_bkg;
+};
+
+bool FitterFactoryImpl::verbose_flag = true;
 
 void ParamValue::print() const
 {
@@ -305,12 +327,20 @@ void HistogramFit::apply()
 
 void HistogramFit::drop() { backup_p.clear(); }
 
+void FitterFactory::setVerbose(bool verbose) { FitterFactoryImpl::verbose_flag = verbose; }
+
+FitterFactory::FitterFactory(PriorityMode mode) : d{std::make_unique<FitterFactoryImpl>()}
+{
+    d->mode = mode;
+    d->defpars = nullptr;
+}
+
 FitterFactory::~FitterFactory() { clear(); }
 
 bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxname)
 {
-    par_ref = filename;
-    par_aux = auxname;
+    d->par_ref = filename;
+    d->par_aux = auxname;
 
     if (!filename) { fprintf(stderr, "No reference input file given\n"); }
     if (!auxname) { fprintf(stderr, "No output file given\n"); }
@@ -332,6 +362,7 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
            selected == FitterFactoryTools::SelectedSource::Reference ? 'x' : ' ',
            selected == FitterFactoryTools::SelectedSource::Auxilary ? 'x' : ' ');
 
+    auto mode = d->mode;
     if (mode == PriorityMode::Reference)
     {
         if (selected == FitterFactoryTools::SelectedSource::OnlyAuxilary)
@@ -361,7 +392,7 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
     return false;
 }
 
-bool FitterFactory::exportFactoryToFile() { return exportParameters(par_aux.Data()); }
+bool FitterFactory::exportFactoryToFile() { return exportParameters(d->par_aux.Data()); }
 
 void FitterFactory::insertParameters(std::unique_ptr<HistogramFit>&& hfp)
 {
@@ -371,7 +402,7 @@ void FitterFactory::insertParameters(std::unique_ptr<HistogramFit>&& hfp)
 
 void FitterFactory::insertParameters(const TString& name, std::unique_ptr<HistogramFit>&& hfp)
 {
-    hfpmap.insert({name, std::move(hfp)});
+    d->hfpmap.insert({name, std::move(hfp)});
 }
 
 bool FitterFactory::importParameters(const std::string& filename)
@@ -383,7 +414,7 @@ bool FitterFactory::importParameters(const std::string& filename)
         return false;
     }
 
-    hfpmap.clear();
+    d->hfpmap.clear();
 
     std::string line;
     while (std::getline(fparfile, line))
@@ -403,9 +434,9 @@ bool FitterFactory::exportParameters(const std::string& filename)
     }
     else
     {
-        std::cout << "AUX file " << filename << " opened...  Exporting " << hfpmap.size()
+        std::cout << "AUX file " << filename << " opened...  Exporting " << d->hfpmap.size()
                   << " entries.\n";
-        for (auto it = hfpmap.begin(); it != hfpmap.end(); ++it)
+        for (auto it = d->hfpmap.begin(); it != d->hfpmap.end(); ++it)
         {
             fparfile << it->second->exportEntry().Data() << std::endl;
         }
@@ -418,8 +449,8 @@ HistogramFit* FitterFactory::findFit(TH1* hist) const { return findFit(hist->Get
 
 HistogramFit* FitterFactory::findFit(const char* name) const
 {
-    auto it = hfpmap.find(format_name(name, name_decorator));
-    if (it != hfpmap.end()) return it->second.get();
+    auto it = d->hfpmap.find(format_name(name, d->name_decorator));
+    if (it != d->hfpmap.end()) return it->second.get();
 
     return nullptr;
 }
@@ -431,9 +462,9 @@ bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
     {
         printf("HFP for histogram %s not found, trying from defaults.\n", hist->GetName());
 
-        if (!defpars) return false;
+        if (!d->defpars) return false;
 
-        auto tmp = defpars->clone(format_name(hist->GetName(), name_decorator));
+        auto tmp = d->defpars->clone(format_name(hist->GetName(), d->name_decorator));
         hfp = tmp.get();
         insertParameters(std::move(tmp));
     }
@@ -465,24 +496,24 @@ bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const ch
     TF1* tfBkg = &hfp->function_bkg;
     TF1* tfSum = &hfp->function_sum;
 
-    tfSig->SetName(format_name(hfp->hist_name, function_decorator + "_sig"));
-    tfBkg->SetName(format_name(hfp->hist_name, function_decorator + "_bkg"));
-    tfSum->SetName(format_name(hfp->hist_name, function_decorator));
+    tfSig->SetName(format_name(hfp->hist_name, d->function_decorator + "_sig"));
+    tfBkg->SetName(format_name(hfp->hist_name, d->function_decorator + "_bkg"));
+    tfSum->SetName(format_name(hfp->hist_name, d->function_decorator));
 
     hist->GetListOfFunctions()->Clear();
     hist->GetListOfFunctions()->SetOwner(kTRUE);
 
-    if (draw_sig)
+    if (d->draw_sig)
         propSig().applyStyle(tfSig);
     else
         tfSig->SetBit(TF1::kNotDraw);
     // tfSig->SetBit(TF1::kNotGlobal);
-    if (draw_bkg)
+    if (d->draw_bkg)
         propBkg().applyStyle(tfBkg);
     else
         tfBkg->SetBit(TF1::kNotDraw);
     // tfBkg->SetBit(TF1::kNotGlobal);
-    if (draw_sum)
+    if (d->draw_sum)
         propSum().applyStyle(tfSum);
     else
         tfSum->SetBit(TF1::kNotDraw);
@@ -495,7 +526,7 @@ bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const ch
     tfSum->GetParameters(pars_backup_old);
     double chi2_backup_old = hist->Chisquare(tfSum, "R");
 
-    if (verbose_flag)
+    if (d->verbose_flag)
     {
         // print them
         printf("* old: ");
@@ -519,7 +550,7 @@ bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const ch
     tfSum->GetParameters(pars_backup_new);
     double chi2_backup_new = hist->Chisquare(tfSum, "R");
 
-    if (verbose_flag)
+    if (d->verbose_flag)
     {
         printf("  new: ");
         for (uint i = 0; i < par_num; ++i)
@@ -561,7 +592,7 @@ bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const ch
         // printf("\n\tIS-OK: %g vs. %g -> %f", tfSum->GetMaximum(), hist->GetMaximum(),
         //        hist->Chisquare(tfSum, "R"));
 
-        if (verbose_flag) printf("\t [ OK ]\n");
+        if (d->verbose_flag) printf("\t [ OK ]\n");
     }
 
     tfSum->SetChisquare(hist->Chisquare(tfSum, "R"));
@@ -592,9 +623,9 @@ bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const ch
     }
 
     hist->GetListOfFunctions()->Add(
-        tfSig->Clone(format_name(hfp->hist_name, function_decorator + "_sig")));
+        tfSig->Clone(format_name(hfp->hist_name, d->function_decorator + "_sig")));
     hist->GetListOfFunctions()->Add(
-        tfBkg->Clone(format_name(hfp->hist_name, function_decorator + "_bkg")));
+        tfBkg->Clone(format_name(hfp->hist_name, d->function_decorator + "_bkg")));
 
     delete[] pars_backup_old;
     delete[] pars_backup_new;
@@ -602,13 +633,42 @@ bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const ch
     return true;
 }
 
+auto FitterFactory::setFlags(PriorityMode new_mode) -> void { d->mode = new_mode; }
+
+auto FitterFactory::setDefaultParameters(HistogramFit* defs) -> void { d->defpars = defs; }
+
+void FitterFactory::setReplacement(const TString& src, const TString& dst)
+{
+    d->rep_src = src;
+    d->rep_dst = dst;
+}
+
+void FitterFactory::setNameDecorator(const TString& decorator) { d->name_decorator = decorator; };
+void FitterFactory::clearNameDecorator() { d->name_decorator = "*"; };
+
+void FitterFactory::setFunctionDecorator(const TString& decorator)
+{
+    d->function_decorator = decorator;
+};
+
+void FitterFactory::setDrawBits(bool sum, bool sig, bool bkg)
+{
+    d->draw_sum = sum;
+    d->draw_sig = sig;
+    d->draw_bkg = bkg;
+}
+
+auto FitterFactory::propSum() -> FitterFactoryTools::DrawProperties& { return d->prop_sum; }
+auto FitterFactory::propSig() -> FitterFactoryTools::DrawProperties& { return d->prop_sig; }
+auto FitterFactory::propBkg() -> FitterFactoryTools::DrawProperties& { return d->prop_bkg; }
+
 void FitterFactory::print() const
 {
-    for (auto it = hfpmap.begin(); it != hfpmap.end(); ++it)
+    for (auto it = d->hfpmap.begin(); it != d->hfpmap.end(); ++it)
         it->second->print();
 }
 
-void FitterFactory::clear() { hfpmap.clear(); }
+void FitterFactory::clear() { d->hfpmap.clear(); }
 
 TString FitterFactory::format_name(const TString& name, const TString& decorator) const
 {

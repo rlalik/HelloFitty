@@ -26,10 +26,7 @@ void create_input_file(const TString& filename)
             std::exit(EXIT_FAILURE);
         }
     }
-    else
-    {
-        std::cout << "Good, parameter file " << filename << " exists." << std::endl;
-    }
+    else { std::cout << "Good, parameter file " << filename << " exists." << std::endl; }
 };
 
 TH1I* create_root_file(const TString& filename)
@@ -187,10 +184,7 @@ int main()
         hfp->print(true);
         printf("\n");
     }
-    else
-    {
-        std::cerr << "No function found" << std::endl;
-    }
+    else { std::cerr << "No function found" << std::endl; }
     ff.exportFactoryToFile();
 
     TFile* fp = TFile::Open(root_outout_name, "RECREATE");

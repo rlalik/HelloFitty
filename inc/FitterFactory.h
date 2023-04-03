@@ -35,6 +35,8 @@
 
 class TH1;
 
+struct FitterFactoryImpl;
+
 namespace FitterFactoryTools
 {
 enum class SelectedSource
@@ -168,13 +170,13 @@ public:
         Newer
     };
 
-    FitterFactory(PriorityMode mode = PriorityMode::Newer) : mode(mode), defpars(nullptr) {}
+    FitterFactory(PriorityMode mode = PriorityMode::Newer);
     virtual ~FitterFactory();
 
     void clear();
 
-    CONSTEXPRCXX14 void setFlags(PriorityMode new_mode) { mode = new_mode; }
-    CONSTEXPRCXX14 void setDefaultParameters(HistogramFit* defs) { defpars = defs; }
+    void setFlags(PriorityMode new_mode);
+    void setDefaultParameters(HistogramFit* defs);
 
     bool initFactoryFromFile(const char* filename, const char* auxname = 0);
     bool exportFactoryToFile();
@@ -182,61 +184,35 @@ public:
     HistogramFit* findFit(TH1* hist) const;
     HistogramFit* findFit(const char* name) const;
 
-    bool fit(TH1* hist, const char* pars = "B,Q", const char* gpars = "");
-    bool fit(HistogramFit* hfp, TH1* hist, const char* pars = "B,Q", const char* gpars = "");
+    auto fit(TH1* hist, const char* pars = "B,Q", const char* gpars = "") -> bool;
+    auto fit(HistogramFit* hfp, TH1* hist, const char* pars = "B,Q", const char* gpars = "")
+        -> bool;
 
     void print() const;
 
-    static void setVerbose(bool verbose) { verbose_flag = verbose; }
+    static auto setVerbose(bool verbose) -> void;
 
-    void setReplacement(const TString& src, const TString& dst)
-    {
-        rep_src = src;
-        rep_dst = dst;
-    }
-    TString format_name(const TString& name, const TString& decorator) const;
+    auto setReplacement(const TString& src, const TString& dst) -> void;
+    auto format_name(const TString& name, const TString& decorator) const -> TString;
 
     void insertParameters(std::unique_ptr<HistogramFit>&& hfp);
     void insertParameters(const TString& name, std::unique_ptr<HistogramFit>&& hfp);
 
-    void setNameDecorator(const TString& decorator) { name_decorator = decorator; };
-    void clearNameDecorator() { name_decorator = "*"; };
+    void setNameDecorator(const TString& decorator);
+    void clearNameDecorator();
 
-    void setFunctionDecorator(const TString& decorator) { function_decorator = decorator; };
+    void setFunctionDecorator(const TString& decorator);
 
-    void setDrawBits(bool sum = true, bool sig = false, bool bkg = false)
-    {
-        draw_sum = sum;
-        draw_sig = sig;
-        draw_bkg = bkg;
-    }
+    void setDrawBits(bool sum = true, bool sig = false, bool bkg = false);
 
-    auto propSum() -> FitterFactoryTools::DrawProperties& { return prop_sum; }
-    auto propSig() -> FitterFactoryTools::DrawProperties& { return prop_sig; }
-    auto propBkg() -> FitterFactoryTools::DrawProperties& { return prop_bkg; }
+    auto propSum() -> FitterFactoryTools::DrawProperties&;
+    auto propSig() -> FitterFactoryTools::DrawProperties&;
+    auto propBkg() -> FitterFactoryTools::DrawProperties&;
 
 private:
     bool importParameters(const std::string& filename);
     bool exportParameters(const std::string& filename);
-
-    PriorityMode mode;
-
-    static bool verbose_flag;
-
-    TString par_ref;
-    TString par_aux;
-
-    HistogramFit* defpars{nullptr};
-    std::map<TString, std::unique_ptr<HistogramFit>> hfpmap;
-
-    TString name_decorator{"*"};
-    TString function_decorator{"f_*"};
-
-    TString rep_src;
-    TString rep_dst;
-
-    bool draw_sum{true}, draw_sig{false}, draw_bkg{false};
-    FitterFactoryTools::DrawProperties prop_sum, prop_sig, prop_bkg;
+    std::unique_ptr<FitterFactoryImpl> d;
 };
 
 #endif // FITTERFACTORY_H

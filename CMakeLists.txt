@@ -1,116 +1,122 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
-project(FitterFactory
-    VERSION 0.9.2
-    LANGUAGES CXX)
+project(
+  FitterFactory
+  VERSION 0.9.3
+  LANGUAGES CXX)
 
 include(GNUInstallDirs)
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${CMAKE_PROJECT_NAME})
+include(FetchContent)
+FetchContent_Declare(
+  cmake-tools
+  GIT_REPOSITORY https://github.com/rlalik/cmake_tools
+  GIT_TAG master)
+FetchContent_MakeAvailable(cmake-tools)
 
-### conditional modules
+list(APPEND CMAKE_MODULE_PATH ${cmake-tools_SOURCE_DIR})
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+
+# conditional modules
 option(ENABLE_ADVANCE_CHECKS "Enables advanced checks like sanitizers" OFF)
 include(FetchContent)
-FetchContent_Declare(cmake-scripts
-    GIT_REPOSITORY https://github.com/StableCoder/cmake-scripts.git
-    GIT_TAG        774a07ece3945b4f72e3ddc11646ab7cc9a349e2 # from main after sanitizer updates
+FetchContent_Declare(
+  cmake-scripts
+  GIT_REPOSITORY https://github.com/StableCoder/cmake-scripts.git
+  GIT_TAG 774a07ece3945b4f72e3ddc11646ab7cc9a349e2 # from main after sanitizer
+                                                   # updates
 )
 
 if(ENABLE_ADVANCE_CHECKS)
-    FetchContent_MakeAvailable(cmake-scripts)
-    list(APPEND CMAKE_MODULE_PATH
-        ${cmake-scripts_SOURCE_DIR}
-    )
-    message(STATUS "${cmake-scripts_SOURCE_DIR}")
-    include(sanitizers)
+  FetchContent_MakeAvailable(cmake-scripts)
+  list(APPEND CMAKE_MODULE_PATH ${cmake-scripts_SOURCE_DIR})
+  message(STATUS "${cmake-scripts_SOURCE_DIR}")
+  include(sanitizers)
 endif()
 
-##### find ROOT
+# find ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)
 include(${ROOT_USE_FILE})
 
-add_library(${CMAKE_PROJECT_NAME} SHARED
-    src/FitterFactory.cxx
-)
-add_library(RT::${CMAKE_PROJECT_NAME} ALIAS ${CMAKE_PROJECT_NAME})
+include(shared_or_static)
+shared_or_static(${PROJECT_NAME})
+add_library(${PROJECT_NAME} ${${PROJECT_NAME}_LIBRARY_TYPE}
+                            src/FitterFactory.cxx)
+add_library(RT::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
 
-target_include_directories(${CMAKE_PROJECT_NAME}
-    PUBLIC
-        $<INSTALL_INTERFACE:include>
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/inc
-)
+target_include_directories(
+  ${PROJECT_NAME}
+  PUBLIC $<INSTALL_INTERFACE:include>
+         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
+  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/inc)
 
-target_link_libraries(${CMAKE_PROJECT_NAME}
-    PUBLIC
-        ROOT::Core
-        ROOT::Hist
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC ROOT::Core ROOT::Hist)
 
-set_target_properties(${CMAKE_PROJECT_NAME}
-    PROPERTIES
-        SOVERSION ${PROJECT_VERSION_MAJOR}
-        VERSION ${PROJECT_VERSION}
-        PUBLIC_HEADER
-            "inc/FitterFactory.h"
-)
+set_target_properties(
+  ${PROJECT_NAME}
+  PROPERTIES SOVERSION ${PROJECT_VERSION_MAJOR}
+             VERSION ${PROJECT_VERSION}
+             PUBLIC_HEADER "inc/FitterFactory.h")
 
-ROOT_GENERATE_DICTIONARY(G__${CMAKE_PROJECT_NAME}_cc
-    FitterFactory.h
-    MODULE ${CMAKE_PROJECT_NAME}
-    LINKDEF LinkDef.h
-)
+# cmake-format: off
+root_generate_dictionary(G__${PROJECT_NAME}_cc FitterFactory.h
+  MODULE ${PROJECT_NAME}
+  LINKDEF LinkDef.h)
+# cmake-format: on
 
-# Export the package for use from the build-tree
-# (this registers the build-tree with a global CMake-registry)
-export(PACKAGE ${CMAKE_PROJECT_NAME})
+# Export the package for use from the build-tree (this registers the build-tree
+# with a global CMake-registry)
+export(PACKAGE ${PROJECT_NAME})
 
 # Install the export set for use with the install-tree
-install(TARGETS ${CMAKE_PROJECT_NAME}
-    EXPORT ${CMAKE_PROJECT_NAME}Targets
-    LIBRARY
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    PUBLIC_HEADER
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    )
+install(
+  TARGETS ${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}Targets
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-install(EXPORT ${CMAKE_PROJECT_NAME}Targets
-    FILE ${CMAKE_PROJECT_NAME}Targets.cmake
-    NAMESPACE RT::
-    DESTINATION ${CMAKE_INSTALL_CMAKEDIR} COMPONENT dev)
+install(
+  EXPORT ${PROJECT_NAME}Targets
+  FILE ${PROJECT_NAME}Targets.cmake
+  NAMESPACE RT::
+  DESTINATION ${CMAKE_INSTALL_CMAKEDIR}
+  COMPONENT dev)
 
 include(CMakePackageConfigHelpers)
-configure_package_config_file(Config.cmake.in ${CMAKE_PROJECT_NAME}Config.cmake
-    INSTALL_DESTINATION ${CMAKE_INSTALL_CMAKEDIR}
-    PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR CMAKE_INSTALL_BINDIR)
+configure_package_config_file(
+  Config.cmake.in ${PROJECT_NAME}Config.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_CMAKEDIR}
+  PATH_VARS CMAKE_INSTALL_INCLUDEDIR CMAKE_INSTALL_LIBDIR CMAKE_INSTALL_BINDIR)
 
-write_basic_package_version_file(${CMAKE_PROJECT_NAME}ConfigVersion.cmake
-    VERSION ${PROJECT_VERSION}
-    COMPATIBILITY SameMajorVersion)
+write_basic_package_version_file(
+  ${PROJECT_NAME}ConfigVersion.cmake
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion)
 
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}Config.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_PROJECT_NAME}ConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_CMAKEDIR})
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+        DESTINATION ${CMAKE_INSTALL_CMAKEDIR})
 
 configure_file(config.h.in ffconfig.h)
 
 option(BUILD_EXAMPLES "Build examples" ON)
 if(BUILD_EXAMPLES)
-    add_subdirectory(examples)
+  add_subdirectory(examples)
 endif()
 
 option(ENABLE_TESTING "Build tests" ON)
 if(ENABLE_TESTING)
-    enable_testing()
-    add_subdirectory(tests)
+  enable_testing()
+  add_subdirectory(tests)
 endif()
 
 # messages
-MESSAGE(STATUS "<<< Configuration >>>
-Project:        ${CMAKE_PROJECT_NAME}
+message(
+  STATUS
+    "<<< Configuration >>>
+Project:        ${PROJECT_NAME}
 
 Architecture:   ${CMAKE_LIBRARY_ARCHITECTURE}
 Build type      ${CMAKE_BUILD_TYPE}
@@ -133,5 +139,5 @@ Module          ${CMAKE_MODULE_LINKER_FLAGS}
 Shared          ${CMAKE_SHARED_LINKER_FLAGS}\n")
 
 foreach(p LIB BIN INCLUDE CMAKE)
-    message(STATUS "CMAKE_INSTALL_${p}DIR: ${CMAKE_INSTALL_${p}DIR}")
+  message(STATUS "CMAKE_INSTALL_${p}DIR: ${CMAKE_INSTALL_${p}DIR}")
 endforeach()
