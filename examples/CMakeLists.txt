@@ -1,7 +1,9 @@
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_INSTALL_PREFIX}/lib/CMake)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_INSTALL_PREFIX}/lib/CMake)
 
-find_package(RootTools 0.1.3)
+include(find_or_fetch_package)
+find_or_fetch_package(RootTools https://github.com/rlalik/RootTools GIT_TAG master)
+
 set(HAS_ROOTTOOLS ${RootTools_FOUND})
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR})

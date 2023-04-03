@@ -35,7 +35,7 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
    * `test_hist` is a histogram name
    * `gaus(0)` is a signal function
    * `expo(3)` is a background function
-   *`0` is a histogram rebinning factor
+   * `0` is a histogram rebinning factor
    * `0 10` is fitting x-range
    * `10 1 1 1 -1` are input parameters for fit function `gaus(0)+expo(3)`
 
