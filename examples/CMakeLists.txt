@@ -2,7 +2,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_INSTALL_PREFIX}/lib/CMake)
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_INSTALL_PREFIX}/lib/CMake)
 
 include(find_or_fetch_package)
-find_or_fetch_package(RootTools https://github.com/rlalik/RootTools GIT_TAG master)
+find_or_fetch_package(RootTools https://github.com/rlalik/RootTools GIT_TAG
+                      master)
 
 set(HAS_ROOTTOOLS ${RootTools_FOUND})
 
@@ -16,6 +17,6 @@ add_executable(example2 example2.cxx)
 target_include_directories(example2 PRIVATE ${CMAKE_BINARY_DIR})
 target_link_libraries(example2 FitterFactory)
 
-if (RootTools_FOUND)
-	target_link_libraries(example2 RT::RootTools)
-endif (RootTools_FOUND)
+if(RootTools_FOUND)
+  target_link_libraries(example2 RT::RootTools)
+endif(RootTools_FOUND)

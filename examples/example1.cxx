@@ -161,7 +161,7 @@ int main()
     auto output2_name = TString(examples_bin_path) + "test_output2.txt";
     auto output3_name = TString(examples_bin_path) + "test_output3.txt";
 
-    FitterFactory ff;
+    FF::FitterFactory ff;
     ff.setDrawBits(true, true, true);
     ff.propBkg().setLineColor(1).setLineWidth(2).setLineStyle(9);
     ff.propSig().setLineColor(1).setLineWidth(1).setLineStyle(2);
@@ -211,7 +211,7 @@ int main()
 
     ff.exportFactoryToFile();
 
-    FitterFactory ff2(FitterFactory::PriorityMode::Reference);
+    FF::FitterFactory ff2(FF::FitterFactory::PriorityMode::Reference);
 
     /** Third usage using histogram object **/
     printf("\n ---- THIRD USAGE ---\n\n");
@@ -226,6 +226,8 @@ int main()
     ff.print();
 
     ff.exportFactoryToFile();
+
+    delete hist;
 
     return 0;
 }

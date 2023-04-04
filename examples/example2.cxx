@@ -35,7 +35,7 @@ int main(int argc, char* argv[])
     sprintf(opf, "%s%s", argv[2], ".out");
 
     // create fitting factory
-    FitterFactory ff;
+    FF::FitterFactory ff;
     ff.initFactoryFromFile(argv[2], opf);
     delete[] opf;
 

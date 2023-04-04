@@ -35,9 +35,13 @@
 
 class TH1;
 
+namespace FF
+{
+
+struct HistogramFitImpl;
 struct FitterFactoryImpl;
 
-namespace FitterFactoryTools
+namespace Tools
 {
 enum class SelectedSource
 {
@@ -48,10 +52,9 @@ enum class SelectedSource
     Auxilary
 };
 
-auto selectSource(const char* filename, const char* auxname = 0)
-    -> FitterFactoryTools::SelectedSource;
+auto selectSource(const char* filename, const char* auxname = 0) -> Tools::SelectedSource;
 
-struct DrawProperties
+struct DrawProperties final
 {
 #if __cplusplus >= 201703L
     std::optional<Int_t> line_color;
@@ -82,9 +85,11 @@ struct DrawProperties
     void applyStyle(TF1* f);
 };
 
-}; // namespace FitterFactoryTools
+auto format_name(const TString& name, const TString& decorator) -> TString;
 
-struct ParamValue
+}; // namespace Tools
+
+struct Param final
 {
     double val{0}; // value
     double l{0};   // lower limit
@@ -96,56 +101,62 @@ struct ParamValue
     } mode{FitMode::Free};
     bool has_limits{false};
 
-    constexpr ParamValue() = default;
-    constexpr ParamValue(double val, ParamValue::FitMode mode) : val(val), mode(mode) {}
-    constexpr ParamValue(double val, double l, double u, ParamValue::FitMode mode)
+    constexpr Param() = default;
+    constexpr Param(double val, Param::FitMode mode) : val(val), mode(mode) {}
+    constexpr Param(double val, double l, double u, Param::FitMode mode)
         : val(val), l(l), u(u), mode(mode), has_limits(true)
     {
     }
     void print() const;
 };
 
-using ParamVector = std::vector<ParamValue>;
+using ParamVector = std::vector<Param>;
 
-class HistogramFit
+class HistogramFit final
 {
 public:
-    TString hist_name;  // histogram name
-    TString sig_string; // signal and background functions
-    TString bkg_string;
-
-    Double_t range_l; // function range
-    Double_t range_u; // function range
-
-    int rebin{0}; // rebin, 0 == no rebin
-    bool fit_disabled{false};
-
-    ParamVector pars;
-    TF1 function_sig;
-    TF1 function_bkg;
-    TF1 function_sum;
-
     constexpr HistogramFit() = delete;
-    HistogramFit(const TString& hist_name, const TString& formula_s, const TString& formula_b,
-                 Double_t range_lower, Double_t range_upper);
+    HistogramFit(TString hist_name, TString formula_s, TString formula_b, Double_t range_lower,
+                 Double_t range_upper);
     HistogramFit(HistogramFit&& other) = default;
     HistogramFit& operator=(HistogramFit&& other) = default;
 
-    ~HistogramFit() = default;
+    ~HistogramFit() noexcept;
 
-    void init();
-    auto clone(const TString& new_name) const -> std::unique_ptr<HistogramFit>;
-    void setParam(Int_t par, ParamValue value);
-    void setParam(Int_t par, Double_t val, ParamValue::FitMode mode);
-    void setParam(Int_t par, Double_t val, Double_t l, Double_t u, ParamValue::FitMode mode);
+    auto clone(TString new_name) const -> std::unique_ptr<HistogramFit>;
+
+    auto init() -> void;
+    auto setParam(Int_t par, Param value) -> void;
+    auto setParam(Int_t par, Double_t val, Param::FitMode mode) -> void;
+    auto setParam(Int_t par, Double_t val, Double_t l, Double_t u, Param::FitMode mode) -> void;
+    auto updateParam(Int_t par, Double_t val) -> void;
+    auto getParam(Int_t par) const -> Param;
+    auto getParamsNumber() const -> int;
+
+    auto getName() const -> TString;
+    auto getFitRangeL() const -> float;
+    auto getFitRangeU() const -> float;
+
+    auto getSigFunc() const -> const TF1&;
+    auto getBkgFunc() const -> const TF1&;
+    auto getSumFunc() const -> const TF1&;
+
+    auto getSigFunc() -> TF1&;
+    auto getBkgFunc() -> TF1&;
+    auto getSumFunc() -> TF1&;
+
+    auto getSigString() const -> const TString&;
+    auto getBkgString() const -> const TString&;
+
+    auto getFlagRebin() const -> int;
+    auto getFlagDisabled() const -> bool;
+
     void print(bool detailed = false) const;
     bool load(TF1* f);
 
     void clear();
 
     TString exportEntry() const;
-
-    static std::unique_ptr<HistogramFit> parseLineEntry(const TString& line);
 
     void push();
     void pop();
@@ -157,10 +168,10 @@ private:
     HistogramFit& operator=(const HistogramFit& hfp) = delete;
 
 private:
-    std::vector<Double_t> backup_p; // backup for parameters
+    std::unique_ptr<HistogramFitImpl> d;
 };
 
-class FitterFactory
+class FitterFactory final
 {
 public:
     enum class PriorityMode
@@ -171,7 +182,7 @@ public:
     };
 
     FitterFactory(PriorityMode mode = PriorityMode::Newer);
-    virtual ~FitterFactory();
+    ~FitterFactory();
 
     void clear();
 
@@ -193,7 +204,6 @@ public:
     static auto setVerbose(bool verbose) -> void;
 
     auto setReplacement(const TString& src, const TString& dst) -> void;
-    auto format_name(const TString& name, const TString& decorator) const -> TString;
 
     void insertParameters(std::unique_ptr<HistogramFit>&& hfp);
     void insertParameters(const TString& name, std::unique_ptr<HistogramFit>&& hfp);
@@ -205,9 +215,9 @@ public:
 
     void setDrawBits(bool sum = true, bool sig = false, bool bkg = false);
 
-    auto propSum() -> FitterFactoryTools::DrawProperties&;
-    auto propSig() -> FitterFactoryTools::DrawProperties&;
-    auto propBkg() -> FitterFactoryTools::DrawProperties&;
+    auto propSum() -> Tools::DrawProperties&;
+    auto propSig() -> Tools::DrawProperties&;
+    auto propBkg() -> Tools::DrawProperties&;
 
 private:
     bool importParameters(const std::string& filename);
@@ -215,4 +225,6 @@ private:
     std::unique_ptr<FitterFactoryImpl> d;
 };
 
+std::unique_ptr<HistogramFit> parseLineEntry(const TString& line, int version);
+};     // namespace FF
 #endif // FITTERFACTORY_H

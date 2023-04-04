@@ -14,18 +14,18 @@ TEST(tests_FitterFactoryTools, source_select)
 
     auto newer_one = build_path + "ffconfig.h";
 
-    ASSERT_EQ(FitterFactoryTools::selectSource(fake_in.c_str(), fake_out.c_str()),
-              FitterFactoryTools::SelectedSource::None);
+    ASSERT_EQ(FF::Tools::selectSource(fake_in.c_str(), fake_out.c_str()),
+              FF::Tools::SelectedSource::None);
 
-    ASSERT_EQ(FitterFactoryTools::selectSource(true_in.c_str(), fake_out.c_str()),
-              FitterFactoryTools::SelectedSource::OnlyReference);
+    ASSERT_EQ(FF::Tools::selectSource(true_in.c_str(), fake_out.c_str()),
+              FF::Tools::SelectedSource::OnlyReference);
 
-    ASSERT_EQ(FitterFactoryTools::selectSource(fake_in.c_str(), true_out.c_str()),
-              FitterFactoryTools::SelectedSource::OnlyAuxilary);
+    ASSERT_EQ(FF::Tools::selectSource(fake_in.c_str(), true_out.c_str()),
+              FF::Tools::SelectedSource::OnlyAuxilary);
 
-    ASSERT_EQ(FitterFactoryTools::selectSource(true_in.c_str(), newer_one.c_str()),
-              FitterFactoryTools::SelectedSource::Auxilary);
+    ASSERT_EQ(FF::Tools::selectSource(true_in.c_str(), newer_one.c_str()),
+              FF::Tools::SelectedSource::Auxilary);
 
-    ASSERT_EQ(FitterFactoryTools::selectSource(newer_one.c_str(), true_out.c_str()),
-              FitterFactoryTools::SelectedSource::Reference);
+    ASSERT_EQ(FF::Tools::selectSource(newer_one.c_str(), true_out.c_str()),
+              FF::Tools::SelectedSource::Reference);
 }

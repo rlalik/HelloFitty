@@ -4,10 +4,13 @@
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
+#pragma link off all namespaces;
 
-#pragma link C++ class ParamValue;
-#pragma link C++ class HistogramFitParams;
-#pragma link C++ class FitterFactory;
+#pragma link C++ nestedclasses;
+#pragma link C++ class FF::Param;
+#pragma link C++ class FF::HistogramFit;
+#pragma link C++ class FF::FitterFactory;
+#pragma link C++ namespace FF;
 // clang-format on
 
 #endif

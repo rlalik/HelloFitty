@@ -8,27 +8,23 @@ include(GNUInstallDirs)
 
 include(FetchContent)
 FetchContent_Declare(
-  cmake-tools
+  cmake_tools
   GIT_REPOSITORY https://github.com/rlalik/cmake_tools
   GIT_TAG master)
-FetchContent_MakeAvailable(cmake-tools)
+FetchContent_MakeAvailable(cmake_tools)
 
-list(APPEND CMAKE_MODULE_PATH ${cmake-tools_SOURCE_DIR})
+list(APPEND CMAKE_MODULE_PATH ${cmake_tools_SOURCE_DIR})
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_INSTALL_CMAKEDIR ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
 
 # conditional modules
-option(ENABLE_ADVANCE_CHECKS "Enables advanced checks like sanitizers" OFF)
-include(FetchContent)
-FetchContent_Declare(
-  cmake-scripts
-  GIT_REPOSITORY https://github.com/StableCoder/cmake-scripts.git
-  GIT_TAG 774a07ece3945b4f72e3ddc11646ab7cc9a349e2 # from main after sanitizer
-                                                   # updates
-)
-
-if(ENABLE_ADVANCE_CHECKS)
+option(ENABLE_ADVANCE_TOOLS "Enables advanced tools" OFF)
+if(ENABLE_ADVANCE_TOOLS)
+  FetchContent_Declare(
+    cmake-script
+    GIT_REPOSITORY https://github.com/StableCoder/cmake-scripts.git
+    GIT_TAG main)
   FetchContent_MakeAvailable(cmake-scripts)
   list(APPEND CMAKE_MODULE_PATH ${cmake-scripts_SOURCE_DIR})
   message(STATUS "${cmake-scripts_SOURCE_DIR}")
@@ -38,7 +34,6 @@ endif()
 # find ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)
-include(${ROOT_USE_FILE})
 
 include(shared_or_static)
 shared_or_static(${PROJECT_NAME})
