@@ -96,12 +96,12 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
 
 configure_file(config.h.in ffconfig.h)
 
-option(BUILD_EXAMPLES "Build examples" ON)
+option(${PROJECT_NAME}_BUILD_EXAMPLES "Build examples" ON)
 if(BUILD_EXAMPLES)
   add_subdirectory(examples)
 endif()
 
-option(ENABLE_TESTING "Build tests" ON)
+option(${PROJECT_NAME}_ENABLE_TESTING "Build tests" ON)
 if(ENABLE_TESTING)
   enable_testing()
   add_subdirectory(tests)
