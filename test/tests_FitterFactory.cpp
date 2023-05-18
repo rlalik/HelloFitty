@@ -1,6 +1,12 @@
-#include <gtest/gtest.h>
+#include "gtest/gtest.h"
 
 #include "FitterFactory.h"
+
+#include <TString.h>
+
+#include <memory>
+#include <string>
+#include <utility>
 
 #if __cplusplus < 201402L
 template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)

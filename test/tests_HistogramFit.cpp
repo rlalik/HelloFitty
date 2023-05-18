@@ -21,11 +21,12 @@ TEST(tests_HistogramFit, basic)
 
 TEST(tests_HistogramFit, parsing_line)
 {
-    auto hfp0 = FF::parseLineEntry("hist_1 gaus(0) 0  0  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
+    auto hfp0 = FF::Tools::parseLineEntry("hist_1 gaus(0) 0  0  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
 
     ASSERT_FALSE(hfp0.get());
 
-    auto hfp1 = FF::parseLineEntry("hist_1 gaus(0) pol0(3)  0  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
+    auto hfp1 =
+        FF::Tools::parseLineEntry("hist_1 gaus(0) pol0(3)  0  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
 
     ASSERT_STREQ(hfp1->getName(), "hist_1");
     ASSERT_STREQ(hfp1->getSigString(), "gaus(0)");
@@ -39,27 +40,27 @@ TEST(tests_HistogramFit, parsing_line)
 
     ASSERT_EQ(hfp1->getParamsNumber(), 4);
 
-    ASSERT_EQ(hfp1->getParam(0).val, 1);
-    ASSERT_EQ(hfp1->getParam(0).l, 0);
-    ASSERT_EQ(hfp1->getParam(0).u, 0);
+    ASSERT_EQ(hfp1->getParam(0).value, 1);
+    ASSERT_EQ(hfp1->getParam(0).lower, 0);
+    ASSERT_EQ(hfp1->getParam(0).upper, 0);
     ASSERT_EQ(hfp1->getParam(0).mode, FF::Param::FitMode::Free);
     ASSERT_EQ(hfp1->getParam(0).has_limits, false);
 
-    ASSERT_EQ(hfp1->getParam(1).val, 2);
-    ASSERT_EQ(hfp1->getParam(1).l, 1);
-    ASSERT_EQ(hfp1->getParam(1).u, 3);
+    ASSERT_EQ(hfp1->getParam(1).value, 2);
+    ASSERT_EQ(hfp1->getParam(1).lower, 1);
+    ASSERT_EQ(hfp1->getParam(1).upper, 3);
     ASSERT_EQ(hfp1->getParam(1).mode, FF::Param::FitMode::Free);
     ASSERT_EQ(hfp1->getParam(1).has_limits, true);
 
-    ASSERT_EQ(hfp1->getParam(2).val, 3);
-    ASSERT_EQ(hfp1->getParam(2).l, 2);
-    ASSERT_EQ(hfp1->getParam(2).u, 5);
+    ASSERT_EQ(hfp1->getParam(2).value, 3);
+    ASSERT_EQ(hfp1->getParam(2).lower, 2);
+    ASSERT_EQ(hfp1->getParam(2).upper, 5);
     ASSERT_EQ(hfp1->getParam(2).mode, FF::Param::FitMode::Fixed);
     ASSERT_EQ(hfp1->getParam(2).has_limits, true);
 
-    ASSERT_EQ(hfp1->getParam(3).val, 4);
-    ASSERT_EQ(hfp1->getParam(3).l, 0);
-    ASSERT_EQ(hfp1->getParam(3).u, 0);
+    ASSERT_EQ(hfp1->getParam(3).value, 4);
+    ASSERT_EQ(hfp1->getParam(3).lower, 0);
+    ASSERT_EQ(hfp1->getParam(3).upper, 0);
     ASSERT_EQ(hfp1->getParam(3).mode, FF::Param::FitMode::Fixed);
     ASSERT_EQ(hfp1->getParam(3).has_limits, false);
 
@@ -69,7 +70,8 @@ TEST(tests_HistogramFit, parsing_line)
     auto export1 = hfp1->exportEntry();
     ASSERT_STREQ(export1, " hist_1\tgaus(0) pol0(3) 0 1 10 1 2 : 1 3 3 F 2 5 4 f");
 
-    auto hfp2 = FF::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
+    auto hfp2 =
+        FF::Tools::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
 
     ASSERT_STREQ(hfp2->getName(), "hist_1");
     ASSERT_STREQ(hfp2->getSigString(), "gaus(0)");
@@ -83,27 +85,27 @@ TEST(tests_HistogramFit, parsing_line)
 
     ASSERT_EQ(hfp2->getParamsNumber(), 4);
 
-    ASSERT_EQ(hfp2->getParam(0).val, 1);
-    ASSERT_EQ(hfp2->getParam(0).l, 0);
-    ASSERT_EQ(hfp2->getParam(0).u, 0);
+    ASSERT_EQ(hfp2->getParam(0).value, 1);
+    ASSERT_EQ(hfp2->getParam(0).lower, 0);
+    ASSERT_EQ(hfp2->getParam(0).upper, 0);
     ASSERT_EQ(hfp2->getParam(0).mode, FF::Param::FitMode::Free);
     ASSERT_EQ(hfp2->getParam(0).has_limits, false);
 
-    ASSERT_EQ(hfp2->getParam(1).val, 2);
-    ASSERT_EQ(hfp2->getParam(1).l, 1);
-    ASSERT_EQ(hfp2->getParam(1).u, 3);
+    ASSERT_EQ(hfp2->getParam(1).value, 2);
+    ASSERT_EQ(hfp2->getParam(1).lower, 1);
+    ASSERT_EQ(hfp2->getParam(1).upper, 3);
     ASSERT_EQ(hfp2->getParam(1).mode, FF::Param::FitMode::Free);
     ASSERT_EQ(hfp2->getParam(1).has_limits, true);
 
-    ASSERT_EQ(hfp2->getParam(2).val, 3);
-    ASSERT_EQ(hfp2->getParam(2).l, 2);
-    ASSERT_EQ(hfp2->getParam(2).u, 5);
+    ASSERT_EQ(hfp2->getParam(2).value, 3);
+    ASSERT_EQ(hfp2->getParam(2).lower, 2);
+    ASSERT_EQ(hfp2->getParam(2).upper, 5);
     ASSERT_EQ(hfp2->getParam(2).mode, FF::Param::FitMode::Fixed);
     ASSERT_EQ(hfp2->getParam(2).has_limits, true);
 
-    ASSERT_EQ(hfp2->getParam(3).val, 4);
-    ASSERT_EQ(hfp2->getParam(3).l, 0);
-    ASSERT_EQ(hfp2->getParam(3).u, 0);
+    ASSERT_EQ(hfp2->getParam(3).value, 4);
+    ASSERT_EQ(hfp2->getParam(3).lower, 0);
+    ASSERT_EQ(hfp2->getParam(3).upper, 0);
     ASSERT_EQ(hfp2->getParam(3).mode, FF::Param::FitMode::Fixed);
     ASSERT_EQ(hfp2->getParam(3).has_limits, false);
 
@@ -113,7 +115,7 @@ TEST(tests_HistogramFit, parsing_line)
     auto export2 = hfp2->exportEntry();
     ASSERT_STREQ(export2, " hist_1\tgaus(0) pol0(3) 0 1 10 1 2 : 1 3 3 F 2 5 4 f");
 
-    auto hfp3 = FF::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1 10", 0);
+    auto hfp3 = FF::Tools::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1 10", 0);
 
     ASSERT_STREQ(hfp3->getName(), "hist_1");
     ASSERT_STREQ(hfp3->getSigString(), "gaus(0)");
@@ -127,27 +129,27 @@ TEST(tests_HistogramFit, parsing_line)
 
     ASSERT_EQ(hfp3->getParamsNumber(), 4);
 
-    ASSERT_EQ(hfp3->getParam(0).val, 0);
-    ASSERT_EQ(hfp3->getParam(0).l, 0);
-    ASSERT_EQ(hfp3->getParam(0).u, 0);
+    ASSERT_EQ(hfp3->getParam(0).value, 0);
+    ASSERT_EQ(hfp3->getParam(0).lower, 0);
+    ASSERT_EQ(hfp3->getParam(0).upper, 0);
     ASSERT_EQ(hfp3->getParam(0).mode, FF::Param::FitMode::Free);
     ASSERT_EQ(hfp3->getParam(0).has_limits, false);
 
-    ASSERT_EQ(hfp3->getParam(1).val, 0);
-    ASSERT_EQ(hfp3->getParam(1).l, 0);
-    ASSERT_EQ(hfp3->getParam(1).u, 0);
+    ASSERT_EQ(hfp3->getParam(1).value, 0);
+    ASSERT_EQ(hfp3->getParam(1).lower, 0);
+    ASSERT_EQ(hfp3->getParam(1).upper, 0);
     ASSERT_EQ(hfp3->getParam(1).mode, FF::Param::FitMode::Free);
     ASSERT_EQ(hfp3->getParam(1).has_limits, false);
 
-    ASSERT_EQ(hfp3->getParam(2).val, 0);
-    ASSERT_EQ(hfp3->getParam(2).l, 0);
-    ASSERT_EQ(hfp3->getParam(2).u, 0);
+    ASSERT_EQ(hfp3->getParam(2).value, 0);
+    ASSERT_EQ(hfp3->getParam(2).lower, 0);
+    ASSERT_EQ(hfp3->getParam(2).upper, 0);
     ASSERT_EQ(hfp3->getParam(2).mode, FF::Param::FitMode::Free);
     ASSERT_EQ(hfp3->getParam(2).has_limits, false);
 
-    ASSERT_EQ(hfp3->getParam(3).val, 0);
-    ASSERT_EQ(hfp3->getParam(3).l, 0);
-    ASSERT_EQ(hfp3->getParam(3).u, 0);
+    ASSERT_EQ(hfp3->getParam(3).value, 0);
+    ASSERT_EQ(hfp3->getParam(3).lower, 0);
+    ASSERT_EQ(hfp3->getParam(3).upper, 0);
     ASSERT_EQ(hfp3->getParam(3).mode, FF::Param::FitMode::Free);
     ASSERT_EQ(hfp3->getParam(3).has_limits, false);
 
@@ -157,7 +159,7 @@ TEST(tests_HistogramFit, parsing_line)
     auto export3 = hfp3->exportEntry();
     ASSERT_STREQ(export3, " hist_1\tgaus(0) pol0(3) 0 1 10 0 0 0 0");
 
-    auto hfp4 = FF::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1", 0);
+    auto hfp4 = FF::Tools::parseLineEntry("hist_1 gaus(0) pol0(3)  1  1", 0);
 
     ASSERT_FALSE(hfp4.get());
 }
@@ -207,10 +209,10 @@ TEST(tests_HistogramFit, backups)
 
     hfp1.push();
 
-    ASSERT_EQ(hfp1.getParam(0).val, 0);
-    ASSERT_EQ(hfp1.getParam(1).val, 0);
-    ASSERT_EQ(hfp1.getParam(2).val, 3);
-    ASSERT_EQ(hfp1.getParam(3).val, 4);
+    ASSERT_EQ(hfp1.getParam(0).value, 0);
+    ASSERT_EQ(hfp1.getParam(1).value, 0);
+    ASSERT_EQ(hfp1.getParam(2).value, 3);
+    ASSERT_EQ(hfp1.getParam(3).value, 4);
 
     hfp1.updateParam(0, 10);
     hfp1.updateParam(1, 20);
@@ -219,10 +221,10 @@ TEST(tests_HistogramFit, backups)
 
     hfp1.apply();
 
-    ASSERT_EQ(hfp1.getParam(0).val, 0);
-    ASSERT_EQ(hfp1.getParam(1).val, 0);
-    ASSERT_EQ(hfp1.getParam(2).val, 3);
-    ASSERT_EQ(hfp1.getParam(3).val, 4);
+    ASSERT_EQ(hfp1.getParam(0).value, 0);
+    ASSERT_EQ(hfp1.getParam(1).value, 0);
+    ASSERT_EQ(hfp1.getParam(2).value, 3);
+    ASSERT_EQ(hfp1.getParam(3).value, 4);
 
     hfp1.updateParam(0, 10);
     hfp1.updateParam(1, 20);
@@ -231,10 +233,10 @@ TEST(tests_HistogramFit, backups)
 
     hfp1.pop();
 
-    ASSERT_EQ(hfp1.getParam(0).val, 0);
-    ASSERT_EQ(hfp1.getParam(1).val, 0);
-    ASSERT_EQ(hfp1.getParam(2).val, 3);
-    ASSERT_EQ(hfp1.getParam(3).val, 4);
+    ASSERT_EQ(hfp1.getParam(0).value, 0);
+    ASSERT_EQ(hfp1.getParam(1).value, 0);
+    ASSERT_EQ(hfp1.getParam(2).value, 3);
+    ASSERT_EQ(hfp1.getParam(3).value, 4);
 
     hfp1.updateParam(0, 10);
     hfp1.updateParam(1, 20);
@@ -243,10 +245,10 @@ TEST(tests_HistogramFit, backups)
 
     hfp1.pop();
 
-    ASSERT_EQ(hfp1.getParam(0).val, 10);
-    ASSERT_EQ(hfp1.getParam(1).val, 20);
-    ASSERT_EQ(hfp1.getParam(2).val, 30);
-    ASSERT_EQ(hfp1.getParam(3).val, 40);
+    ASSERT_EQ(hfp1.getParam(0).value, 10);
+    ASSERT_EQ(hfp1.getParam(1).value, 20);
+    ASSERT_EQ(hfp1.getParam(2).value, 30);
+    ASSERT_EQ(hfp1.getParam(3).value, 40);
 
     hfp1.drop();
 }

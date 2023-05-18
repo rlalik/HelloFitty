@@ -18,14 +18,18 @@
 
 #include "FitterFactory.h"
 
+#include "parser.hpp"
+
 #include <TF1.h>
 #include <TH1.h>
 #include <TList.h>
 #include <TObjArray.h>
 #include <TObjString.h>
 
+#include <cstdio>
 #include <fstream>
 #include <string>
+#include <utility>
 
 #if __cplusplus >= 201703L
 #include <filesystem>
@@ -47,15 +51,6 @@ using std::make_unique;
 
 namespace FF
 {
-namespace Tools
-{
-TString format_name(const TString& name, const TString& decorator)
-{
-    TString s = decorator;
-    s.ReplaceAll("*", name);
-    return s;
-}
-} // namespace Tools
 
 struct FitterFactoryImpl
 {
@@ -84,9 +79,9 @@ bool FitterFactoryImpl::verbose_flag = true;
 
 void Param::print() const
 {
-    printf("%10g   Mode: %-5s   Limits: ", val, mode == FitMode::Free ? "Free" : "Fixed");
+    printf("%10g   Mode: %-5s   Limits: ", value, mode == FitMode::Free ? "Free" : "Fixed");
     if (has_limits)
-        printf(" %g, %g\n", l, u);
+        printf(" %g, %g\n", lower, upper);
     else
         printf(" none\n");
 }
@@ -103,7 +98,7 @@ struct HistogramFitImpl
     int rebin{0}; // rebin, 0 == no rebin
     bool fit_disabled{false};
 
-    ParamVector pars;
+    std::vector<Param> pars;
     TF1 function_sig;
     TF1 function_bkg;
     TF1 function_sum;
@@ -144,11 +139,12 @@ void HistogramFit::init()
 {
     for (auto i = 0; i < d->pars.size(); ++i)
         if (d->pars[i].mode == Param::FitMode::Fixed)
-            d->function_sum.FixParameter(i, d->pars[i].val);
+            d->function_sum.FixParameter(i, d->pars[i].value);
         else
         {
-            d->function_sum.SetParameter(i, d->pars[i].val);
-            if (d->pars[i].has_limits) d->function_sum.SetParLimits(i, d->pars[i].l, d->pars[i].u);
+            d->function_sum.SetParameter(i, d->pars[i].value);
+            if (d->pars[i].has_limits)
+                d->function_sum.SetParLimits(i, d->pars[i].lower, d->pars[i].upper);
         }
 }
 
@@ -161,9 +157,9 @@ void HistogramFit::setParam(Int_t par, Param value)
 void HistogramFit::setParam(Int_t par, Double_t val, Param::FitMode mode)
 {
     if (!(par < d->pars.size())) throw;
-    d->pars[par].val = val;
-    d->pars[par].l = 0;
-    d->pars[par].u = 0;
+    d->pars[par].value = val;
+    d->pars[par].lower = 0;
+    d->pars[par].upper = 0;
     d->pars[par].mode = mode;
     d->pars[par].has_limits = false;
 }
@@ -171,9 +167,9 @@ void HistogramFit::setParam(Int_t par, Double_t val, Param::FitMode mode)
 void HistogramFit::setParam(Int_t par, Double_t val, Double_t l, Double_t u, Param::FitMode mode)
 {
     if (!(par < d->pars.size())) throw;
-    d->pars[par].val = val;
-    d->pars[par].l = l;
-    d->pars[par].u = u;
+    d->pars[par].value = val;
+    d->pars[par].lower = l;
+    d->pars[par].upper = u;
     d->pars[par].mode = mode;
     d->pars[par].has_limits = true;
 }
@@ -181,7 +177,7 @@ void HistogramFit::setParam(Int_t par, Double_t val, Double_t l, Double_t u, Par
 auto HistogramFit::updateParam(Int_t par, Double_t value) -> void
 {
     if (!(par < d->pars.size())) throw;
-    d->pars[par].val = value;
+    d->pars[par].value = value;
 }
 
 auto HistogramFit::getParam(Int_t par) const -> Param
@@ -231,9 +227,9 @@ TString HistogramFit::exportEntry() const
 
     for (decltype(limit) i = 0; i < limit; ++i)
     {
-        TString v = TString::Format("%g", d->pars[i].val);
-        TString l = TString::Format("%g", d->pars[i].l);
-        TString u = TString::Format("%g", d->pars[i].u);
+        TString v = TString::Format("%g", d->pars[i].value);
+        TString l = TString::Format("%g", d->pars[i].lower);
+        TString u = TString::Format("%g", d->pars[i].upper);
 
         switch (d->pars[i].mode)
         {
@@ -293,7 +289,7 @@ bool HistogramFit::load(TF1* f)
     if (s == f->GetNpar())
     {
         for (int i = 0; i < s; ++i)
-            d->pars[i].val = f->GetParameter(i);
+            d->pars[i].value = f->GetParameter(i);
     }
     else
         return false;
@@ -305,7 +301,7 @@ void HistogramFit::push()
 {
     d->backup_p.clear();
     for (auto& p : d->pars)
-        d->backup_p.push_back(p.val);
+        d->backup_p.push_back(p.value);
 }
 
 void HistogramFit::pop()
@@ -320,14 +316,14 @@ void HistogramFit::apply()
 
     auto n = d->pars.size();
     for (decltype(n) i = 0; i < n; ++i)
-        d->pars[i].val = d->backup_p[i];
+        d->pars[i].value = d->backup_p[i];
 }
 
 void HistogramFit::drop() { d->backup_p.clear(); }
 
 void FitterFactory::setVerbose(bool verbose) { FitterFactoryImpl::verbose_flag = verbose; }
 
-FitterFactory::FitterFactory(PriorityMode mode) : d{std::make_unique<FitterFactoryImpl>()}
+FitterFactory::FitterFactory(PriorityMode mode) : d{make_unique<FitterFactoryImpl>()}
 {
     d->mode = mode;
     d->defpars = nullptr;
@@ -349,7 +345,7 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
 
     printf(
         "Available source: [%c] REF  [%c] AUX\n",
-        selected != Tools::SelectedSource::OnlyAuxilary and selected != Tools::SelectedSource::None
+        selected != Tools::SelectedSource::OnlyAuxiliary and selected != Tools::SelectedSource::None
             ? 'x'
             : ' ',
         selected != Tools::SelectedSource::OnlyReference and selected != Tools::SelectedSource::None
@@ -357,18 +353,18 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
             : ' ');
     printf("Selected source : [%c] REF  [%c] AUX\n",
            selected == Tools::SelectedSource::Reference ? 'x' : ' ',
-           selected == Tools::SelectedSource::Auxilary ? 'x' : ' ');
+           selected == Tools::SelectedSource::Auxiliary ? 'x' : ' ');
 
     auto mode = d->mode;
     if (mode == PriorityMode::Reference)
     {
-        if (selected == Tools::SelectedSource::OnlyAuxilary)
+        if (selected == Tools::SelectedSource::OnlyAuxiliary)
             return false;
         else
             return importParameters(filename);
     }
 
-    if (mode == PriorityMode::Auxilary)
+    if (mode == PriorityMode::Auxiliary)
     {
         if (selected == Tools::SelectedSource::OnlyReference)
             return false;
@@ -378,8 +374,8 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
 
     if (mode == PriorityMode::Newer)
     {
-        if (selected == Tools::SelectedSource::Auxilary or
-            selected == Tools::SelectedSource::OnlyAuxilary)
+        if (selected == Tools::SelectedSource::Auxiliary or
+            selected == Tools::SelectedSource::OnlyAuxiliary)
             return importParameters(auxname);
         else if (selected == Tools::SelectedSource::Reference or
                  selected == Tools::SelectedSource::OnlyReference)
@@ -415,7 +411,7 @@ bool FitterFactory::importParameters(const std::string& filename)
     std::string line;
     while (std::getline(fparfile, line))
     {
-        insertParameters(parseLineEntry(line, d->version));
+        insertParameters(Tools::parseLineEntry(line, d->version));
     }
 
     return true;
@@ -663,7 +659,11 @@ void FitterFactory::print() const
 
 void FitterFactory::clear() { d->hfpmap.clear(); }
 
-Tools::SelectedSource Tools::selectSource(const char* filename, const char* auxname)
+}; // namespace FF
+
+namespace FF::Tools
+{
+SelectedSource selectSource(const char* filename, const char* auxname)
 {
 #if __cplusplus >= 201703L
     auto s1 = std::filesystem::exists(filename);
@@ -671,7 +671,7 @@ Tools::SelectedSource Tools::selectSource(const char* filename, const char* auxn
 
     if (!s1 and !s2) return SelectedSource::None;
     if (s1 and !s2) return SelectedSource::OnlyReference;
-    if (!s1 and s2) return SelectedSource::OnlyAuxilary;
+    if (!s1 and s2) return SelectedSource::OnlyAuxiliary;
 
     std::filesystem::file_time_type mod_ref = std::filesystem::last_write_time(filename);
     std::filesystem::file_time_type mod_aux = std::filesystem::last_write_time(auxname);
@@ -684,16 +684,16 @@ Tools::SelectedSource Tools::selectSource(const char* filename, const char* auxn
 
     if (!s1 and !s2) return SelectedSource::None;
     if (s1 and !s2) return SelectedSource::OnlyReference;
-    if (!s1 and s2) return SelectedSource::OnlyAuxilary;
+    if (!s1 and s2) return SelectedSource::OnlyAuxiliary;
 
     auto mod_ref = (long long)st_ref.st_mtim.tv_sec;
     auto mod_aux = (long long)st_aux.st_mtim.tv_sec;
 #endif
 
-    return mod_aux > mod_ref ? SelectedSource::Auxilary : SelectedSource::Reference;
+    return mod_aux > mod_ref ? SelectedSource::Auxiliary : SelectedSource::Reference;
 }
 
-void Tools::DrawProperties::applyStyle(TF1* f)
+void DrawProperties::applyStyle(TF1* f)
 {
 #if __cplusplus >= 201703L
     if (line_color) f->SetLineColor(*line_color);
@@ -706,89 +706,11 @@ void Tools::DrawProperties::applyStyle(TF1* f)
 #endif
 }
 
-std::unique_ptr<HistogramFit> parseLineEntry_v1(const TString& line)
+TString format_name(const TString& name, const TString& decorator)
 {
-    TString line_ = line;
-    line_.ReplaceAll("\t", " ");
-    TObjArray* arr = line_.Tokenize(" ");
-
-    if (arr->GetEntries() < 6)
-    {
-        // std::cerr << "Error parsing line:\n " << line << "\n";
-        delete arr;
-        return nullptr;
-    };
-
-    auto hfp = make_unique<HistogramFit>(((TObjString*)arr->At(0))->String(),        // hist name
-                                         ((TObjString*)arr->At(1))->String(),        // func val
-                                         ((TObjString*)arr->At(2))->String(),        // func val
-                                         ((TObjString*)arr->At(4))->String().Atof(), // low range
-                                         ((TObjString*)arr->At(5))->String().Atof());
-
-    auto npars = hfp->getSumFunc().GetNpar();
-
-    Double_t par_, l_, u_;
-    Int_t step = 0;
-    Int_t parnum = 0;
-    Param::FitMode flag_;
-    bool has_limits_ = false;
-
-    auto entries = arr->GetEntries();
-    for (int i = 6; i < entries; i += step, ++parnum)
-    {
-        if (parnum >= npars)
-        {
-            delete arr;
-            return nullptr;
-        }
-
-        TString val = ((TObjString*)arr->At(i))->String();
-        TString nval =
-            ((i + 1) < arr->GetEntries()) ? ((TObjString*)arr->At(i + 1))->String() : TString();
-
-        par_ = val.Atof();
-        if (nval == ":")
-        {
-            l_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 2))->String().Atof() : 0;
-            u_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 3))->String().Atof() : 0;
-            step = 4;
-            flag_ = Param::FitMode::Free;
-            has_limits_ = true;
-        }
-        else if (nval == "F")
-        {
-            l_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 2))->String().Atof() : 0;
-            u_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 3))->String().Atof() : 0;
-            step = 4;
-            flag_ = Param::FitMode::Fixed;
-            has_limits_ = true;
-        }
-        else if (nval == "f")
-        {
-            l_ = 0;
-            u_ = 0;
-            step = 2;
-            flag_ = Param::FitMode::Fixed;
-            has_limits_ = false;
-        }
-        else
-        {
-            l_ = 0;
-            u_ = 0;
-            step = 1;
-            flag_ = Param::FitMode::Free;
-            has_limits_ = false;
-        }
-
-        if (has_limits_)
-            hfp->setParam(parnum, par_, l_, u_, flag_);
-        else
-            hfp->setParam(parnum, par_, flag_);
-    }
-
-    delete arr;
-
-    return hfp;
+    TString s = decorator;
+    s.ReplaceAll("*", name);
+    return s;
 }
 
 std::unique_ptr<HistogramFit> parseLineEntry(const TString& line, int version)
@@ -796,4 +718,4 @@ std::unique_ptr<HistogramFit> parseLineEntry(const TString& line, int version)
     return parseLineEntry_v1(line);
 }
 
-} // namespace FF
+} // namespace FF::Tools

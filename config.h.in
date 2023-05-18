@@ -5,11 +5,11 @@
 
 #cmakedefine HAS_ROOTTOOLS @RootTools_FOUND@
 
-const std::string examples_src_path = "@CMAKE_SOURCE_DIR@/examples/";
-const std::string examples_bin_path = "@CMAKE_BINARY_DIR@/examples/";
+const std::string examples_src_path = "@CMAKE_SOURCE_DIR@/example/";
+const std::string examples_bin_path = "@CMAKE_BINARY_DIR@/example/";
 
-const std::string tests_src_path = "@CMAKE_SOURCE_DIR@/tests/";
-const std::string tests_bin_path = "@CMAKE_BINARY_DIR@/tests/";
+const std::string tests_src_path = "@CMAKE_SOURCE_DIR@/test/";
+const std::string tests_bin_path = "@CMAKE_BINARY_DIR@/test/";
 
 const std::string build_path = "@CMAKE_BINARY_DIR@/";
 
