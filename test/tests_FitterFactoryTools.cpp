@@ -21,10 +21,10 @@ TEST(tests_FitterFactoryTools, source_select)
               FF::Tools::SelectedSource::OnlyReference);
 
     ASSERT_EQ(FF::Tools::selectSource(fake_in.c_str(), true_out.c_str()),
-              FF::Tools::SelectedSource::OnlyAuxilary);
+              FF::Tools::SelectedSource::OnlyAuxiliary);
 
     ASSERT_EQ(FF::Tools::selectSource(true_in.c_str(), newer_one.c_str()),
-              FF::Tools::SelectedSource::Auxilary);
+              FF::Tools::SelectedSource::Auxiliary);
 
     ASSERT_EQ(FF::Tools::selectSource(newer_one.c_str(), true_out.c_str()),
               FF::Tools::SelectedSource::Reference);

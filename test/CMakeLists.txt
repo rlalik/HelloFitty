@@ -1,3 +1,11 @@
+include(FetchContent)
+FetchContent_Declare(
+  cmake_tools
+  GIT_REPOSITORY https://github.com/rlalik/cmake_tools
+  GIT_TAG master)
+FetchContent_MakeAvailable(cmake_tools)
+list(APPEND CMAKE_MODULE_PATH ${cmake_tools_SOURCE_DIR})
+
 include(find_or_fetch_package)
 
 set(INSTALL_GTEST OFF)
@@ -18,7 +26,7 @@ else()
   set(GTEST_TRG gtest gtest_main)
 endif()
 
-target_link_libraries(gtests PRIVATE FitterFactory ROOT::Core ${GTEST_TRG})
+target_link_libraries(gtests PRIVATE RT::FitterFactory ROOT::Core ${GTEST_TRG})
 if(ENABLE_ADVANCE_TOOLS)
   target_code_coverage(gtests ALL)
 endif()

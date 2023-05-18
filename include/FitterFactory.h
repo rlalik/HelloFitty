@@ -19,20 +19,24 @@
 #ifndef FITTERFACTORY_H
 #define FITTERFACTORY_H
 
-#include <map>
+#include "FitterFactory/FitterFactory_export.hpp"
+
+#include <algorithm>
 #include <memory>
 #include <optional>
+#include <string>
+#include <vector>
 
-#include <TF1.h>
-#include <TFormula.h>
+#include <RtypesCore.h>
 #include <TString.h>
 
 #if __cplusplus < 201402L
-#define CONSTEXPRCXX14
+#define CONSTEXPR
 #else
-#define CONSTEXPRCXX14 constexpr
+#define CONSTEXPR constexpr
 #endif
 
+class TF1;
 class TH1;
 
 namespace FF
@@ -43,57 +47,14 @@ struct FitterFactoryImpl;
 
 namespace Tools
 {
-enum class SelectedSource
-{
-    None,
-    OnlyReference,
-    OnlyAuxilary,
-    Reference,
-    Auxilary
-};
-
-auto selectSource(const char* filename, const char* auxname = 0) -> Tools::SelectedSource;
-
-struct DrawProperties final
-{
-#if __cplusplus >= 201703L
-    std::optional<Int_t> line_color;
-    std::optional<Int_t> line_width;
-    std::optional<Int_t> line_style;
-#else
-    Int_t line_color{-1};
-    Int_t line_width{-1};
-    Int_t line_style{-1};
-#endif
-
-    DrawProperties& setLineColor(Int_t color)
-    {
-        line_color = color;
-        return *this;
-    }
-    DrawProperties& setLineWidth(Int_t width)
-    {
-        line_width = width;
-        return *this;
-    }
-    DrawProperties& setLineStyle(Int_t style)
-    {
-        line_style = style;
-        return *this;
-    }
-
-    void applyStyle(TF1* f);
-};
-
-auto format_name(const TString& name, const TString& decorator) -> TString;
-
-}; // namespace Tools
+struct DrawProperties;
+}
 
 struct Param final
 {
-    double val{0}; // value
-    double l{0};   // lower limit
-    double u{0};   // upper limit
+    double value{0.0}; // value
+    double lower{0.0}; // lower limit
+    double upper{0.0}; // upper limit
     enum class FitMode
     {
         Free,
@@ -102,23 +63,22 @@ struct Param final
     bool has_limits{false};
 
     constexpr Param() = default;
-    constexpr Param(double val, Param::FitMode mode) : val(val), mode(mode) {}
-    constexpr Param(double val, double l, double u, Param::FitMode mode)
-        : val(val), l(l), u(u), mode(mode), has_limits(true)
+    constexpr explicit Param(double val, Param::FitMode m) : value(val), mode(m) {}
+    constexpr explicit Param(double val, double l, double u, Param::FitMode m)
+        : value(val), lower(l), upper(u), mode(m), has_limits(true)
     {
     }
     void print() const;
 };
 
-using ParamVector = std::vector<Param>;
-
-class HistogramFit final
+class FITTERFACTORY_EXPORT HistogramFit final
 {
 public:
     constexpr HistogramFit() = delete;
-    HistogramFit(TString hist_name, TString formula_s, TString formula_b, Double_t range_lower,
-                 Double_t range_upper);
-    HistogramFit(HistogramFit&& other) = default;
+    explicit HistogramFit(TString hist_name, TString formula_s, TString formula_b,
+                          Double_t range_lower, Double_t range_upper);
+
+    explicit HistogramFit(HistogramFit&& other) = default;
     HistogramFit& operator=(HistogramFit&& other) = default;
 
     ~HistogramFit() noexcept;
@@ -171,13 +131,13 @@ private:
     std::unique_ptr<HistogramFitImpl> d;
 };
 
-class FitterFactory final
+class FITTERFACTORY_EXPORT FitterFactory final
 {
 public:
     enum class PriorityMode
     {
         Reference,
-        Auxilary,
+        Auxiliary,
         Newer
     };
 
@@ -225,6 +185,56 @@ private:
     std::unique_ptr<FitterFactoryImpl> d;
 };
 
-std::unique_ptr<HistogramFit> parseLineEntry(const TString& line, int version);
-};     // namespace FF
+namespace Tools
+{
+enum class SelectedSource
+{
+    None,
+    OnlyReference,
+    OnlyAuxiliary,
+    Reference,
+    Auxiliary
+};
+
+auto FITTERFACTORY_EXPORT selectSource(const char* filename, const char* auxname = 0)
+    -> SelectedSource;
+
+struct DrawProperties final
+{
+#if __cplusplus >= 201703L
+    std::optional<Int_t> line_color;
+    std::optional<Int_t> line_width;
+    std::optional<Int_t> line_style;
+#else
+    Int_t line_color{-1};
+    Int_t line_width{-1};
+    Int_t line_style{-1};
+#endif
+
+    DrawProperties& setLineColor(Int_t color)
+    {
+        line_color = color;
+        return *this;
+    }
+    DrawProperties& setLineWidth(Int_t width)
+    {
+        line_width = width;
+        return *this;
+    }
+    DrawProperties& setLineStyle(Int_t style)
+    {
+        line_style = style;
+        return *this;
+    }
+
+    void applyStyle(TF1* f);
+};
+
+auto FITTERFACTORY_EXPORT format_name(const TString& name, const TString& decorator) -> TString;
+
+std::unique_ptr<HistogramFit> FITTERFACTORY_EXPORT parseLineEntry(const TString& line, int version);
+
+} // namespace Tools
+
+} // namespace FF
 #endif // FITTERFACTORY_H
