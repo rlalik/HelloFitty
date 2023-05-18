@@ -1,6 +1,6 @@
-#include <FitterFactory.h>
+#include <fitemall.hpp>
 
-#include "ffconfig.h"
+#include "fitemall_config.h"
 
 #include <TFile.h>
 #include <TH1.h>
@@ -161,16 +161,16 @@ int main()
     auto output2_name = TString(examples_bin_path) + "test_output2.txt";
     auto output3_name = TString(examples_bin_path) + "test_output3.txt";
 
-    FF::FitterFactory ff;
-    ff.setDrawBits(true, true, true);
-    ff.propBkg().setLineColor(1).setLineWidth(2).setLineStyle(9);
-    ff.propSig().setLineColor(1).setLineWidth(1).setLineStyle(2);
+    fea::fitter ff;
+    ff.set_draw_bits(true, true, true);
+    ff.prop_bkg().set_line_color(1).set_line_width(2).set_line_style(9);
+    ff.prop_sig().set_line_color(1).set_line_width(1).set_line_style(2);
 
     /** First usage using HFP object **/
     printf("\n ---- FIRST USAGE ---\n\n");
-    ff.initFactoryFromFile(input_name, output1_name);
+    ff.init_fitter_from_file(input_name, output1_name);
 
-    auto hfp = ff.findFit("test_hist");
+    auto hfp = ff.find_fit("test_hist");
     if (hfp)
     {
         printf("\nBefore fitting:\n");
@@ -185,7 +185,7 @@ int main()
         printf("\n");
     }
     else { std::cerr << "No function found" << std::endl; }
-    ff.exportFactoryToFile();
+    ff.export_fitter_to_file();
 
     TFile* fp = TFile::Open(root_outout_name, "RECREATE");
     if (fp)
@@ -199,7 +199,7 @@ int main()
 
     /** Second usage using histogram object **/
     printf("\n ---- SECOND USAGE ---\n\n");
-    ff.initFactoryFromFile(input_name, output2_name);
+    ff.init_fitter_from_file(input_name, output2_name);
 
     printf("\nBefore fitting:\n");
     ff.print();
@@ -209,13 +209,13 @@ int main()
     printf("\nAfter fitting:\n");
     ff.print();
 
-    ff.exportFactoryToFile();
+    ff.export_fitter_to_file();
 
-    FF::FitterFactory ff2(FF::FitterFactory::PriorityMode::Reference);
+    fea::fitter ff2(fea::fitter::priority_mode::reference);
 
     /** Third usage using histogram object **/
     printf("\n ---- THIRD USAGE ---\n\n");
-    ff.initFactoryFromFile(input_name, output3_name);
+    ff.init_fitter_from_file(input_name, output3_name);
 
     printf("\nBefore fitting:\n");
     ff.print();
@@ -225,7 +225,7 @@ int main()
     printf("\nAfter fitting:\n");
     ff.print();
 
-    ff.exportFactoryToFile();
+    ff.export_fitter_to_file();
 
     delete hist;
 

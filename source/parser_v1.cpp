@@ -1,6 +1,6 @@
 #include "parser.hpp"
 
-#include "FitterFactory.h"
+#include "fitemall.hpp"
 
 #include <TF1.h>
 #include <TObjArray.h>
@@ -8,9 +8,9 @@
 
 #include <memory>
 
-namespace FF::Tools
+namespace fea::tools
 {
-auto parseLineEntry_v1(const TString& line) -> std::unique_ptr<HistogramFit>
+auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<histogram_fit>
 {
     TString line_ = line;
     line_.ReplaceAll("\t", " ");
@@ -24,18 +24,18 @@ auto parseLineEntry_v1(const TString& line) -> std::unique_ptr<HistogramFit>
     };
 
     auto hfp =
-        std::make_unique<HistogramFit>(((TObjString*)arr->At(0))->String(),        // hist name
-                                       ((TObjString*)arr->At(1))->String(),        // func val
-                                       ((TObjString*)arr->At(2))->String(),        // func val
-                                       ((TObjString*)arr->At(4))->String().Atof(), // low range
-                                       ((TObjString*)arr->At(5))->String().Atof());
+        std::make_unique<histogram_fit>(((TObjString*)arr->At(0))->String(),        // hist name
+                                        ((TObjString*)arr->At(1))->String(),        // func val
+                                        ((TObjString*)arr->At(2))->String(),        // func val
+                                        ((TObjString*)arr->At(4))->String().Atof(), // low range
+                                        ((TObjString*)arr->At(5))->String().Atof());
 
-    auto npars = hfp->getSumFunc().GetNpar();
+    auto npars = hfp->get_sum_func().GetNpar();
 
     Double_t par_, l_, u_;
     Int_t step = 0;
     Int_t parnum = 0;
-    Param::FitMode flag_;
+    param::fit_mode flag_;
     bool has_limits_ = false;
 
     auto entries = arr->GetEntries();
@@ -57,7 +57,7 @@ auto parseLineEntry_v1(const TString& line) -> std::unique_ptr<HistogramFit>
             l_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 2))->String().Atof() : 0;
             u_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 3))->String().Atof() : 0;
             step = 4;
-            flag_ = Param::FitMode::Free;
+            flag_ = param::fit_mode::free;
             has_limits_ = true;
         }
         else if (nval == "F")
@@ -65,7 +65,7 @@ auto parseLineEntry_v1(const TString& line) -> std::unique_ptr<HistogramFit>
             l_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 2))->String().Atof() : 0;
             u_ = (i + 2) < arr->GetEntries() ? ((TObjString*)arr->At(i + 3))->String().Atof() : 0;
             step = 4;
-            flag_ = Param::FitMode::Fixed;
+            flag_ = param::fit_mode::fixed;
             has_limits_ = true;
         }
         else if (nval == "f")
@@ -73,7 +73,7 @@ auto parseLineEntry_v1(const TString& line) -> std::unique_ptr<HistogramFit>
             l_ = 0;
             u_ = 0;
             step = 2;
-            flag_ = Param::FitMode::Fixed;
+            flag_ = param::fit_mode::fixed;
             has_limits_ = false;
         }
         else
@@ -81,14 +81,14 @@ auto parseLineEntry_v1(const TString& line) -> std::unique_ptr<HistogramFit>
             l_ = 0;
             u_ = 0;
             step = 1;
-            flag_ = Param::FitMode::Free;
+            flag_ = param::fit_mode::free;
             has_limits_ = false;
         }
 
         if (has_limits_)
-            hfp->setParam(parnum, par_, l_, u_, flag_);
+            hfp->set_param(parnum, par_, l_, u_, flag_);
         else
-            hfp->setParam(parnum, par_, flag_);
+            hfp->set_param(parnum, par_, flag_);
     }
 
     delete arr;
@@ -96,4 +96,4 @@ auto parseLineEntry_v1(const TString& line) -> std::unique_ptr<HistogramFit>
     return hfp;
 }
 
-} // namespace FF::Tools
+} // namespace fea::tools
