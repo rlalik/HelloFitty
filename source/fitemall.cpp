@@ -1,6 +1,6 @@
 /*
-    FitterFactory - mass fitting tool for CERN's ROOT applications
-    Copyright (C) 2015-2021  Rafał Lalik <rafallalik@gmail.com>
+    FitemAll - a versatile histogram fitting tool for ROOT-based projects
+    Copyright (C) 2015-2023  Rafał Lalik <rafallalik@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,7 +16,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "FitterFactory.h"
+#include "fitemall.hpp"
 
 #include "parser.hpp"
 
@@ -49,12 +49,14 @@ template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&...
 using std::make_unique;
 #endif
 
-namespace FF
+namespace fea
 {
 
-struct FitterFactoryImpl
+namespace detail
 {
-    FitterFactory::PriorityMode mode;
+struct fitter_impl
+{
+    fitter::priority_mode mode;
     int version{0};
 
     static bool verbose_flag;
@@ -62,8 +64,8 @@ struct FitterFactoryImpl
     TString par_ref;
     TString par_aux;
 
-    HistogramFit* defpars{nullptr};
-    std::map<TString, std::unique_ptr<HistogramFit>> hfpmap;
+    histogram_fit* defpars{nullptr};
+    std::map<TString, std::unique_ptr<histogram_fit>> hfpmap;
 
     TString name_decorator{"*"};
     TString function_decorator{"f_*"};
@@ -72,21 +74,24 @@ struct FitterFactoryImpl
     TString rep_dst;
 
     bool draw_sum{true}, draw_sig{false}, draw_bkg{false};
-    Tools::DrawProperties prop_sum, prop_sig, prop_bkg;
+    tools::draw_properties prop_sum, prop_sig, prop_bkg;
 };
 
-bool FitterFactoryImpl::verbose_flag = true;
+bool fitter_impl::verbose_flag = true;
+} // namespace detail
 
-void Param::print() const
+void param::print() const
 {
-    printf("%10g   Mode: %-5s   Limits: ", value, mode == FitMode::Free ? "Free" : "Fixed");
+    printf("%10g   Mode: %-5s   Limits: ", value, mode == fit_mode::free ? "free" : "fixed");
     if (has_limits)
         printf(" %g, %g\n", lower, upper);
     else
         printf(" none\n");
 }
 
-struct HistogramFitImpl
+namespace detail
+{
+struct histogram_fit_impl
 {
     TString hist_name;  // histogram name
     TString sig_string; // signal and background functions
@@ -98,17 +103,18 @@ struct HistogramFitImpl
     int rebin{0}; // rebin, 0 == no rebin
     bool fit_disabled{false};
 
-    std::vector<Param> pars;
+    std::vector<param> pars;
     TF1 function_sig;
     TF1 function_bkg;
     TF1 function_sum;
 
     std::vector<Double_t> backup_p; // backup for parameters
 };
+} // namespace detail
 
-HistogramFit::HistogramFit(TString hist_name, TString formula_s, TString formula_b,
-                           Double_t range_lower, Double_t range_upper)
-    : d{make_unique<HistogramFitImpl>()}
+histogram_fit::histogram_fit(TString hist_name, TString formula_s, TString formula_b,
+                             Double_t range_lower, Double_t range_upper)
+    : d{make_unique<detail::histogram_fit_impl>()}
 {
     d->range_l = range_lower;
     d->range_u = range_upper;
@@ -125,20 +131,20 @@ HistogramFit::HistogramFit(TString hist_name, TString formula_s, TString formula
     d->pars.resize(d->function_sum.GetNpar());
 }
 
-HistogramFit::~HistogramFit() noexcept = default;
+histogram_fit::~histogram_fit() noexcept = default;
 
-auto HistogramFit::clone(TString new_name) const -> std::unique_ptr<HistogramFit>
+auto histogram_fit::clone(TString new_name) const -> std::unique_ptr<histogram_fit>
 {
-    return make_unique<HistogramFit>(std::move(new_name), d->sig_string, d->bkg_string, d->range_l,
-                                     d->range_u);
+    return make_unique<histogram_fit>(std::move(new_name), d->sig_string, d->bkg_string, d->range_l,
+                                      d->range_u);
 }
 
-void HistogramFit::clear() { drop(); }
+void histogram_fit::clear() { drop(); }
 
-void HistogramFit::init()
+void histogram_fit::init()
 {
     for (auto i = 0; i < d->pars.size(); ++i)
-        if (d->pars[i].mode == Param::FitMode::Fixed)
+        if (d->pars[i].mode == param::fit_mode::fixed)
             d->function_sum.FixParameter(i, d->pars[i].value);
         else
         {
@@ -148,13 +154,13 @@ void HistogramFit::init()
         }
 }
 
-void HistogramFit::setParam(Int_t par, Param value)
+void histogram_fit::set_param(Int_t par, param value)
 {
     if (!(par < d->pars.size())) throw;
     d->pars[par] = value;
 }
 
-void HistogramFit::setParam(Int_t par, Double_t val, Param::FitMode mode)
+void histogram_fit::set_param(Int_t par, Double_t val, param::fit_mode mode)
 {
     if (!(par < d->pars.size())) throw;
     d->pars[par].value = val;
@@ -164,7 +170,7 @@ void HistogramFit::setParam(Int_t par, Double_t val, Param::FitMode mode)
     d->pars[par].has_limits = false;
 }
 
-void HistogramFit::setParam(Int_t par, Double_t val, Double_t l, Double_t u, Param::FitMode mode)
+void histogram_fit::set_param(Int_t par, Double_t val, Double_t l, Double_t u, param::fit_mode mode)
 {
     if (!(par < d->pars.size())) throw;
     d->pars[par].value = val;
@@ -174,47 +180,47 @@ void HistogramFit::setParam(Int_t par, Double_t val, Double_t l, Double_t u, Par
     d->pars[par].has_limits = true;
 }
 
-auto HistogramFit::updateParam(Int_t par, Double_t value) -> void
+auto histogram_fit::update_param(Int_t par, Double_t value) -> void
 {
     if (!(par < d->pars.size())) throw;
     d->pars[par].value = value;
 }
 
-auto HistogramFit::getParam(Int_t par) const -> Param
+auto histogram_fit::get_param(Int_t par) const -> param
 {
     if (!(par < d->pars.size())) throw;
     return d->pars[par];
 }
 
-auto HistogramFit::getParamsNumber() const -> int { return d->pars.size(); }
+auto histogram_fit::get_params_number() const -> int { return d->pars.size(); }
 
-auto HistogramFit::getName() const -> TString { return d->hist_name; }
+auto histogram_fit::get_name() const -> TString { return d->hist_name; }
 
-auto HistogramFit::getFitRangeL() const -> float { return d->range_l; }
+auto histogram_fit::get_fit_range_l() const -> double { return d->range_l; }
 
-auto HistogramFit::getFitRangeU() const -> float { return d->range_u; }
+auto histogram_fit::get_fit_range_u() const -> double { return d->range_u; }
 
-auto HistogramFit::getSigFunc() const -> const TF1& { return d->function_sig; }
+auto histogram_fit::get_sig_func() const -> const TF1& { return d->function_sig; }
 
-auto HistogramFit::getBkgFunc() const -> const TF1& { return d->function_bkg; }
+auto histogram_fit::get_bkg_func() const -> const TF1& { return d->function_bkg; }
 
-auto HistogramFit::getSumFunc() const -> const TF1& { return d->function_sum; }
+auto histogram_fit::get_sum_func() const -> const TF1& { return d->function_sum; }
 
-auto HistogramFit::getSigFunc() -> TF1& { return d->function_sig; }
+auto histogram_fit::get_sig_func() -> TF1& { return d->function_sig; }
 
-auto HistogramFit::getBkgFunc() -> TF1& { return d->function_bkg; }
+auto histogram_fit::get_bkg_func() -> TF1& { return d->function_bkg; }
 
-auto HistogramFit::getSumFunc() -> TF1& { return d->function_sum; }
+auto histogram_fit::get_sum_func() -> TF1& { return d->function_sum; }
 
-auto HistogramFit::getSigString() const -> const TString& { return d->sig_string; }
+auto histogram_fit::get_sig_string() const -> const TString& { return d->sig_string; }
 
-auto HistogramFit::getBkgString() const -> const TString& { return d->bkg_string; }
+auto histogram_fit::get_bkg_string() const -> const TString& { return d->bkg_string; }
 
-auto HistogramFit::getFlagRebin() const -> int { return d->rebin; }
+auto histogram_fit::get_flag_rebin() const -> int { return d->rebin; }
 
-auto HistogramFit::getFlagDisabled() const -> bool { return d->fit_disabled; }
+auto histogram_fit::get_flag_disabled() const -> bool { return d->fit_disabled; }
 
-TString HistogramFit::exportEntry() const
+TString histogram_fit::export_entry() const
 {
     TString out = d->fit_disabled ? "@" : " ";
 
@@ -233,13 +239,13 @@ TString HistogramFit::exportEntry() const
 
         switch (d->pars[i].mode)
         {
-            case Param::FitMode::Free:
+            case param::fit_mode::free:
                 if (d->pars[i].has_limits)
                     sep = ':';
                 else
                     sep = ' ';
                 break;
-            case Param::FitMode::Fixed:
+            case param::fit_mode::fixed:
                 if (d->pars[i].has_limits)
                     sep = 'F';
                 else
@@ -247,9 +253,9 @@ TString HistogramFit::exportEntry() const
                 break;
         }
 
-        if (d->pars[i].mode == Param::FitMode::Free and d->pars[i].has_limits == 0)
+        if (d->pars[i].mode == param::fit_mode::free and d->pars[i].has_limits == 0)
             out += TString::Format(" %s", v.Data());
-        else if (d->pars[i].mode == Param::FitMode::Fixed and d->pars[i].has_limits == 0)
+        else if (d->pars[i].mode == param::fit_mode::fixed and d->pars[i].has_limits == 0)
             out += TString::Format(" %s %c", v.Data(), sep);
         else
             out += TString::Format(" %s %c %s %s", v.Data(), sep, l.Data(), u.Data());
@@ -258,7 +264,7 @@ TString HistogramFit::exportEntry() const
     return out;
 }
 
-void HistogramFit::print(bool detailed) const
+void histogram_fit::print(bool detailed) const
 {
     std::cout << "## name: " << d->hist_name.Data() << "   rebin: " << d->rebin
               << "   range: " << d->range_l << " -- " << d->range_u
@@ -283,12 +289,12 @@ void HistogramFit::print(bool detailed) const
     }
 }
 
-bool HistogramFit::load(TF1* f)
+bool histogram_fit::load(TF1* f)
 {
     auto s = d->pars.size();
     if (s == f->GetNpar())
     {
-        for (int i = 0; i < s; ++i)
+        for (uint i = 0; i < s; ++i)
             d->pars[i].value = f->GetParameter(i);
     }
     else
@@ -297,20 +303,20 @@ bool HistogramFit::load(TF1* f)
     return true;
 }
 
-void HistogramFit::push()
+void histogram_fit::push()
 {
     d->backup_p.clear();
     for (auto& p : d->pars)
         d->backup_p.push_back(p.value);
 }
 
-void HistogramFit::pop()
+void histogram_fit::pop()
 {
     apply();
     drop();
 }
 
-void HistogramFit::apply()
+void histogram_fit::apply()
 {
     if (d->backup_p.size() != d->pars.size()) return;
 
@@ -319,19 +325,19 @@ void HistogramFit::apply()
         d->pars[i].value = d->backup_p[i];
 }
 
-void HistogramFit::drop() { d->backup_p.clear(); }
+void histogram_fit::drop() { d->backup_p.clear(); }
 
-void FitterFactory::setVerbose(bool verbose) { FitterFactoryImpl::verbose_flag = verbose; }
+void fitter::set_verbose(bool verbose) { detail::fitter_impl::verbose_flag = verbose; }
 
-FitterFactory::FitterFactory(PriorityMode mode) : d{make_unique<FitterFactoryImpl>()}
+fitter::fitter(priority_mode mode) : d{make_unique<detail::fitter_impl>()}
 {
     d->mode = mode;
     d->defpars = nullptr;
 }
 
-FitterFactory::~FitterFactory() = default;
+fitter::~fitter() = default;
 
-bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxname)
+bool fitter::init_fitter_from_file(const char* filename, const char* auxname)
 {
     d->par_ref = filename;
     d->par_aux = auxname;
@@ -339,65 +345,66 @@ bool FitterFactory::initFactoryFromFile(const char* filename, const char* auxnam
     if (!filename) { fprintf(stderr, "No reference input file given\n"); }
     if (!auxname) { fprintf(stderr, "No output file given\n"); }
 
-    auto selected = Tools::selectSource(filename, auxname);
+    auto selected = tools::select_source(filename, auxname);
 
-    if (selected == Tools::SelectedSource::None) return false;
+    if (selected == tools::selected_source::none) return false;
 
-    printf(
-        "Available source: [%c] REF  [%c] AUX\n",
-        selected != Tools::SelectedSource::OnlyAuxiliary and selected != Tools::SelectedSource::None
-            ? 'x'
-            : ' ',
-        selected != Tools::SelectedSource::OnlyReference and selected != Tools::SelectedSource::None
-            ? 'x'
-            : ' ');
+    printf("Available source: [%c] REF  [%c] AUX\n",
+           selected != tools::selected_source::only_auxiliary and
+                   selected != tools::selected_source::none
+               ? 'x'
+               : ' ',
+           selected != tools::selected_source::only_reference and
+                   selected != tools::selected_source::none
+               ? 'x'
+               : ' ');
     printf("Selected source : [%c] REF  [%c] AUX\n",
-           selected == Tools::SelectedSource::Reference ? 'x' : ' ',
-           selected == Tools::SelectedSource::Auxiliary ? 'x' : ' ');
+           selected == tools::selected_source::reference ? 'x' : ' ',
+           selected == tools::selected_source::auxiliary ? 'x' : ' ');
 
     auto mode = d->mode;
-    if (mode == PriorityMode::Reference)
+    if (mode == priority_mode::reference)
     {
-        if (selected == Tools::SelectedSource::OnlyAuxiliary)
+        if (selected == tools::selected_source::only_auxiliary)
             return false;
         else
-            return importParameters(filename);
+            return import_parameters(filename);
     }
 
-    if (mode == PriorityMode::Auxiliary)
+    if (mode == priority_mode::auxiliary)
     {
-        if (selected == Tools::SelectedSource::OnlyReference)
+        if (selected == tools::selected_source::only_reference)
             return false;
         else
-            return importParameters(auxname);
+            return import_parameters(auxname);
     }
 
-    if (mode == PriorityMode::Newer)
+    if (mode == priority_mode::newer)
     {
-        if (selected == Tools::SelectedSource::Auxiliary or
-            selected == Tools::SelectedSource::OnlyAuxiliary)
-            return importParameters(auxname);
-        else if (selected == Tools::SelectedSource::Reference or
-                 selected == Tools::SelectedSource::OnlyReference)
-            return importParameters(filename);
+        if (selected == tools::selected_source::auxiliary or
+            selected == tools::selected_source::only_auxiliary)
+            return import_parameters(auxname);
+        else if (selected == tools::selected_source::reference or
+                 selected == tools::selected_source::only_reference)
+            return import_parameters(filename);
     }
 
     return false;
 }
 
-bool FitterFactory::exportFactoryToFile() { return exportParameters(d->par_aux.Data()); }
+bool fitter::export_fitter_to_file() { return export_parameters(d->par_aux.Data()); }
 
-void FitterFactory::insertParameters(std::unique_ptr<HistogramFit>&& hfp)
+void fitter::insert_parameters(std::unique_ptr<histogram_fit>&& hfp)
 {
-    insertParameters(hfp->getName(), std::move(hfp));
+    insert_parameters(hfp->get_name(), std::move(hfp));
 }
 
-void FitterFactory::insertParameters(const TString& name, std::unique_ptr<HistogramFit>&& hfp)
+void fitter::insert_parameters(const TString& name, std::unique_ptr<histogram_fit>&& hfp)
 {
     d->hfpmap.insert({name, std::move(hfp)});
 }
 
-bool FitterFactory::importParameters(const std::string& filename)
+bool fitter::import_parameters(const std::string& filename)
 {
     std::ifstream fparfile(filename);
     if (!fparfile.is_open())
@@ -411,13 +418,13 @@ bool FitterFactory::importParameters(const std::string& filename)
     std::string line;
     while (std::getline(fparfile, line))
     {
-        insertParameters(Tools::parseLineEntry(line, d->version));
+        insert_parameters(tools::parse_line_entry(line, d->version));
     }
 
     return true;
 }
 
-bool FitterFactory::exportParameters(const std::string& filename)
+bool fitter::export_parameters(const std::string& filename)
 {
     std::ofstream fparfile(filename);
     if (!fparfile.is_open())
@@ -430,35 +437,35 @@ bool FitterFactory::exportParameters(const std::string& filename)
                   << " entries.\n";
         for (auto it = d->hfpmap.begin(); it != d->hfpmap.end(); ++it)
         {
-            fparfile << it->second->exportEntry().Data() << std::endl;
+            fparfile << it->second->export_entry().Data() << std::endl;
         }
     }
     fparfile.close();
     return true;
 }
 
-HistogramFit* FitterFactory::findFit(TH1* hist) const { return findFit(hist->GetName()); }
+histogram_fit* fitter::find_fit(TH1* hist) const { return find_fit(hist->GetName()); }
 
-HistogramFit* FitterFactory::findFit(const char* name) const
+histogram_fit* fitter::find_fit(const char* name) const
 {
-    auto it = d->hfpmap.find(Tools::format_name(name, d->name_decorator));
+    auto it = d->hfpmap.find(tools::format_name(name, d->name_decorator));
     if (it != d->hfpmap.end()) return it->second.get();
 
     return nullptr;
 }
 
-bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
+bool fitter::fit(TH1* hist, const char* pars, const char* gpars)
 {
-    HistogramFit* hfp = findFit(hist->GetName());
+    histogram_fit* hfp = find_fit(hist->GetName());
     if (!hfp)
     {
         printf("HFP for histogram %s not found, trying from defaults.\n", hist->GetName());
 
         if (!d->defpars) return false;
 
-        auto tmp = d->defpars->clone(Tools::format_name(hist->GetName(), d->name_decorator));
+        auto tmp = d->defpars->clone(tools::format_name(hist->GetName(), d->name_decorator));
         hfp = tmp.get();
-        insertParameters(std::move(tmp));
+        insert_parameters(std::move(tmp));
     }
 
     hfp->push();
@@ -469,44 +476,44 @@ bool FitterFactory::fit(TH1* hist, const char* pars, const char* gpars)
     return status;
 }
 
-bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const char* gpars)
+bool fitter::fit(histogram_fit* hfp, TH1* hist, const char* pars, const char* gpars)
 {
-    Int_t bin_l = hist->FindBin(hfp->getFitRangeL());
-    Int_t bin_u = hist->FindBin(hfp->getFitRangeL());
+    Int_t bin_l = hist->FindBin(hfp->get_fit_range_l());
+    Int_t bin_u = hist->FindBin(hfp->get_fit_range_u());
 
     hfp->init();
 
-    if (hfp->getFlagRebin() != 0)
+    if (hfp->get_flag_rebin() != 0)
     {
         // was_rebin = true;
-        hist->Rebin(hfp->getFlagRebin());
+        hist->Rebin(hfp->get_flag_rebin());
     }
 
     if (hist->Integral(bin_l, bin_u) == 0) return false;
 
-    TF1* tfSig = &hfp->getSigFunc();
-    TF1* tfBkg = &hfp->getBkgFunc();
-    TF1* tfSum = &hfp->getSumFunc();
+    TF1* tfSig = &hfp->get_sig_func();
+    TF1* tfBkg = &hfp->get_bkg_func();
+    TF1* tfSum = &hfp->get_sum_func();
 
-    tfSig->SetName(Tools::format_name(hfp->getName(), d->function_decorator + "_sig"));
-    tfBkg->SetName(Tools::format_name(hfp->getName(), d->function_decorator + "_bkg"));
-    tfSum->SetName(Tools::format_name(hfp->getName(), d->function_decorator));
+    tfSig->SetName(tools::format_name(hfp->get_name(), d->function_decorator + "_sig"));
+    tfBkg->SetName(tools::format_name(hfp->get_name(), d->function_decorator + "_bkg"));
+    tfSum->SetName(tools::format_name(hfp->get_name(), d->function_decorator));
 
     hist->GetListOfFunctions()->Clear();
     hist->GetListOfFunctions()->SetOwner(kTRUE);
 
     if (d->draw_sig)
-        propSig().applyStyle(tfSig);
+        prop_sig().apply_style(tfSig);
     else
         tfSig->SetBit(TF1::kNotDraw);
     // tfSig->SetBit(TF1::kNotGlobal);
     if (d->draw_bkg)
-        propBkg().applyStyle(tfBkg);
+        prop_bkg().apply_style(tfBkg);
     else
         tfBkg->SetBit(TF1::kNotDraw);
     // tfBkg->SetBit(TF1::kNotGlobal);
     if (d->draw_sum)
-        propSum().applyStyle(tfSum);
+        prop_sum().apply_style(tfSum);
     else
         tfSum->SetBit(TF1::kNotDraw);
     // tfSum->SetBit(TF1::kNotGlobal);
@@ -527,7 +534,7 @@ bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const ch
         printf(" --> chi2:  %f -- *\n", chi2_backup_old);
     }
 
-    hist->Fit(tfSum, pars, gpars, hfp->getFitRangeL(), hfp->getFitRangeU());
+    hist->Fit(tfSum, pars, gpars, hfp->get_fit_range_l(), hfp->get_fit_range_u());
 
     TF1* new_sig_func = ((TF1*)hist->GetListOfFunctions()->At(0));
 
@@ -591,8 +598,8 @@ bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const ch
 
     new_sig_func->SetChisquare(hist->Chisquare(tfSum, "R"));
 
-    uint parnsig = tfSig->GetNpar();
-    for (int i = 0; i < parnsig; ++i)
+    auto parnsig = tfSig->GetNpar();
+    for (decltype(parnsig) i = 0; i < parnsig; ++i)
     {
         double par = tfSum->GetParameter(i);
         double err = tfSum->GetParError(i);
@@ -600,10 +607,10 @@ bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const ch
         tfSig->SetParameter(i, par);
         tfSig->SetParError(i, err);
 
-        hfp->updateParam(i, par);
+        hfp->update_param(i, par);
     }
 
-    for (int i = parnsig; i < tfBkg->GetNpar(); ++i)
+    for (auto i = parnsig; i < tfBkg->GetNpar(); ++i)
     {
         double par = tfSum->GetParameter(i);
         double err = tfSum->GetParError(i);
@@ -611,67 +618,65 @@ bool FitterFactory::fit(HistogramFit* hfp, TH1* hist, const char* pars, const ch
         tfBkg->SetParameter(i, par);
         tfBkg->SetParError(i, err);
 
-        hfp->updateParam(i, par);
+        hfp->update_param(i, par);
     }
 
     hist->GetListOfFunctions()->Add(
-        tfSig->Clone(Tools::format_name(hfp->getName(), d->function_decorator + "_sig")));
+        tfSig->Clone(tools::format_name(hfp->get_name(), d->function_decorator + "_sig")));
     hist->GetListOfFunctions()->Add(
-        tfBkg->Clone(Tools::format_name(hfp->getName(), d->function_decorator + "_bkg")));
+        tfBkg->Clone(tools::format_name(hfp->get_name(), d->function_decorator + "_bkg")));
 
     return true;
 }
 
-auto FitterFactory::setFlags(PriorityMode new_mode) -> void { d->mode = new_mode; }
+auto fitter::set_flags(priority_mode new_mode) -> void { d->mode = new_mode; }
 
-auto FitterFactory::setDefaultParameters(HistogramFit* defs) -> void { d->defpars = defs; }
+auto fitter::set_default_parameters(histogram_fit* defs) -> void { d->defpars = defs; }
 
-void FitterFactory::setReplacement(const TString& src, const TString& dst)
+void fitter::set_replacement(const TString& src, const TString& dst)
 {
     d->rep_src = src;
     d->rep_dst = dst;
 }
 
-void FitterFactory::setNameDecorator(const TString& decorator) { d->name_decorator = decorator; };
-void FitterFactory::clearNameDecorator() { d->name_decorator = "*"; };
+void fitter::set_name_decorator(const TString& decorator) { d->name_decorator = decorator; };
+void fitter::clear_name_decorator() { d->name_decorator = "*"; };
 
-void FitterFactory::setFunctionDecorator(const TString& decorator)
+void fitter::set_function_decorator(const TString& decorator)
 {
     d->function_decorator = decorator;
 };
 
-void FitterFactory::setDrawBits(bool sum, bool sig, bool bkg)
+void fitter::set_draw_bits(bool sum, bool sig, bool bkg)
 {
     d->draw_sum = sum;
     d->draw_sig = sig;
     d->draw_bkg = bkg;
 }
 
-auto FitterFactory::propSum() -> Tools::DrawProperties& { return d->prop_sum; }
-auto FitterFactory::propSig() -> Tools::DrawProperties& { return d->prop_sig; }
-auto FitterFactory::propBkg() -> Tools::DrawProperties& { return d->prop_bkg; }
+auto fitter::prop_sum() -> tools::draw_properties& { return d->prop_sum; }
+auto fitter::prop_sig() -> tools::draw_properties& { return d->prop_sig; }
+auto fitter::prop_bkg() -> tools::draw_properties& { return d->prop_bkg; }
 
-void FitterFactory::print() const
+void fitter::print() const
 {
     for (auto it = d->hfpmap.begin(); it != d->hfpmap.end(); ++it)
         it->second->print();
 }
 
-void FitterFactory::clear() { d->hfpmap.clear(); }
+void fitter::clear() { d->hfpmap.clear(); }
 
-}; // namespace FF
-
-namespace FF::Tools
+namespace tools
 {
-SelectedSource selectSource(const char* filename, const char* auxname)
+selected_source select_source(const char* filename, const char* auxname)
 {
 #if __cplusplus >= 201703L
     auto s1 = std::filesystem::exists(filename);
     auto s2 = std::filesystem::exists(auxname);
 
-    if (!s1 and !s2) return SelectedSource::None;
-    if (s1 and !s2) return SelectedSource::OnlyReference;
-    if (!s1 and s2) return SelectedSource::OnlyAuxiliary;
+    if (!s1 and !s2) return selected_source::none;
+    if (s1 and !s2) return selected_source::only_reference;
+    if (!s1 and s2) return selected_source::only_auxiliary;
 
     std::filesystem::file_time_type mod_ref = std::filesystem::last_write_time(filename);
     std::filesystem::file_time_type mod_aux = std::filesystem::last_write_time(auxname);
@@ -682,18 +687,18 @@ SelectedSource selectSource(const char* filename, const char* auxname)
     auto s1 = stat(filename, &st_ref) == 0;
     auto s2 = stat(auxname, &st_aux) == 0;
 
-    if (!s1 and !s2) return SelectedSource::None;
-    if (s1 and !s2) return SelectedSource::OnlyReference;
-    if (!s1 and s2) return SelectedSource::OnlyAuxiliary;
+    if (!s1 and !s2) return selected_source::none;
+    if (s1 and !s2) return selected_source::only_reference;
+    if (!s1 and s2) return selected_source::only_auxiliary;
 
     auto mod_ref = (long long)st_ref.st_mtim.tv_sec;
     auto mod_aux = (long long)st_aux.st_mtim.tv_sec;
 #endif
 
-    return mod_aux > mod_ref ? SelectedSource::Auxiliary : SelectedSource::Reference;
+    return mod_aux > mod_ref ? selected_source::auxiliary : selected_source::reference;
 }
 
-void DrawProperties::applyStyle(TF1* f)
+void draw_properties::apply_style(TF1* f)
 {
 #if __cplusplus >= 201703L
     if (line_color) f->SetLineColor(*line_color);
@@ -713,9 +718,11 @@ TString format_name(const TString& name, const TString& decorator)
     return s;
 }
 
-std::unique_ptr<HistogramFit> parseLineEntry(const TString& line, int version)
+std::unique_ptr<histogram_fit> parse_line_entry(const TString& line, int /*version*/)
 {
-    return parseLineEntry_v1(line);
+    return parse_line_entry_v1(line);
 }
 
-} // namespace FF::Tools
+} // namespace tools
+
+} // namespace fea

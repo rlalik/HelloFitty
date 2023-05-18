@@ -1,15 +1,15 @@
-#ifndef FITTERFACTORY_PARSER_H
-#define FITTERFACTORY_PARSER_H
+#ifndef FITEMALL_PARSER_H
+#define FITEMALL_PARSER_H
 
-#include "FitterFactory.h"
+#include "fitemall.hpp"
 
 #include <memory>
 
 class TString;
 
-namespace FF::Tools
+namespace fea::tools
 {
-auto parseLineEntry_v1(const TString& line) -> std::unique_ptr<FF::HistogramFit>;
+auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fea::histogram_fit>;
 }
 
-#endif /* FITTERFACTORY_PARSER_H */
+#endif /* FITEMALL_PARSER_H */

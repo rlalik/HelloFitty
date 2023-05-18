@@ -11,8 +11,8 @@ include(find_or_fetch_package)
 set(INSTALL_GTEST OFF)
 find_or_fetch_package(GTest https://github.com/google/googletest GIT_TAG main)
 
-set(tests_SRCS tests_Param.cpp tests_HistogramFit.cpp tests_FitterFactory.cpp
-               tests_FitterFactoryTools.cpp)
+set(tests_SRCS tests_param.cpp tests_histogram_fit.cpp tests_fitemall.cpp
+               tests_fitemall_tools.cpp)
 
 add_executable(gtests ${tests_SRCS})
 
@@ -26,7 +26,7 @@ else()
   set(GTEST_TRG gtest gtest_main)
 endif()
 
-target_link_libraries(gtests PRIVATE RT::FitterFactory ROOT::Core ${GTEST_TRG})
+target_link_libraries(gtests PRIVATE fitemall::fitemall ROOT::Core ${GTEST_TRG})
 if(ENABLE_ADVANCE_TOOLS)
   target_code_coverage(gtests ALL)
 endif()

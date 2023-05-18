@@ -1,1 +1,1 @@
-include("${CMAKE_CURRENT_LIST_DIR}/FitterFactoryTargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/FitemAllTargets.cmake")

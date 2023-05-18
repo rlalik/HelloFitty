@@ -1,6 +1,6 @@
-#include <FitterFactory.h>
+#include <fitemall.hpp>
 
-#include "ffconfig.h"
+#include "fitemall_config.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -35,8 +35,8 @@ int main(int argc, char* argv[])
     sprintf(opf, "%s%s", argv[2], ".out");
 
     // create fitting factory
-    FF::FitterFactory ff;
-    ff.initFactoryFromFile(argv[2], opf);
+    fea::fitter ff;
+    ff.init_fitter_from_file(argv[2], opf);
     delete[] opf;
 
     // uncomment this to print all entries
@@ -71,7 +71,7 @@ int main(int argc, char* argv[])
         }
     }
 
-    ff.exportFactoryToFile();
+    ff.export_fitter_to_file();
 
     file->Close();
 
