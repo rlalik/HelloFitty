@@ -8,7 +8,7 @@
 
 #include <memory>
 
-namespace fea::tools
+namespace fea::parser
 {
 auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<histogram_fit>
 {
@@ -96,4 +96,51 @@ auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<histogram_fit>
     return hfp;
 }
 
-} // namespace fea::tools
+auto format_line_entry_v1(const fea::histogram_fit* hist_fit) -> TString
+{
+    TString out = hist_fit->get_flag_disabled() ? "@" : " ";
+
+    char sep;
+
+    out = TString::Format("%s%s\t%s %s %d %.0f %.0f", out.Data(), hist_fit->get_name().Data(),
+                          hist_fit->get_sig_string().Data(), hist_fit->get_bkg_string().Data(),
+                          hist_fit->get_flag_rebin(), hist_fit->get_fit_range_l(),
+                          hist_fit->get_fit_range_u());
+    auto limit = hist_fit->get_params_number();
+
+    for (decltype(limit) i = 0; i < limit; ++i)
+    {
+        TString v = TString::Format("%g", hist_fit->get_param(i).value);
+        TString l = TString::Format("%g", hist_fit->get_param(i).lower);
+        TString u = TString::Format("%g", hist_fit->get_param(i).upper);
+
+        switch (hist_fit->get_param(i).mode)
+        {
+            case param::fit_mode::free:
+                if (hist_fit->get_param(i).has_limits)
+                    sep = ':';
+                else
+                    sep = ' ';
+                break;
+            case param::fit_mode::fixed:
+                if (hist_fit->get_param(i).has_limits)
+                    sep = 'F';
+                else
+                    sep = 'f';
+                break;
+        }
+
+        if (hist_fit->get_param(i).mode == param::fit_mode::free and
+            hist_fit->get_param(i).has_limits == 0)
+            out += TString::Format(" %s", v.Data());
+        else if (hist_fit->get_param(i).mode == param::fit_mode::fixed and
+                 hist_fit->get_param(i).has_limits == 0)
+            out += TString::Format(" %s %c", v.Data(), sep);
+        else
+            out += TString::Format(" %s %c %s %s", v.Data(), sep, l.Data(), u.Data());
+    }
+
+    return out;
+}
+
+} // namespace fea::parser
