@@ -5,15 +5,16 @@
 #include <TFile.h>
 #include <TH1.h>
 
+#include <fmt/core.h>
+
 #include <fstream>
-#include <iostream>
 
 void create_input_file(const TString& filename)
 {
     std::ifstream parfile(filename, std::ifstream::in);
     if (!parfile.is_open())
     {
-        std::cout << "Creating parameter file\n";
+        fmt::print("{}\n", "Creating parameter file");
         std::ofstream parfile2(filename, std::ofstream::out);
         if (parfile2.is_open())
         {
@@ -22,11 +23,11 @@ void create_input_file(const TString& filename)
         }
         else
         {
-            std::cerr << "Parameter file can't be created, unable to execute example." << std::endl;
+            fmt::print(stderr, "{}\n", "Parameter file can't be created, unable to execute example.");
             std::exit(EXIT_FAILURE);
         }
     }
-    else { std::cout << "Good, parameter file " << filename << " exists." << std::endl; }
+    else { fmt::print("Good, parameter file {} exists.\n", filename ); }
 };
 
 TH1I* create_root_file(const TString& filename)
@@ -139,7 +140,7 @@ TH1I* create_root_file(const TString& filename)
         unnamed->Write();
     else
     {
-        std::cerr << "File " << filename << " not open\n";
+        fmt::print(stderr, "File {} not open\n", filename);
         abort();
     }
 
@@ -167,24 +168,24 @@ int main()
     ff.prop_sig().set_line_color(1).set_line_width(1).set_line_style(2);
 
     /** First usage using HFP object **/
-    printf("\n ---- FIRST USAGE ---\n\n");
+    fmt::print("{}", "\n ---- FIRST USAGE ---\n\n");
     ff.init_fitter_from_file(input_name, output1_name);
 
     auto hfp = ff.find_fit("test_hist");
     if (hfp)
     {
-        printf("\nBefore fitting:\n");
+        fmt::print("{}", "\nBefore fitting:\n");
         hfp->print();
-        printf("\n");
+        fmt::print("{}", "\n");
 
         hfp->save();
-        if (!ff.fit(hfp, hist)) hfp->load();
+        if (!ff.fit(hfp, hist, "BQ0")) hfp->load();
 
-        printf("\nAfter fitting:\n");
+        fmt::print("{}", "\nAfter fitting:\n");
         hfp->print(true);
-        printf("\n");
+        fmt::print("{}", "\n");
     }
-    else { std::cerr << "No function found" << std::endl; }
+    else { fmt::print(stderr, "{}\n", "No function found"); }
     ff.export_fitter_to_file();
 
     TFile* fp = TFile::Open(root_outout_name, "RECREATE");
@@ -192,21 +193,21 @@ int main()
         hist->Write();
     else
     {
-        std::cerr << "File " << root_outout_name << " not open\n";
+        fmt::print(stderr, "File {} not open\n", root_outout_name);
         abort();
     }
     fp->Close();
 
     /** Second usage using histogram object **/
-    printf("\n ---- SECOND USAGE ---\n\n");
+    fmt::print("{}", "\n ---- SECOND USAGE ---\n\n");
     ff.init_fitter_from_file(input_name, output2_name);
 
-    printf("\nBefore fitting:\n");
+    fmt::print("{}", "\nBefore fitting:\n");
     ff.print();
 
-    if (!ff.fit(hist)) { std::cerr << "No function found" << std::endl; }
+    if (!ff.fit(hist, "BQ0")) { fmt::print(stderr, "{}\n", "No function found"); }
 
-    printf("\nAfter fitting:\n");
+    fmt::print("{}", "\nAfter fitting:\n");
     ff.print();
 
     ff.export_fitter_to_file();
@@ -214,15 +215,15 @@ int main()
     hf::fitter ff2(hf::fitter::priority_mode::reference);
 
     /** Third usage using histogram object **/
-    printf("\n ---- THIRD USAGE ---\n\n");
+    fmt::print("{}", "\n ---- THIRD USAGE ---\n\n");
     ff.init_fitter_from_file(input_name, output3_name);
 
-    printf("\nBefore fitting:\n");
+    fmt::print("{}", "\nBefore fitting:\n");
     ff.print();
 
-    if (!ff.fit(hist)) { std::cerr << "No function found" << std::endl; }
+    if (!ff.fit(hist, "BQ0")) { fmt::print(stderr, "{}\n", "No function found"); }
 
-    printf("\nAfter fitting:\n");
+    fmt::print("{}", "\nAfter fitting:\n");
     ff.print();
 
     ff.export_fitter_to_file();
