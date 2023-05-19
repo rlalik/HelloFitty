@@ -1,6 +1,4 @@
-#include <fitemall.hpp>
-
-#include "fitemall_config.h"
+#include "hellofitty.hpp"
 
 #include <cstdlib>
 #include <fstream>
@@ -35,7 +33,7 @@ int main(int argc, char* argv[])
     sprintf(opf, "%s%s", argv[2], ".out");
 
     // create fitting factory
-    fea::fitter ff;
+    hf::fitter ff;
     ff.init_fitter_from_file(argv[2], opf);
     delete[] opf;
 

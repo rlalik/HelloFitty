@@ -1,5 +1,5 @@
-#ifndef FFCONFIG_H
-#define FFCONFIG_H
+#ifndef HELLOFITTY_CONFIG_H
+#define HELLOFITTY_CONFIG_H
 
 #include <string>
 

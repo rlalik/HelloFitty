@@ -7,9 +7,9 @@
 #pragma link off all namespaces;
 
 #pragma link C++ nestedclasses;
-#pragma link C++ class fitemall::param;
-#pragma link C++ class fitemall::histogram_fit;
-#pragma link C++ class fitemall::fitter;
+#pragma link C++ class hf::param;
+#pragma link C++ class hf::histogram_fit;
+#pragma link C++ class hf::fitter;
 #pragma link C++ namespace fitemall;
 // clang-format on
 

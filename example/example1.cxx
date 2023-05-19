@@ -1,6 +1,6 @@
-#include <fitemall.hpp>
+#include "hellofitty.hpp"
 
-#include "fitemall_config.h"
+#include "hellofitty_config.h"
 
 #include <TFile.h>
 #include <TH1.h>
@@ -161,7 +161,7 @@ int main()
     auto output2_name = TString(examples_bin_path) + "test_output2.txt";
     auto output3_name = TString(examples_bin_path) + "test_output3.txt";
 
-    fea::fitter ff;
+    hf::fitter ff;
     ff.set_draw_bits(true, true, true);
     ff.prop_bkg().set_line_color(1).set_line_width(2).set_line_style(9);
     ff.prop_sig().set_line_color(1).set_line_width(1).set_line_style(2);
@@ -211,7 +211,7 @@ int main()
 
     ff.export_fitter_to_file();
 
-    fea::fitter ff2(fea::fitter::priority_mode::reference);
+    hf::fitter ff2(hf::fitter::priority_mode::reference);
 
     /** Third usage using histogram object **/
     printf("\n ---- THIRD USAGE ---\n\n");

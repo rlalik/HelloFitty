@@ -1,6 +1,6 @@
 #include "gtest/gtest.h"
 
-#include "fitemall.hpp"
+#include "hellofitty.hpp"
 
 #include <TString.h>
 
@@ -25,24 +25,24 @@ TEST(tests_fitter, prefix_suffix_test)
     std::string tn1 = "test_name";
     std::string tn2 = "replaced";
 
-    fea::fitter ff1;
-    fea::fitter ff2;
+    hf::fitter ff1;
+    hf::fitter ff2;
 
-    ASSERT_STREQ("pref1_test_name", fea::tools::format_name(tn1, f1));
-    ASSERT_STREQ("pref1_replaced", fea::tools::format_name(tn2, f1));
+    ASSERT_STREQ("pref1_test_name", hf::tools::format_name(tn1, f1));
+    ASSERT_STREQ("pref1_replaced", hf::tools::format_name(tn2, f1));
 
-    ASSERT_STREQ("p_test_name_suff1", fea::tools::format_name(tn1, f2));
-    ASSERT_STREQ("p_replaced_suff1", fea::tools::format_name(tn2, f2));
+    ASSERT_STREQ("p_test_name_suff1", hf::tools::format_name(tn1, f2));
+    ASSERT_STREQ("p_replaced_suff1", hf::tools::format_name(tn2, f2));
 }
 
 TEST(tests_fitter, insert_parameters)
 {
-    fea::fitter ff;
+    hf::fitter ff;
 
     auto o1 = ff.find_fit("name1");
     ASSERT_EQ(o1, nullptr);
 
-    auto hf1 = make_unique<fea::histogram_fit>("name1", "1", "0", 0, 1);
+    auto hf1 = make_unique<hf::histogram_fit>("name1", "1", "0", 0, 1);
     ff.insert_parameters(std::move(hf1));
 
     auto o2 = ff.find_fit("name1");

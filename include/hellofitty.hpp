@@ -16,10 +16,10 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef FITEMALL_FITEMALL_H
-#define FITEMALL_FITEMALL_H
+#ifndef HELLOFITTY_HELLOFITTY_H
+#define HELLOFITTY_HELLOFITTY_H
 
-#include "fitemall/fitemall_export.hpp"
+#include "hellofitty_export.hpp"
 
 #include <memory>
 #include <optional>
@@ -37,7 +37,7 @@
 class TF1;
 class TH1;
 
-namespace fea
+namespace hf
 {
 
 namespace detail
@@ -72,7 +72,7 @@ struct param final
     void print() const;
 };
 
-class FITEMALL_EXPORT histogram_fit final
+class HELLOFITTY_EXPORT histogram_fit final
 {
 public:
     constexpr histogram_fit() = delete;
@@ -131,7 +131,7 @@ private:
     std::unique_ptr<detail::histogram_fit_impl> d;
 };
 
-class FITEMALL_EXPORT fitter final
+class HELLOFITTY_EXPORT fitter final
 {
 public:
     enum class priority_mode
@@ -196,7 +196,7 @@ enum class selected_source
     auxiliary
 };
 
-auto FITEMALL_EXPORT select_source(const char* filename, const char* auxname = 0)
+auto HELLOFITTY_EXPORT select_source(const char* filename, const char* auxname = 0)
     -> selected_source;
 
 struct draw_properties final
@@ -230,11 +230,11 @@ struct draw_properties final
     void apply_style(TF1* f);
 };
 
-auto FITEMALL_EXPORT format_name(const TString& name, const TString& decorator) -> TString;
+auto HELLOFITTY_EXPORT format_name(const TString& name, const TString& decorator) -> TString;
 
-std::unique_ptr<histogram_fit> FITEMALL_EXPORT parse_line_entry(const TString& line, int version);
+std::unique_ptr<histogram_fit> HELLOFITTY_EXPORT parse_line_entry(const TString& line, int version);
 
 } // namespace tools
 
-} // namespace fea
-#endif // FITEMALL_FITEMALL_H
+} // namespace hf
+#endif // HELLOFITTY_HELLOFITTY_H
