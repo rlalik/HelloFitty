@@ -1,12 +1,12 @@
-![FitterFactory: fitting tool](https://img.shields.io/badge/FitterFactory-fitting%20tool-orange)
-[![Coverage Status](https://coveralls.io/repos/github/rlalik/FitterFactory/badge.svg)](https://coveralls.io/github/rlalik/FitterFactory)
-[![Compiler Checks](https://github.com/rlalik/FitterFactory/actions/workflows/CI.yml/badge.svg)](https://github.com/rlalik/FitterFactory/actions/workflows/CI.yml)
-[![clang-format Check](https://github.com/rlalik/FitterFactory/actions/workflows/clang-format-check.yml/badge.svg)](https://github.com/rlalik/FitterFactory/actions/workflows/clang-format-check.yml)
-![GitHub](https://img.shields.io/github/license/rlalik/FitterFactory)
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/rlalik/FitterFactory)
-![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/rlalik/FitterFactory)
+![HelloFitty: fitting tool](https://img.shields.io/badge/HelloFitty-fitting%20tool-orange)
+[![Coverage Status](https://coveralls.io/repos/github/rlalik/HelloFitty/badge.svg)](https://coveralls.io/github/rlalik/HelloFitty)
+[![Compiler Checks](https://github.com/rlalik/HelloFitty/actions/workflows/CI.yml/badge.svg)](https://github.com/rlalik/HelloFitty/actions/workflows/CI.yml)
+[![clang-format Check](https://github.com/rlalik/HelloFitty/actions/workflows/clang-format-check.yml/badge.svg)](https://github.com/rlalik/HelloFitty/actions/workflows/clang-format-check.yml)
+![GitHub](https://img.shields.io/github/license/rlalik/HelloFitty)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/rlalik/HelloFitty)
+![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/rlalik/HelloFitty)
 
-FitterFactory allows for massive fitting of the histograms. It is a tool designed for use with CERN's ROOT framework.
+HelloFitty allows for massive fitting of the histograms. It is a tool designed for use with CERN's ROOT framework.
 
 See example below for usage case.
 
@@ -19,13 +19,13 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
 
    With the third option, you can repeat fitting multiple time, each time improving result of the previous fit as the input will be taken from auxiliary, not reference file, until the reference has not updated timestamp.
    ```c++
-   class FitterFactory {
-       enum class PriorityMode { Reference, Auxilary, Newer };
+   class hf::fitter {
+       enum class priority_mode { reference, auxiliary, newer };
    }
    ```
    and use it with constructor:
    ```c++
-   FitterFactory(PriorityMode flags = PriorityMode::Newer);
+   hf::fitter(priority_mode flags = priority_mode::newer);
    ```
 1. Fit functions stored in a text file in ascii format:
    ```text
@@ -60,18 +60,18 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
 
 1. Fitting functions can be stored in a file (as shown above) or created from the code level:
    ```c++
-   HistogramFit hfp("h1", "gaus(0)", "expo(3)", 0, 10);
-   hfp.setParam(0, 10, 0, 20, ParamValue::FitMode::Free);
-   hfp.setParam(1, 1, ParamValue::FitMode::Fixed);
-   hfp.setParam(2, 1, 0, 2, ParamValue::FitMode::Fixed);
-   hfp.setParam(3, 1);
-   hfp.setParam(4, -1);
+   hf::histogram_fit hfp("h1", "gaus(0)", "expo(3)", 0, 10);
+   hfp.set_param(0, 10, 0, 20, hf::param::fit_mode::free);
+   hfp.set_param(1, 1, hf::param::fit_mode::fixed);
+   hfp.set_param(2, 1, 0, 2, hf::param::fit_mode::fixed);
+   hfp.set_param(3, 1);
+   hfp.set_param(4, -1);
    ```
    is a equivalent of example above.
 
 1. Create clone of an existing functions and parameters set (to avoid duplication of histogram names, copying is forbidden).
    ```c++
-   HistogramFit hfp("h1", "gaus(0)", "expo(3)", 0, 10);
+   hf::histogram_fit hfp("h1", "gaus(0)", "expo(3)", 0, 10);
    auto hfp2 = hfp.clone("h2");
    ```
 
@@ -89,15 +89,15 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
    ```
    and its fitting:
    ```c++
-   FitterFactory ff;	// create FitterFactory object
-   ff.initFactoryFromFile("testpars.txt", "testpars.out"); // specify input file and output file
+   hf::fitter ff;	// create HelloFitty object
+   ff.init_fitter_from_file("testpars.txt", "testpars.out"); // specify input file and output file
    TH1 * h = new TH1F("test_hist", ...);
    ff.fit(h);   // will fit `test_hist`
-   ff.setNameDecorator("*_v2");
+   ff.set_name_decorator("*_v2");
    ff.fit(h);   // will fit `test_hist_v2`
-   ff.setNameDecorator("*_v3");
+   ff.set_name_decorator("*_v3");
    ff.fit(h);   // will fit `test_hist_v3`
-   ff.clearNameDecorator();
+   ff.clear_name_decorator();
    ff.fit(h);   // will fit `test_hist` again
    ```
    The decorator must have form of text string with a character `*`, which will be replaced with the original histogram name:
@@ -117,37 +117,37 @@ and create file `test_parameters.txt` containing fitting function and parameters
 
 #### Case 1
 
-Using a `HistogramFit` object. Run code:
+Using a `hf::histogram_fit` object. Run code:
 ```c++
-FitterFactory ff;	// create FitterFactory object
-ff.initFactoryFromFile("testpars.txt", "testpars.out"); // specify input file and output file
+hf::fitter ff;	// create HelloFitty object
+ff.init_fitter_from_file("testpars.txt", "testpars.out"); // specify input file and output file
 
-HistogramFit * hfp = ff.findParams("test_hist"); // try to find parameters for histogram `test_hist`
+hf::histogram_fit * hfp = ff.find_params("test_hist"); // try to find parameters for histogram `test_hist`
 if (hfp)
 {
-    hfp->push();             // preserve default parameters, just in case, optional
+    hfp->save();             // preserve default parameters, just in case, optional
     if (!ff.fit(hfp, h))     // try to fit hfp for `test_hist` to data in h `test_hist`
-        hfp->pop();          // if fit failed, you can restore previous parameters
+        hfp->load();          // if fit failed, you can restore previous parameters
 }
 else
 {
     std::cerr << "No function found" << std::endl;
 }
-ff.exportFactoryToFile();        // save parameters to output file
+ff.export_fitter_to_file();        // save parameters to output file
 ```
 The output file contains:
 ```text
  test_hist      gaus(0) expo(3) 0 0 10 5005.69 3.0004 -0.501326 8.91282 -0.501843
 ```
 
-Please note, that in this example the object `hfp` does not need to be assigned to histogram named `test_hit`. In this case, you can fit any arbitrary `HistogramFit` object to any histogram, e.g.:
+Please note, that in this example the object `hfp` does not need to be assigned to histogram named `test_hit`. In this case, you can fit any arbitrary `hf::histogram_fit` object to any histogram, e.g.:
 ```c++
-HistogramFit * hfp = ff.findParams("different_name"); // try to find parameters for histogram `test_hist`
+hf::histogram_fit * hfp = ff.find_params("different_name"); // try to find parameters for histogram `test_hist`
 if (hfp)
 {
-    hfp->push();            // preserve default parameters, just in case, optional
+    hfp->save();            // preserve default parameters, just in case, optional
     if (!ff.fit(hfp, h))    // try to fit hfp for `different_name` to data in h `test_hist`
-        hfp->pop();         // if fit failed, you can restore previous parameters
+        hfp->load();         // if fit failed, you can restore previous parameters
 }
 ```
 would also work.
@@ -156,14 +156,14 @@ would also work.
 
 Using histogram object. Run code
 ```c++
-FitterFactory ff;	// create FitterFactory object
-ff.initFactoryFromFile("testpars.txt", "testpars.out"); // specify input file and output file
+hf::fitter ff;	// create HelloFitty object
+ff.init_fitter_from_file("testpars.txt", "testpars.out"); // specify input file and output file
 
 if (!ff.fit(h))     // try to fit, will return false if fails
 {
     std::cerr << "No function found" << std::endl;
 }
-ff.exportFactoryToFile();        // save parameters to output file
+ff.export_fitter_to_file();        // save parameters to output file
 ```
 The output file contains:
 ```text
@@ -171,14 +171,14 @@ The output file contains:
 ```
 In this case, if the `test_hist` would be missing in the input file, the fit will fail due to missing input parameters. For a such case, you can set default parameter set which will be used as source for cloning the final set, e.g.:
 ```c++
-HistogramFit default_hfp("default", "gaus(0)", "expo(3)", 0, 10);
-default_hfp.setParam(0, 10, 0, 20, ParamValue::FitMode::Free);
-default_hfp.setParam(1, 1, ParamValue::FitMode::Fixed);
-default_hfp.setParam(2, 1, 0, 2, ParamValue::FitMode::Fixed);
-default_hfp.setParam(3, 1);
-default_hfp.setParam(4, -1);
+hf::histogram_fit default_hfp("default", "gaus(0)", "expo(3)", 0, 10);
+default_hfp.set_param(0, 10, 0, 20, hf::param::fit_mode::free);
+default_hfp.set_param(1, 1, hf::param::fit_mode::fixed);
+default_hfp.set_param(2, 1, 0, 2, hf::param::fit_mode::fixed);
+default_hfp.set_param(3, 1);
+default_hfp.set_param(4, -1);
 
-ff.setDefaultParameters(&default_hfp);
+ff.set_default_parameters(&default_hfp);
 
 TH1F * h2 = new TH1F("missing_in_input_name", ...);
 ff.fit(h2);	// will not fail
@@ -220,12 +220,12 @@ Two examples are provided:
    ```
 
 ## Usage with cmake
-The cmake files provide target to link your targets against. The target is located in the `RT` namespace as `RT::FitterFactory`. Example of usage:
+The cmake files provide target to link your targets against. The target is located in the `HelloFitty` namespace as `HelloFitty::HelloFitty`. Example of usage:
 ```cmake
-find_package(FitterFactory)
+find_package(HelloFitty)
 
 target_link_libraries(your_target
     PUBLIC
-        RT::FitterFactory
+        HelloFitty::HelloFitty
 )
 ```

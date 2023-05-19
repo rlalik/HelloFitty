@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include "fitemall.hpp"
+#include "hellofitty.hpp"
 
-using fea::histogram_fit;
+using hf::histogram_fit;
 
 TEST(tests_histogram_fit, basic)
 {
@@ -22,28 +22,28 @@ TEST(tests_histogram_fit, basic)
 TEST(tests_histogram_fit, parsing_line)
 {
     auto hfp0 =
-        fea::tools::parse_line_entry("hist_1 gaus(0) 0  0  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
+        hf::tools::parse_line_entry("hist_1 gaus(0) 0  0  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
 
     ASSERT_FALSE(hfp0.get());
 
-    auto hfp1 = fea::tools::parse_line_entry(
-        "hist_1 gaus(0) pol0(3)  0  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
+    auto hfp1 =
+        hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  0  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
 
     auto export1 = hfp1->export_entry();
     ASSERT_STREQ(export1, " hist_1\tgaus(0) pol0(3) 0 1 10 1 2 : 1 3 3 F 2 5 4 f");
 
-    auto hfp2 = fea::tools::parse_line_entry(
-        "hist_1 gaus(0) pol0(3)  1  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
+    auto hfp2 =
+        hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
 
     auto export2 = hfp2->export_entry();
     ASSERT_STREQ(export2, " hist_1\tgaus(0) pol0(3) 0 1 10 1 2 : 1 3 3 F 2 5 4 f");
 
-    auto hfp3 = fea::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1 10", 0);
+    auto hfp3 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1 10", 0);
 
     auto export3 = hfp3->export_entry();
     ASSERT_STREQ(export3, " hist_1\tgaus(0) pol0(3) 0 1 10 0 0 0 0");
 
-    auto hfp4 = fea::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1", 0);
+    auto hfp4 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1", 0);
 
     ASSERT_FALSE(hfp4.get());
 }
@@ -100,10 +100,10 @@ TEST(tests_histogram_fit, backups)
         // clang-format: on
     };
 
-    fea::param p0;
-    auto p1 = fea::param();
-    auto p2 = fea::param(3, fea::param::fit_mode::fixed);
-    auto p3 = fea::param(4, 1, 10, fea::param::fit_mode::free);
+    hf::param p0;
+    auto p1 = hf::param();
+    auto p2 = hf::param(3, hf::param::fit_mode::fixed);
+    auto p3 = hf::param(4, 1, 10, hf::param::fit_mode::free);
 
     ASSERT_EQ(hfp1.get_params_number(), 5);
 

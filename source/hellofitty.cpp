@@ -1,5 +1,5 @@
 /*
-    FitemAll - a versatile histogram fitting tool for ROOT-based projects
+    HelloFitty - a versatile histogram fitting tool for ROOT-based projects
     Copyright (C) 2015-2023  Rafał Lalik <rafallalik@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -16,20 +16,20 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "fitemall.hpp"
+#include "hellofitty.hpp"
 
 #include "parser.hpp"
 
 #include <TF1.h>
 #include <TH1.h>
 #include <TList.h>
-#include <TObjArray.h>
-#include <TObjString.h>
 
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <fstream>
+#include <map>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -52,7 +52,7 @@ template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&...
 using std::make_unique;
 #endif
 
-namespace fea
+namespace hf
 {
 
 namespace detail
@@ -681,4 +681,4 @@ std::unique_ptr<histogram_fit> parse_line_entry(const TString& line, int /*versi
 
 } // namespace tools
 
-} // namespace fea
+} // namespace hf

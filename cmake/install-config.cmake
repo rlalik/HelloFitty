@@ -1,1 +1,1 @@
-include("${CMAKE_CURRENT_LIST_DIR}/FitemAllTargets.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/HelloFittyTargets.cmake")

@@ -1,17 +1,17 @@
-#ifndef FITEMALL_PARSER_H
-#define FITEMALL_PARSER_H
+#ifndef HELLOFITTY_PARSER_H
+#define HELLOFITTY_PARSER_H
 
-#include "fitemall.hpp"
+#include "hellofitty.hpp"
 
 #include <memory>
 
 class TString;
 
-namespace fea::parser
+namespace hf::parser
 {
-auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fea::histogram_fit>;
-auto format_line_entry_v1(const fea::histogram_fit * hist_fit) -> TString;
+auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<hf::histogram_fit>;
+auto format_line_entry_v1(const hf::histogram_fit * hist_fit) -> TString;
 
 }
 
-#endif /* FITEMALL_PARSER_H */
+#endif /* HELLOFITTY_PARSER_H */
