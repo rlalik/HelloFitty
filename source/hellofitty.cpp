@@ -350,25 +350,20 @@ bool fitter::init_fitter_from_file(const char* filename, const char* auxname)
 
     auto selected = tools::select_source(filename, auxname);
 
-    if (selected == tools::selected_source::none) return false;
+    if (selected == tools::source::none) return false;
 
-    fmt::print("Available source: [{:c}] REF  [{:c}] AUX\n",
-               selected != tools::selected_source::only_auxiliary and
-                       selected != tools::selected_source::none
-                   ? 'x'
-                   : ' ',
-               selected != tools::selected_source::only_reference and
-                       selected != tools::selected_source::none
-                   ? 'x'
-                   : ' ');
+    fmt::print(
+        "Available source: [{:c}] REF  [{:c}] AUX\n",
+        selected != tools::source::only_auxiliary and selected != tools::source::none ? 'x' : ' ',
+        selected != tools::source::only_reference and selected != tools::source::none ? 'x' : ' ');
     fmt::print("Selected source : [{:c}] REF  [{:c}] AUX\n",
-               selected == tools::selected_source::reference ? 'x' : ' ',
-               selected == tools::selected_source::auxiliary ? 'x' : ' ');
+               selected == tools::source::reference ? 'x' : ' ',
+               selected == tools::source::auxiliary ? 'x' : ' ');
 
     auto mode = d->mode;
     if (mode == priority_mode::reference)
     {
-        if (selected == tools::selected_source::only_auxiliary)
+        if (selected == tools::source::only_auxiliary)
             return false;
         else
             return import_parameters(filename);
@@ -376,7 +371,7 @@ bool fitter::init_fitter_from_file(const char* filename, const char* auxname)
 
     if (mode == priority_mode::auxiliary)
     {
-        if (selected == tools::selected_source::only_reference)
+        if (selected == tools::source::only_reference)
             return false;
         else
             return import_parameters(auxname);
@@ -384,11 +379,9 @@ bool fitter::init_fitter_from_file(const char* filename, const char* auxname)
 
     if (mode == priority_mode::newer)
     {
-        if (selected == tools::selected_source::auxiliary or
-            selected == tools::selected_source::only_auxiliary)
+        if (selected == tools::source::auxiliary or selected == tools::source::only_auxiliary)
             return import_parameters(auxname);
-        else if (selected == tools::selected_source::reference or
-                 selected == tools::selected_source::only_reference)
+        else if (selected == tools::source::reference or selected == tools::source::only_reference)
             return import_parameters(filename);
     }
 
@@ -641,15 +634,15 @@ void fitter::clear() { d->hfpmap.clear(); }
 
 namespace tools
 {
-selected_source select_source(const char* filename, const char* auxname)
+source select_source(const char* filename, const char* auxname)
 {
 #if __cplusplus >= 201703L
     auto s1 = std::filesystem::exists(filename);
     auto s2 = std::filesystem::exists(auxname);
 
-    if (!s1 and !s2) return selected_source::none;
-    if (s1 and !s2) return selected_source::only_reference;
-    if (!s1 and s2) return selected_source::only_auxiliary;
+    if (!s1 and !s2) return source::none;
+    if (s1 and !s2) return source::only_reference;
+    if (!s1 and s2) return source::only_auxiliary;
 
     std::filesystem::file_time_type mod_ref = std::filesystem::last_write_time(filename);
     std::filesystem::file_time_type mod_aux = std::filesystem::last_write_time(auxname);
@@ -660,15 +653,15 @@ selected_source select_source(const char* filename, const char* auxname)
     auto s1 = stat(filename, &st_ref) == 0;
     auto s2 = stat(auxname, &st_aux) == 0;
 
-    if (!s1 and !s2) return selected_source::none;
-    if (s1 and !s2) return selected_source::only_reference;
-    if (!s1 and s2) return selected_source::only_auxiliary;
+    if (!s1 and !s2) return source::none;
+    if (s1 and !s2) return source::only_reference;
+    if (!s1 and s2) return source::only_auxiliary;
 
     auto mod_ref = (long long)st_ref.st_mtim.tv_sec;
     auto mod_aux = (long long)st_aux.st_mtim.tv_sec;
 #endif
 
-    return mod_aux > mod_ref ? selected_source::auxiliary : selected_source::reference;
+    return mod_aux > mod_ref ? source::auxiliary : source::reference;
 }
 
 void draw_properties::apply_style(TF1* f)
