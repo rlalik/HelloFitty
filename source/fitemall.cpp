@@ -220,49 +220,7 @@ auto histogram_fit::get_flag_rebin() const -> int { return d->rebin; }
 
 auto histogram_fit::get_flag_disabled() const -> bool { return d->fit_disabled; }
 
-TString histogram_fit::export_entry() const
-{
-    TString out = d->fit_disabled ? "@" : " ";
-
-    char sep;
-
-    out = TString::Format("%s%s\t%s %s %d %.0f %.0f", out.Data(), d->hist_name.Data(),
-                          d->sig_string.Data(), d->bkg_string.Data(), d->rebin, d->range_l,
-                          d->range_u);
-    auto limit = d->pars.size();
-
-    for (decltype(limit) i = 0; i < limit; ++i)
-    {
-        TString v = TString::Format("%g", d->pars[i].value);
-        TString l = TString::Format("%g", d->pars[i].lower);
-        TString u = TString::Format("%g", d->pars[i].upper);
-
-        switch (d->pars[i].mode)
-        {
-            case param::fit_mode::free:
-                if (d->pars[i].has_limits)
-                    sep = ':';
-                else
-                    sep = ' ';
-                break;
-            case param::fit_mode::fixed:
-                if (d->pars[i].has_limits)
-                    sep = 'F';
-                else
-                    sep = 'f';
-                break;
-        }
-
-        if (d->pars[i].mode == param::fit_mode::free and d->pars[i].has_limits == 0)
-            out += TString::Format(" %s", v.Data());
-        else if (d->pars[i].mode == param::fit_mode::fixed and d->pars[i].has_limits == 0)
-            out += TString::Format(" %s %c", v.Data(), sep);
-        else
-            out += TString::Format(" %s %c %s %s", v.Data(), sep, l.Data(), u.Data());
-    }
-
-    return out;
-}
+TString histogram_fit::export_entry() const { return parser::format_line_entry_v1(this); }
 
 void histogram_fit::print(bool detailed) const
 {
@@ -720,7 +678,7 @@ TString format_name(const TString& name, const TString& decorator)
 
 std::unique_ptr<histogram_fit> parse_line_entry(const TString& line, int /*version*/)
 {
-    return parse_line_entry_v1(line);
+    return parser::parse_line_entry_v1(line);
 }
 
 } // namespace tools

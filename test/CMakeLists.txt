@@ -11,7 +11,10 @@ include(find_or_fetch_package)
 set(INSTALL_GTEST OFF)
 find_or_fetch_package(GTest https://github.com/google/googletest GIT_TAG main)
 
-set(tests_SRCS tests_param.cpp tests_histogram_fit.cpp tests_fitemall.cpp
+set(tests_SRCS tests_param.cpp
+               tests_parser_v1.cpp
+               tests_histogram_fit.cpp
+               tests_fitemall.cpp
                tests_fitemall_tools.cpp)
 
 add_executable(gtests ${tests_SRCS})
