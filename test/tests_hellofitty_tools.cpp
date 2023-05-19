@@ -14,18 +14,17 @@ TEST(tests_HelloKitty_Tools, source_select)
 
     auto newer_one = build_path + "hellofitty_config.h";
 
-    ASSERT_EQ(hf::tools::select_source(fake_in.c_str(), fake_out.c_str()),
-              hf::tools::selected_source::none);
+    ASSERT_EQ(hf::tools::select_source(fake_in.c_str(), fake_out.c_str()), hf::tools::source::none);
 
     ASSERT_EQ(hf::tools::select_source(true_in.c_str(), fake_out.c_str()),
-              hf::tools::selected_source::only_reference);
+              hf::tools::source::only_reference);
 
     ASSERT_EQ(hf::tools::select_source(fake_in.c_str(), true_out.c_str()),
-              hf::tools::selected_source::only_auxiliary);
+              hf::tools::source::only_auxiliary);
 
     ASSERT_EQ(hf::tools::select_source(true_in.c_str(), newer_one.c_str()),
-              hf::tools::selected_source::auxiliary);
+              hf::tools::source::auxiliary);
 
     ASSERT_EQ(hf::tools::select_source(newer_one.c_str(), true_out.c_str()),
-              hf::tools::selected_source::reference);
+              hf::tools::source::reference);
 }

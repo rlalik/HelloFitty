@@ -21,12 +21,12 @@
 
 #include "HelloFitty/hellofitty_export.hpp"
 
+#include <RtypesCore.h>
+#include <TString.h>
+
 #include <memory>
 #include <optional>
 #include <string>
-
-#include <RtypesCore.h>
-#include <TString.h>
 
 #if __cplusplus < 201402L
 #define CONSTEXPR
@@ -187,7 +187,7 @@ private:
 
 namespace tools
 {
-enum class selected_source
+enum class source
 {
     none,
     only_reference,
@@ -196,8 +196,7 @@ enum class selected_source
     auxiliary
 };
 
-auto HELLOFITTY_EXPORT select_source(const char* filename, const char* auxname = 0)
-    -> selected_source;
+auto HELLOFITTY_EXPORT select_source(const char* filename, const char* auxname = 0) -> source;
 
 struct draw_properties final
 {
