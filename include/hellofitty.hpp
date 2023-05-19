@@ -19,7 +19,7 @@
 #ifndef HELLOFITTY_HELLOFITTY_H
 #define HELLOFITTY_HELLOFITTY_H
 
-#include "hellofitty_export.hpp"
+#include "HelloFitty/hellofitty_export.hpp"
 
 #include <memory>
 #include <optional>

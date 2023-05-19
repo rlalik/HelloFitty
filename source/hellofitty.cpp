@@ -24,6 +24,9 @@
 #include <TH1.h>
 #include <TList.h>
 
+#include <fmt/core.h>
+#include <fmt/ranges.h>
+
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -40,9 +43,6 @@
 #include <sys/stat.h>
 #endif
 
-#define PR(x)                                                                                      \
-    std::cout << "++DEBUG: " << #x << " = |" << x << "| (" << __FILE__ << ", " << __LINE__ << ")\n";
-
 #if __cplusplus < 201402L
 template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)
 {
@@ -51,6 +51,54 @@ template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&...
 #else
 using std::make_unique;
 #endif
+
+struct params_vector
+{
+    std::vector<double> pars;
+    params_vector(int n) : pars(n) {}
+};
+
+// see https://fmt.dev/latest/api.html#formatting-user-defined-types
+template <> struct fmt::formatter<params_vector>
+{
+    // Presentation format: 'f' - fixed, 'e' - exponential, 'g' - dynamic.
+    char presentation = 'f';
+
+    // Parses format specifications of the form ['f' | 'e' | 'g'].
+    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // Parse the presentation format and store it in the formatter:
+        auto it = ctx.begin(), end = ctx.end();
+        if (it != end && (*it == 'f' || *it == 'e' || *it == 'g')) presentation = *it++;
+
+        // Check if reached the end of the range:
+        if (it != end && *it != '}') ctx.on_error("invalid format");
+
+        // Return an iterator past the end of the parsed range:
+        return it;
+    }
+
+    // Formats the point p using the parsed format specification (presentation)
+    // stored in this formatter.
+    auto format(const params_vector& p, format_context& ctx) const -> format_context::iterator
+    {
+        // ctx.out() is an output iterator to write to.
+
+        if (presentation == 'f')
+            for (const auto& p : p.pars)
+                fmt::format_to(ctx.out(), "{:f} ", p);
+        else if (presentation == 'e')
+            for (const auto& p : p.pars)
+                fmt::format_to(ctx.out(), "{:e} ", p);
+        else if (presentation == 'g')
+            for (const auto& p : p.pars)
+                fmt::format_to(ctx.out(), "{:g} ", p);
+        else
+            throw;
+
+        return ctx.out();
+    }
+};
 
 namespace hf
 {
@@ -85,11 +133,11 @@ bool fitter_impl::verbose_flag = true;
 
 void param::print() const
 {
-    printf("%10g   Mode: %-5s   Limits: ", value, mode == fit_mode::free ? "free" : "fixed");
+    fmt::print("{:10g}   Mode: {:>5}   Limits: ", value, mode == fit_mode::free ? "free" : "fixed");
     if (has_limits)
-        printf(" %g, %g\n", lower, upper);
+        fmt::print(" {:g}, {:g}\n", lower, upper);
     else
-        printf(" none\n");
+        fmt::print(" none\n");
 }
 
 namespace detail
@@ -227,26 +275,25 @@ TString histogram_fit::export_entry() const { return parser::format_line_entry_v
 
 void histogram_fit::print(bool detailed) const
 {
-    std::cout << "## name: " << d->hist_name.Data() << "   rebin: " << d->rebin
-              << "   range: " << d->range_l << " -- " << d->range_u
-              << "  param num: " << d->pars.size() << "\n";
+    fmt::print("## name: {:s}    rebin: {:d}   range: {:g} -- {:g}  param num: {:d}\n",
+               d->hist_name.Data(), d->rebin, d->range_l, d->range_l, d->pars.size());
 
     auto s = d->pars.size();
     for (decltype(s) i = 0; i < s; ++i)
     {
-        std::cout << "   " << i << ": ";
+        fmt::print("   {}: ", i);
         d->pars[i].print();
     }
 
     if (detailed)
     {
-        std::cout << "+++++++++ SIG function +++++++++" << std::endl;
+        fmt::print("{}\n", "+++++++++ SIG function +++++++++");
         d->function_sig.Print("V");
-        std::cout << "+++++++++ BKG function +++++++++" << std::endl;
+        fmt::print("{}\n", "+++++++++ BKG function +++++++++");
         d->function_bkg.Print("V");
-        std::cout << "+++++++++ SUM function +++++++++" << std::endl;
+        fmt::print("{}\n", "+++++++++ SUM function +++++++++");
         d->function_sum.Print("V");
-        std::cout << "++++++++++++++++++++++++++++++++" << std::endl;
+        fmt::print("{}\n", "++++++++++++++++++++++++++++++++");
     }
 }
 
@@ -273,7 +320,7 @@ void histogram_fit::save()
 
 void histogram_fit::load()
 {
-    printf("SIZES %d vs %d\n", d->backup_p.size(), d->pars.size());
+    fmt::print("SIZES {:d} vs {:d}\n", d->backup_p.size(), d->pars.size());
     if (d->backup_p.size() != d->pars.size()) throw std::out_of_range("Backup storage is empty.");
 
     auto n = d->pars.size();
@@ -305,18 +352,18 @@ bool fitter::init_fitter_from_file(const char* filename, const char* auxname)
 
     if (selected == tools::selected_source::none) return false;
 
-    printf("Available source: [%c] REF  [%c] AUX\n",
-           selected != tools::selected_source::only_auxiliary and
-                   selected != tools::selected_source::none
-               ? 'x'
-               : ' ',
-           selected != tools::selected_source::only_reference and
-                   selected != tools::selected_source::none
-               ? 'x'
-               : ' ');
-    printf("Selected source : [%c] REF  [%c] AUX\n",
-           selected == tools::selected_source::reference ? 'x' : ' ',
-           selected == tools::selected_source::auxiliary ? 'x' : ' ');
+    fmt::print("Available source: [{:c}] REF  [{:c}] AUX\n",
+               selected != tools::selected_source::only_auxiliary and
+                       selected != tools::selected_source::none
+                   ? 'x'
+                   : ' ',
+               selected != tools::selected_source::only_reference and
+                       selected != tools::selected_source::none
+                   ? 'x'
+                   : ' ');
+    fmt::print("Selected source : [{:c}] REF  [{:c}] AUX\n",
+               selected == tools::selected_source::reference ? 'x' : ' ',
+               selected == tools::selected_source::auxiliary ? 'x' : ' ');
 
     auto mode = d->mode;
     if (mode == priority_mode::reference)
@@ -365,7 +412,7 @@ bool fitter::import_parameters(const std::string& filename)
     std::ifstream fparfile(filename);
     if (!fparfile.is_open())
     {
-        std::cerr << "No file " << filename << " to open." << std::endl;
+        fmt::print(stderr, "No file {} to open.\n", filename);
         return false;
     }
 
@@ -385,12 +432,11 @@ bool fitter::export_parameters(const std::string& filename)
     std::ofstream fparfile(filename);
     if (!fparfile.is_open())
     {
-        std::cerr << "Can't create AUX file " << filename << ". Skipping..." << std::endl;
+        fmt::print(stderr, "Can't create AUX file {}. Skipping...\n", filename);
     }
     else
     {
-        std::cout << "AUX file " << filename << " opened...  Exporting " << d->hfpmap.size()
-                  << " entries.\n";
+        fmt::print("AUX file {} opened...  Exporting {} entries.\n", filename, d->hfpmap.size());
         for (auto it = d->hfpmap.begin(); it != d->hfpmap.end(); ++it)
         {
             fparfile << it->second->export_entry().Data() << std::endl;
@@ -415,7 +461,7 @@ bool fitter::fit(TH1* hist, const char* pars, const char* gpars)
     histogram_fit* hfp = find_fit(hist->GetName());
     if (!hfp)
     {
-        printf("HFP for histogram %s not found, trying from defaults.\n", hist->GetName());
+        fmt::print("HFP for histogram {:s} not found, trying from defaults.\n", hist->GetName());
 
         if (!d->defpars) return false;
 
@@ -477,17 +523,14 @@ bool fitter::fit(histogram_fit* hfp, TH1* hist, const char* pars, const char* gp
     const size_t par_num = tfSum->GetNpar();
 
     // backup old parameters
-    auto pars_backup_old = make_unique<double[]>(par_num);
-    tfSum->GetParameters(pars_backup_old.get());
+    params_vector backup_old(par_num);
+    tfSum->GetParameters(backup_old.pars.data());
     double chi2_backup_old = hist->Chisquare(tfSum, "R");
 
     if (d->verbose_flag)
     {
         // print them
-        printf("* old: ");
-        for (uint i = 0; i < par_num; ++i)
-            printf("%g ", pars_backup_old[i]);
-        printf(" --> chi2:  %f -- *\n", chi2_backup_old);
+        fmt::print("* old: {:g} --> chi2:  {:f} -- *\n", backup_old, chi2_backup_old);
     }
 
     hist->Fit(tfSum, pars, gpars, hfp->get_fit_range_l(), hfp->get_fit_range_u());
@@ -501,53 +544,27 @@ bool fitter::fit(histogram_fit* hfp, TH1* hist, const char* pars, const char* gp
     // cov.Print();
 
     // backup new parameters
-    auto pars_backup_new = make_unique<double[]>(par_num);
-    tfSum->GetParameters(pars_backup_new.get());
+    params_vector backup_new(par_num);
+    tfSum->GetParameters(backup_new.pars.data());
     double chi2_backup_new = hist->Chisquare(tfSum, "R");
 
     if (d->verbose_flag)
     {
-        printf("  new: ");
-        for (uint i = 0; i < par_num; ++i)
-            printf("%g ", pars_backup_new[i]);
-        printf(" --> chi2:  %f -- *", chi2_backup_new);
+        fmt::print("* new: {:g} --> chi2:  {:f} -- *", backup_new, chi2_backup_new);
     }
 
     if (chi2_backup_new > chi2_backup_old)
     {
-        tfSum->SetParameters(pars_backup_old.get());
-        new_sig_func->SetParameters(pars_backup_old.get());
-        printf("\n\tFIT-ERROR: Fit got worse -> restoring params for chi2 = %g",
-               hist->Chisquare(tfSum, "R"));
-    }
-    else if (tfSum->GetMaximum() > 2.0 * hist->GetMaximum())
-    {
-        tfSum->SetParameters(pars_backup_old.get());
-        new_sig_func->SetParameters(pars_backup_old.get());
-        printf("\n\tMAX-ERROR: %g vs. %g -> %f (entries=%g)", tfSum->GetMaximum(),
-               hist->GetMaximum(), hist->Chisquare(tfSum, "R"), hist->GetEntries());
-        printf("\n");
-
-        printf("  old: ");
-        for (uint i = 0; i < par_num; ++i)
-            printf("%g ", pars_backup_old[i]);
-        printf(" --> chi2:  %f -- *\n", chi2_backup_old);
-
-        printf("  new: ");
-        for (uint i = 0; i < par_num; ++i)
-            printf("%g ", pars_backup_new[i]);
-        printf(" --> chi2:  %f -- *\n", chi2_backup_new);
-
-        for (int i = 0; i < hist->GetNbinsX(); ++i)
-            printf(" %g", hist->GetBinContent(i + 1));
-        printf("\n");
+        tfSum->SetParameters(backup_old.pars.data());
+        new_sig_func->SetParameters(backup_old.pars.data());
+        fmt::print("{}\n", "\t [ FAILED - restoring old params ]");
     }
     else
     {
-        // printf("\n\tIS-OK: %g vs. %g -> %f", tfSum->GetMaximum(), hist->GetMaximum(),
+        // fmt::print("\n\tIS-OK: {:g} vs. {:g} -> {:f}", tfSum->GetMaximum(), hist->GetMaximum(),
         //        hist->Chisquare(tfSum, "R"));
 
-        if (d->verbose_flag) printf("\t [ OK ]\n");
+        if (d->verbose_flag) fmt::print("{}\n", "\t [ OK ]");
     }
 
     tfSum->SetChisquare(hist->Chisquare(tfSum, "R"));

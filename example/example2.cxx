@@ -10,6 +10,9 @@
 #include <TMath.h>
 #include <TROOT.h>
 
+#include <fmt/core.h>
+#include <fmt/printf.h>
+
 #ifdef HAS_ROOTTOOLS
 #include <RootTools.h>
 #endif
@@ -18,7 +21,7 @@ int main(int argc, char* argv[])
 {
     if (argc < 3)
     {
-        std::cerr << " Usage: " << argv[0] << " file.root file_with_params" << std::endl;
+        fmt::print(stderr, "Usage: {} file.root file_with_params\n", argv[0]);
         std::exit(EXIT_FAILURE);
     }
 
@@ -29,13 +32,11 @@ int main(int argc, char* argv[])
 
     // create params output filename
     size_t pflen = strlen(argv[2]);
-    char* opf = new char[pflen + 5];
-    sprintf(opf, "%s%s", argv[2], ".out");
+    auto opf = fmt::sprintf("%s%s", argv[2], ".out");
 
     // create fitting factory
     hf::fitter ff;
-    ff.init_fitter_from_file(argv[2], opf);
-    delete[] opf;
+    ff.init_fitter_from_file(argv[2], opf.c_str());
 
     // uncomment this to print all entries
     // ff.print();
@@ -60,11 +61,11 @@ int main(int argc, char* argv[])
         if (!cl) continue;
 
         TObject* obj = key->ReadObj();
-        printf("*** %s\n", obj->GetName());
+        fmt::print("*** {:s}\n", obj->GetName());
         if (obj->InheritsFrom("TH1"))
         {
             TH1* h = (TH1*)obj->Clone(obj->GetName());
-            ff.fit(h);
+            ff.fit(h, "BQ0");
             if (ofile) h->Write();
         }
     }
