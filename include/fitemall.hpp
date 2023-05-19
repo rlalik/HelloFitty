@@ -21,11 +21,9 @@
 
 #include "fitemall/fitemall_export.hpp"
 
-#include <algorithm>
 #include <memory>
 #include <optional>
 #include <string>
-#include <vector>
 
 #include <RtypesCore.h>
 #include <TString.h>
@@ -121,9 +119,8 @@ public:
 
     TString export_entry() const;
 
-    void push();
-    void pop();
-    void apply();
+    void save();
+    void load();
     void drop();
 
 private:

@@ -65,7 +65,7 @@ TEST(tests_histogram_fit, cloning)
     ASSERT_EQ(hfp1.get_flag_rebin(), hfp2->get_flag_rebin());
     ASSERT_EQ(hfp1.get_flag_disabled(), hfp2->get_flag_disabled());
 
-    hfp1.push();
+    hfp1.save();
     hfp1.clear();
 }
 
@@ -73,17 +73,44 @@ TEST(tests_histogram_fit, backups)
 {
     histogram_fit hfp1("h1", "gaus(0)", "expo(3)", 1, 10);
 
-    fea::param p1;
-    auto p2 = fea::param();
-    auto p3 = fea::param(3, fea::param::fit_mode::fixed);
-    auto p4 = fea::param(4, 1, 10, fea::param::fit_mode::free);
+    std::tuple<int, int> test_values_1[] = {
+        // clang-format: off
+        {0, 0},
+        {1, 0},
+        {2, 3},
+        {3, 4}
+        // clang-format: on
+    };
+
+    std::tuple<int, int> test_values_2[] = {
+        // clang-format: off
+        {0, 10},
+        {1, 20},
+        {2, 30},
+        {3, 40}
+        // clang-format: on
+    };
+
+    std::tuple<int, int> test_values_3[] = {
+        // clang-format: off
+        {0, 100},
+        {1, 200},
+        {2, 300},
+        {3, 400}
+        // clang-format: on
+    };
+
+    fea::param p0;
+    auto p1 = fea::param();
+    auto p2 = fea::param(3, fea::param::fit_mode::fixed);
+    auto p3 = fea::param(4, 1, 10, fea::param::fit_mode::free);
 
     ASSERT_EQ(hfp1.get_params_number(), 5);
 
-    hfp1.set_param(0, p1);
-    hfp1.set_param(1, p2);
-    hfp1.set_param(2, p3);
-    hfp1.set_param(3, p4);
+    hfp1.set_param(0, p0);
+    hfp1.set_param(1, p1);
+    hfp1.set_param(2, p2);
+    hfp1.set_param(3, p3);
 
     // try {
     //     hfp1.set_param(5, p4);
@@ -91,48 +118,51 @@ TEST(tests_histogram_fit, backups)
     //     ASSERT_NE(hfp1.get_paramsNumber(), 5);
     // }
 
-    hfp1.push();
+    // save test_values_1
+    hfp1.save();
 
-    ASSERT_EQ(hfp1.get_param(0).value, 0);
-    ASSERT_EQ(hfp1.get_param(1).value, 0);
-    ASSERT_EQ(hfp1.get_param(2).value, 3);
-    ASSERT_EQ(hfp1.get_param(3).value, 4);
+    // should still contain test_values_1
+    for (auto& test_data : test_values_1)
+        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
 
-    hfp1.update_param(0, 10);
-    hfp1.update_param(1, 20);
-    hfp1.update_param(2, 30);
-    hfp1.update_param(3, 40);
+    // set to test_values_2
+    for (auto& test_data : test_values_2)
+        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data));
 
-    hfp1.apply();
+    // should read test_values_2
+    for (auto& test_data : test_values_2)
+        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
 
-    ASSERT_EQ(hfp1.get_param(0).value, 0);
-    ASSERT_EQ(hfp1.get_param(1).value, 0);
-    ASSERT_EQ(hfp1.get_param(2).value, 3);
-    ASSERT_EQ(hfp1.get_param(3).value, 4);
+    // should load test_values_1
+    hfp1.load();
 
-    hfp1.update_param(0, 10);
-    hfp1.update_param(1, 20);
-    hfp1.update_param(2, 30);
-    hfp1.update_param(3, 40);
+    // should read test_values_1
+    for (auto& test_data : test_values_1)
+        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
 
-    hfp1.pop();
+    // should set test_values_2
+    for (auto& test_data : test_values_3)
+        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data));
 
-    ASSERT_EQ(hfp1.get_param(0).value, 0);
-    ASSERT_EQ(hfp1.get_param(1).value, 0);
-    ASSERT_EQ(hfp1.get_param(2).value, 3);
-    ASSERT_EQ(hfp1.get_param(3).value, 4);
+    // should load test_values_1
+    hfp1.load();
 
-    hfp1.update_param(0, 10);
-    hfp1.update_param(1, 20);
-    hfp1.update_param(2, 30);
-    hfp1.update_param(3, 40);
+    // should read test_values_1
+    for (auto& test_data : test_values_1)
+        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
 
-    hfp1.pop();
+    for (auto& test_data : test_values_3)
+        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data));
 
-    ASSERT_EQ(hfp1.get_param(0).value, 10);
-    ASSERT_EQ(hfp1.get_param(1).value, 20);
-    ASSERT_EQ(hfp1.get_param(2).value, 30);
-    ASSERT_EQ(hfp1.get_param(3).value, 40);
+    // clear backup storage
+    hfp1.drop();
+
+    // should not allow to load from empty
+    ASSERT_THROW(hfp1.load(), std::out_of_range);
+
+    // still test_values_2
+    for (auto& test_data : test_values_3)
+        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
 
     hfp1.drop();
 }
