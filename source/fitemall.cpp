@@ -26,10 +26,13 @@
 #include <TObjArray.h>
 #include <TObjString.h>
 
+#include <algorithm>
+#include <chrono>
 #include <cstdio>
 #include <fstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 #if __cplusplus >= 201703L
 #include <filesystem>
@@ -261,22 +264,17 @@ bool histogram_fit::load(TF1* f)
     return true;
 }
 
-void histogram_fit::push()
+void histogram_fit::save()
 {
     d->backup_p.clear();
     for (auto& p : d->pars)
         d->backup_p.push_back(p.value);
 }
 
-void histogram_fit::pop()
+void histogram_fit::load()
 {
-    apply();
-    drop();
-}
-
-void histogram_fit::apply()
-{
-    if (d->backup_p.size() != d->pars.size()) return;
+    printf("SIZES %d vs %d\n", d->backup_p.size(), d->pars.size());
+    if (d->backup_p.size() != d->pars.size()) throw std::out_of_range("Backup storage is empty.");
 
     auto n = d->pars.size();
     for (decltype(n) i = 0; i < n; ++i)
@@ -426,10 +424,10 @@ bool fitter::fit(TH1* hist, const char* pars, const char* gpars)
         insert_parameters(std::move(tmp));
     }
 
-    hfp->push();
+    hfp->save();
     bool status = fit(hfp, hist, pars, gpars);
 
-    if (!status) hfp->pop();
+    if (!status) hfp->load();
 
     return status;
 }

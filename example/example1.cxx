@@ -177,8 +177,8 @@ int main()
         hfp->print();
         printf("\n");
 
-        hfp->push();
-        if (!ff.fit(hfp, hist)) hfp->pop();
+        hfp->save();
+        if (!ff.fit(hfp, hist)) hfp->load();
 
         printf("\nAfter fitting:\n");
         hfp->print(true);

@@ -2,9 +2,11 @@
 
 #include "fitemall.hpp"
 
+#include <RtypesCore.h>
 #include <TF1.h>
 #include <TObjArray.h>
 #include <TObjString.h>
+#include <TString.h>
 
 #include <memory>
 
