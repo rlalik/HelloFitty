@@ -1,10 +1,9 @@
 #include <gtest/gtest.h>
 
-#include "hellofitty.hpp"
+#include <hellofitty.hpp>
+#include <hellofitty_config.h>
 
-#include "hellofitty_config.h"
-
-TEST(tests_HelloKitty_Tools, source_select)
+TEST(TestsHelloKittyTools, SourceSelect)
 {
     auto true_in = tests_src_path + "test_input.txt";
     auto true_out = tests_src_path + "test_output.txt";
@@ -16,15 +15,11 @@ TEST(tests_HelloKitty_Tools, source_select)
 
     ASSERT_EQ(hf::tools::select_source(fake_in.c_str(), fake_out.c_str()), hf::tools::source::none);
 
-    ASSERT_EQ(hf::tools::select_source(true_in.c_str(), fake_out.c_str()),
-              hf::tools::source::only_reference);
+    ASSERT_EQ(hf::tools::select_source(true_in.c_str(), fake_out.c_str()), hf::tools::source::only_reference);
 
-    ASSERT_EQ(hf::tools::select_source(fake_in.c_str(), true_out.c_str()),
-              hf::tools::source::only_auxiliary);
+    ASSERT_EQ(hf::tools::select_source(fake_in.c_str(), true_out.c_str()), hf::tools::source::only_auxiliary);
 
-    ASSERT_EQ(hf::tools::select_source(true_in.c_str(), newer_one.c_str()),
-              hf::tools::source::auxiliary);
+    ASSERT_EQ(hf::tools::select_source(true_in.c_str(), newer_one.c_str()), hf::tools::source::auxiliary);
 
-    ASSERT_EQ(hf::tools::select_source(newer_one.c_str(), true_out.c_str()),
-              hf::tools::source::reference);
+    ASSERT_EQ(hf::tools::select_source(newer_one.c_str(), true_out.c_str()), hf::tools::source::reference);
 }

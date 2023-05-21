@@ -19,10 +19,8 @@ include(cmake/find_or_fetch_package.cmake)
 find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)
 
 find_or_fetch_package(fmt https://github.com/fmtlib/fmt)
+
 # ---- Declare library ----
-
-configure_file(config.h.in hellofitty_config.h)
-
 add_library(
     HelloFitty
     source/hellofitty.cpp
@@ -31,6 +29,8 @@ add_library(
 add_library(HelloFitty::HelloFitty ALIAS HelloFitty)
 
 target_link_libraries(HelloFitty PUBLIC ROOT::Core ROOT::Hist fmt::fmt)
+
+configure_file(config.h.in hellofitty_config.h)
 
 include(GenerateExportHeader)
 generate_export_header(
@@ -65,6 +65,7 @@ target_include_directories(
     HelloFitty SYSTEM
     PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/export>"
+    "$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>"
 )
 
 option(BUILD_DICTIONARY "Build ROOT dictionary." OFF)

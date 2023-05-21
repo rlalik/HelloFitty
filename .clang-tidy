@@ -103,7 +103,7 @@ CheckOptions:
   - key: 'readability-identifier-naming.MethodCase'
     value: 'lower_case'
   - key: 'readability-identifier-naming.NamespaceCase'
-    value: 'UPPER_CASE'
+    value: 'lower_case'
   - key: 'readability-identifier-naming.ParameterCase'
     value: 'lower_case'
   - key: 'readability-identifier-naming.ParameterPackCase'

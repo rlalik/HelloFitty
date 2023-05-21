@@ -1,40 +1,40 @@
 #include <gtest/gtest.h>
 
-#include "hellofitty.hpp"
+#include <hellofitty.hpp>
 
 #include <memory>
 
-TEST(tests_Param, basic)
+TEST(TestsParam, Basic)
 {
-    hf::param p1;
+    const hf::param par1;
 
-    ASSERT_EQ(p1.value, 0);
-    ASSERT_EQ(p1.lower, 0);
-    ASSERT_EQ(p1.upper, 0);
-    ASSERT_EQ(p1.mode, hf::param::fit_mode::free);
-    ASSERT_EQ(p1.has_limits, false);
+    ASSERT_EQ(par1.value, 0);
+    ASSERT_EQ(par1.min, 0);
+    ASSERT_EQ(par1.max, 0);
+    ASSERT_EQ(par1.mode, hf::param::fit_mode::free);
+    ASSERT_EQ(par1.has_limits, false);
 
-    auto p2 = hf::param();
+    const auto par2 = hf::param();
 
-    ASSERT_EQ(p2.value, 0);
-    ASSERT_EQ(p2.lower, 0);
-    ASSERT_EQ(p2.upper, 0);
-    ASSERT_EQ(p2.mode, hf::param::fit_mode::free);
-    ASSERT_EQ(p2.has_limits, false);
+    ASSERT_EQ(par2.value, 0);
+    ASSERT_EQ(par2.min, 0);
+    ASSERT_EQ(par2.max, 0);
+    ASSERT_EQ(par2.mode, hf::param::fit_mode::free);
+    ASSERT_EQ(par2.has_limits, false);
 
-    auto p3 = hf::param(3, hf::param::fit_mode::fixed);
+    const auto par3 = hf::param(3, hf::param::fit_mode::fixed);
 
-    ASSERT_EQ(p3.value, 3);
-    ASSERT_EQ(p3.lower, 0);
-    ASSERT_EQ(p3.upper, 0);
-    ASSERT_EQ(p3.mode, hf::param::fit_mode::fixed);
-    ASSERT_EQ(p3.has_limits, false);
+    ASSERT_EQ(par3.value, 3);
+    ASSERT_EQ(par3.min, 0);
+    ASSERT_EQ(par3.max, 0);
+    ASSERT_EQ(par3.mode, hf::param::fit_mode::fixed);
+    ASSERT_EQ(par3.has_limits, false);
 
-    auto p4 = hf::param(4, 1, 10, hf::param::fit_mode::free);
+    const auto par4 = hf::param(4, 1, 10, hf::param::fit_mode::free);
 
-    ASSERT_EQ(p4.value, 4);
-    ASSERT_EQ(p4.lower, 1);
-    ASSERT_EQ(p4.upper, 10);
-    ASSERT_EQ(p4.mode, hf::param::fit_mode::free);
-    ASSERT_EQ(p4.has_limits, true);
+    ASSERT_EQ(par4.value, 4);
+    ASSERT_EQ(par4.min, 1);
+    ASSERT_EQ(par4.max, 10);
+    ASSERT_EQ(par4.mode, hf::param::fit_mode::free);
+    ASSERT_EQ(par4.has_limits, true);
 }

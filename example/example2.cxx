@@ -17,7 +17,7 @@
 #include <RootTools.h>
 #endif
 
-int main(int argc, char* argv[])
+auto main(int argc, char* argv[]) -> int
 {
     if (argc < 3)
     {
@@ -31,7 +31,6 @@ int main(int argc, char* argv[])
 #endif
 
     // create params output filename
-    size_t pflen = strlen(argv[2]);
     auto opf = fmt::sprintf("%s%s", argv[2], ".out");
 
     // create fitting factory
@@ -54,19 +53,19 @@ int main(int argc, char* argv[])
     // do fitting for each TH1 object found
     TKey* key = nullptr;
     TIter nextkey(file->GetListOfKeys());
-    while ((key = (TKey*)nextkey()))
+    while ((key = dynamic_cast<TKey*>(nextkey())))
     {
         const char* classname = key->GetClassName();
         TClass* cl = gROOT->GetClass(classname);
-        if (!cl) continue;
+        if (!cl) { continue; }
 
         TObject* obj = key->ReadObj();
         fmt::print("*** {:s}\n", obj->GetName());
         if (obj->InheritsFrom("TH1"))
         {
-            TH1* h = (TH1*)obj->Clone(obj->GetName());
+            TH1* h = dynamic_cast<TH1*>(obj->Clone(obj->GetName()));
             ff.fit(h, "BQ0");
-            if (ofile) h->Write();
+            if (ofile) { h->Write(); }
         }
     }
 
