@@ -18,13 +18,13 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
    3. Read newer of both (default)
 
    With the third option, you can repeat fitting multiple time, each time improving result of the previous fit as the input will be taken from auxiliary, not reference file, until the reference has not updated timestamp.
-   ```c++
+   ```cpp
    class hf::fitter {
        enum class priority_mode { reference, auxiliary, newer };
    }
    ```
    and use it with constructor:
-   ```c++
+   ```cpp
    hf::fitter(priority_mode flags = priority_mode::newer);
    ```
 1. Fit functions stored in a text file in ascii format:
@@ -59,7 +59,7 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
    * parameters #4 and #5 are free without limits
 
 1. Fitting functions can be stored in a file (as shown above) or created from the code level:
-   ```c++
+   ```cpp
    hf::histogram_fit hfp("h1", "gaus(0)", "expo(3)", 0, 10);
    hfp.set_param(0, 10, 0, 20, hf::param::fit_mode::free);
    hfp.set_param(1, 1, hf::param::fit_mode::fixed);
@@ -70,7 +70,7 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
    is a equivalent of example above.
 
 1. Create clone of an existing functions and parameters set (to avoid duplication of histogram names, copying is forbidden).
-   ```c++
+   ```cpp
    hf::histogram_fit hfp("h1", "gaus(0)", "expo(3)", 0, 10);
    auto hfp2 = hfp.clone("h2");
    ```
@@ -88,7 +88,7 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
     test_hist_v3 gaus(0) cos(3)  0 0 10 10 : 0 20 1 f 1 F 0 2 1 -1
    ```
    and its fitting:
-   ```c++
+   ```cpp
    hf::fitter ff;	// create HelloFitty object
    ff.init_fitter_from_file("testpars.txt", "testpars.out"); // specify input file and output file
    TH1 * h = new TH1F("test_hist", ...);
@@ -107,7 +107,7 @@ You cans specify input (reference) and output (auxiliary) file and one of three 
 ### Example usage
 
 Assume there is a histogram called `test_hist`, e.g.
-```c++
+```cpp
 TH1F * h = new TH1F("test_hist", ...);
 ```
 and create file `test_parameters.txt` containing fitting function and parameters, e.g.:
@@ -118,7 +118,7 @@ and create file `test_parameters.txt` containing fitting function and parameters
 #### Case 1
 
 Using a `hf::histogram_fit` object. Run code:
-```c++
+```cpp
 hf::fitter ff;	// create HelloFitty object
 ff.init_fitter_from_file("testpars.txt", "testpars.out"); // specify input file and output file
 
@@ -141,7 +141,7 @@ The output file contains:
 ```
 
 Please note, that in this example the object `hfp` does not need to be assigned to histogram named `test_hit`. In this case, you can fit any arbitrary `hf::histogram_fit` object to any histogram, e.g.:
-```c++
+```cpp
 hf::histogram_fit * hfp = ff.find_params("different_name"); // try to find parameters for histogram `test_hist`
 if (hfp)
 {
@@ -155,7 +155,7 @@ would also work.
 #### Case 2
 
 Using histogram object. Run code
-```c++
+```cpp
 hf::fitter ff;	// create HelloFitty object
 ff.init_fitter_from_file("testpars.txt", "testpars.out"); // specify input file and output file
 
@@ -170,7 +170,7 @@ The output file contains:
  test_hist      gaus(0) expo(3) 0 0 10 5005.69 3.0004 -0.501326 8.91282 -0.501843
 ```
 In this case, if the `test_hist` would be missing in the input file, the fit will fail due to missing input parameters. For a such case, you can set default parameter set which will be used as source for cloning the final set, e.g.:
-```c++
+```cpp
 hf::histogram_fit default_hfp("default", "gaus(0)", "expo(3)", 0, 10);
 default_hfp.set_param(0, 10, 0, 20, hf::param::fit_mode::free);
 default_hfp.set_param(1, 1, hf::param::fit_mode::fixed);

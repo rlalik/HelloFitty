@@ -8,9 +8,9 @@
 
 #pragma link C++ nestedclasses;
 #pragma link C++ class hf::param;
-#pragma link C++ class hf::histogram_fit;
+#pragma link C++ class hf::fit_entry;
 #pragma link C++ class hf::fitter;
-#pragma link C++ namespace fitemall;
+#pragma link C++ namespace hf;
 // clang-format on
 
 #endif

@@ -9,7 +9,7 @@
 
 #include <fstream>
 
-void create_input_file(const TString& filename)
+auto create_input_file(const TString& filename) -> void
 {
     std::ifstream parfile(filename, std::ifstream::in);
     if (!parfile.is_open())
@@ -23,14 +23,15 @@ void create_input_file(const TString& filename)
         }
         else
         {
-            fmt::print(stderr, "{}\n", "Parameter file can't be created, unable to execute example.");
+            fmt::print(stderr, "{}\n",
+                       "Parameter file can't be created, unable to execute example.");
             std::exit(EXIT_FAILURE);
         }
     }
-    else { fmt::print("Good, parameter file {} exists.\n", filename ); }
+    else { fmt::print("Good, parameter file {} exists.\n", filename); }
 };
 
-TH1I* create_root_file(const TString& filename)
+auto create_root_file(const TString& filename) -> TH1I*
 {
     TH1I* unnamed = new TH1I("test_hist", "", 100, 0, 10);
     unnamed->SetBinContent(1, 7290);
@@ -136,8 +137,7 @@ TH1I* create_root_file(const TString& filename)
     unnamed->SetEntries(210000);
 
     TFile* fp = TFile::Open(filename, "RECREATE");
-    if (fp)
-        unnamed->Write();
+    if (fp) { unnamed->Write(); }
     else
     {
         fmt::print(stderr, "File {} not open\n", filename);
@@ -145,11 +145,12 @@ TH1I* create_root_file(const TString& filename)
     }
 
     fp->Close();
+    delete fp;
 
     return unnamed;
 }
 
-int main()
+auto main() -> int
 {
     auto root_file_name = TString(examples_bin_path) + "test_hist.root";
     auto hist = create_root_file(root_file_name);
@@ -178,8 +179,8 @@ int main()
         hfp->print();
         fmt::print("{}", "\n");
 
-        hfp->save();
-        if (!ff.fit(hfp, hist, "BQ0")) hfp->load();
+        hfp->backup();
+        if (!ff.fit(hfp, hist, "BQ0")) hfp->restore();
 
         fmt::print("{}", "\nAfter fitting:\n");
         hfp->print(true);
@@ -189,14 +190,14 @@ int main()
     ff.export_fitter_to_file();
 
     TFile* fp = TFile::Open(root_outout_name, "RECREATE");
-    if (fp)
-        hist->Write();
+    if (fp) { hist->Write(); }
     else
     {
         fmt::print(stderr, "File {} not open\n", root_outout_name);
         abort();
     }
     fp->Close();
+    delete fp;
 
     /** Second usage using histogram object **/
     fmt::print("{}", "\n ---- SECOND USAGE ---\n\n");
@@ -227,8 +228,6 @@ int main()
     ff.print();
 
     ff.export_fitter_to_file();
-
-    delete hist;
 
     return 0;
 }

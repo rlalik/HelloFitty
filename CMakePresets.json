@@ -151,7 +151,7 @@
     },
     {
       "name": "ci-sanitize",
-      "inherits": ["ci-linux", "dev-mode"],
+      "inherits": ["ci-linux", "dev-mode", "conf-debug"],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Sanitize",
         "CMAKE_CXX_FLAGS_SANITIZE": "-O2 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-common"

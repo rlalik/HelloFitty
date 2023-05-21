@@ -42,93 +42,137 @@ namespace hf
 
 namespace detail
 {
-struct histogram_fit_impl;
+struct fit_entry_impl;
 struct fitter_impl;
 } // namespace detail
 
 namespace tools
 {
 struct draw_properties;
-}
+} // namespace tools
 
+/// Structure stores a set of values for a single function parameters like the the mean value,
+/// lwoer or upper boundaries, free or fixed fitting mode.
 struct param final
 {
-    double value{0.0}; // value
-    double lower{0.0}; // lower limit
-    double upper{0.0}; // upper limit
+    /// Fitting mode.
     enum class fit_mode
     {
-        free,
-        fixed
-    } mode{fit_mode::free};
-    bool has_limits{false};
+        free, ///< parameter is free for fitting
+        fixed ///< parameter is fixed
+    };
+
+    Double_t value{0.0};           ///< param value
+    Double_t min{0.0};             ///< lower limit
+    Double_t max{0.0};             ///< upper limit
+    fit_mode mode{fit_mode::free}; ///< Parameter fitting mode
+    bool has_limits{false};        ///< Remembers whether hit limits were set
 
     constexpr param() = default;
-    constexpr explicit param(double val, param::fit_mode m) : value(val), mode(m) {}
-    constexpr explicit param(double val, double l, double u, param::fit_mode m)
-        : value(val), lower(l), upper(u), mode(m), has_limits(true)
+
+    /// Accept param value and fit mode
+    /// @param par_value initial parameter value
+    /// @param par_mode parameter fitting mode, see @ref fit_mode
+    constexpr explicit param(Double_t par_value, param::fit_mode par_mode) : value(par_value), mode(par_mode) {}
+
+    /// Accept param value, boundaries and fit mode
+    /// @param par_value initial parameter value
+    /// @param par_min value's lower fit boundary
+    /// @param par_max value's upper fit boundary
+    /// @param par_mode parameter fitting mode, see @ref fit_mode
+    constexpr explicit param(Double_t par_value, Double_t par_min, Double_t par_max, param::fit_mode par_mode)
+        : value(par_value), min(par_min), max(par_max), mode(par_mode), has_limits(true)
     {
     }
-    void print() const;
+
+    /// Print param value line.
+    auto print() const -> void;
 };
 
-class HELLOFITTY_EXPORT histogram_fit final
+/// Stores full description of a single fit entry - signal and background functions, and parameters.
+class HELLOFITTY_EXPORT fit_entry final
 {
 public:
-    constexpr histogram_fit() = delete;
-    explicit histogram_fit(TString hist_name, TString formula_s, TString formula_b,
-                           Double_t range_lower, Double_t range_upper);
+    constexpr fit_entry() = delete;
+    explicit fit_entry(TString hist_name, TString formula_s, TString formula_b, Double_t range_lower,
+                       Double_t range_upper);
 
-    explicit histogram_fit(histogram_fit&& other) = default;
-    histogram_fit& operator=(histogram_fit&& other) = default;
+    explicit fit_entry(const fit_entry&) = delete;
+    auto operator=(const fit_entry&) -> fit_entry& = delete;
 
-    ~histogram_fit() noexcept;
+    fit_entry(fit_entry&&) = default;
+    auto operator=(fit_entry&&) -> fit_entry& = default;
 
-    auto clone(TString new_name) const -> std::unique_ptr<histogram_fit>;
+    ~fit_entry() noexcept;
+
+    auto clone(TString new_name) const -> std::unique_ptr<fit_entry>;
 
     auto init() -> void;
     auto set_param(Int_t par, param value) -> void;
     auto set_param(Int_t par, Double_t val, param::fit_mode mode) -> void;
-    auto set_param(Int_t par, Double_t val, Double_t l, Double_t u, param::fit_mode mode) -> void;
+    auto set_param(Int_t par, Double_t val, Double_t min, Double_t max, param::fit_mode mode) -> void;
     auto update_param(Int_t par, Double_t val) -> void;
-    auto get_param(Int_t par) const -> param;
-    auto get_params_number() const -> int;
 
     auto get_name() const -> TString;
-    auto get_fit_range_l() const -> double;
-    auto get_fit_range_u() const -> double;
 
+    auto get_param(Int_t par) const -> param;
+    auto get_params_number() const -> Int_t;
+
+    auto get_fit_range_min() const -> Double_t;
+    auto get_fit_range_max() const -> Double_t;
+
+    /// Return reference to signal function
+    /// @return function reference
     auto get_sig_func() const -> const TF1&;
+
+    /// Return reference to background function
+    /// @return function reference
     auto get_bkg_func() const -> const TF1&;
+
+    /// Return reference to signal+background function
+    /// @return function reference
     auto get_sum_func() const -> const TF1&;
 
+    /// Return reference to signal function
+    /// @return function reference
     auto get_sig_func() -> TF1&;
+
+    /// Return reference to background function
+    /// @return function reference
     auto get_bkg_func() -> TF1&;
+
+    /// Return reference to signal+background function
+    /// @return function reference
     auto get_sum_func() -> TF1&;
 
+    /// Return signal function string
+    /// @return function string
     auto get_sig_string() const -> const TString&;
+
+    /// Return background function string
+    /// @return function string
     auto get_bkg_string() const -> const TString&;
 
-    auto get_flag_rebin() const -> int;
+    auto get_flag_rebin() const -> Int_t;
     auto get_flag_disabled() const -> bool;
 
-    void print(bool detailed = false) const;
-    bool load(TF1* f);
+    auto load(TF1* function) -> bool;
 
-    void clear();
+    auto clear() -> void;
 
-    TString export_entry() const;
+    auto export_entry() const -> TString;
 
-    void save();
-    void load();
-    void drop();
+    /// Store current parameter in backup storage
+    auto backup() -> void;
+    /// Restore parameters from backup storage
+    auto restore() -> void;
+    /// Clear backup storage
+    auto drop() -> void;
+
+    auto print(bool detailed = false) const -> void;
 
 private:
-    histogram_fit(const histogram_fit& hfp) = delete;
-    histogram_fit& operator=(const histogram_fit& hfp) = delete;
-
-private:
-    std::unique_ptr<detail::histogram_fit_impl> d;
+    std::unique_ptr<detail::fit_entry_impl> m_d;
 };
 
 class HELLOFITTY_EXPORT fitter final
@@ -141,48 +185,54 @@ public:
         newer
     };
 
-    fitter(priority_mode mode = priority_mode::newer);
+    explicit fitter(priority_mode mode = priority_mode::newer);
+
+    explicit fitter(const fitter&) = delete;
+    auto operator=(const fitter&) -> fitter& = delete;
+
+    fitter(fitter&&) = default;
+    auto operator=(fitter&&) -> fitter& = default;
+
     ~fitter();
 
-    void clear();
+    auto clear() -> void;
 
-    void set_flags(priority_mode new_mode);
-    void set_default_parameters(histogram_fit* defs);
+    auto set_flags(priority_mode new_mode) -> void;
+    auto set_default_parameters(fit_entry* defs) -> void;
 
-    bool init_fitter_from_file(const char* filename, const char* auxname = 0);
-    bool export_fitter_to_file();
+    auto init_fitter_from_file(const char* filename, const char* auxname = nullptr) -> bool;
+    auto export_fitter_to_file() -> bool;
 
-    histogram_fit* find_fit(TH1* hist) const;
-    histogram_fit* find_fit(const char* name) const;
+    auto find_fit(TH1* hist) const -> fit_entry*;
+    auto find_fit(const char* name) const -> fit_entry*;
 
-    auto fit(TH1* hist, const char* pars = "B,Q", const char* gpars = "") -> bool;
-    auto fit(histogram_fit* hfp, TH1* hist, const char* pars = "B,Q", const char* gpars = "")
-        -> bool;
+    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
+    auto fit(fit_entry* hfp, TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
 
-    void print() const;
+    auto print() const -> void;
 
     static auto set_verbose(bool verbose) -> void;
 
     auto set_replacement(const TString& src, const TString& dst) -> void;
 
-    void insert_parameters(std::unique_ptr<histogram_fit>&& hfp);
-    void insert_parameters(const TString& name, std::unique_ptr<histogram_fit>&& hfp);
+    auto insert_parameters(std::unique_ptr<fit_entry>&& hfp) -> void;
+    auto insert_parameters(const TString& name, std::unique_ptr<fit_entry>&& hfp) -> void;
 
-    void set_name_decorator(const TString& decorator);
-    void clear_name_decorator();
+    auto set_name_decorator(const TString& decorator) -> void;
+    auto clear_name_decorator() -> void;
 
-    void set_function_decorator(const TString& decorator);
+    auto set_function_decorator(const TString& decorator) -> void;
 
-    void set_draw_bits(bool sum = true, bool sig = false, bool bkg = false);
+    auto set_draw_bits(bool sum = true, bool sig = false, bool bkg = false) -> void;
 
     auto prop_sum() -> tools::draw_properties&;
     auto prop_sig() -> tools::draw_properties&;
     auto prop_bkg() -> tools::draw_properties&;
 
 private:
-    bool import_parameters(const std::string& filename);
-    bool export_parameters(const std::string& filename);
-    std::unique_ptr<detail::fitter_impl> d;
+    auto import_parameters(const std::string& filename) -> bool;
+    auto export_parameters(const std::string& filename) -> bool;
+    std::unique_ptr<detail::fitter_impl> m_d;
 };
 
 namespace tools
@@ -196,7 +246,7 @@ enum class source
     auxiliary
 };
 
-auto HELLOFITTY_EXPORT select_source(const char* filename, const char* auxname = 0) -> source;
+auto HELLOFITTY_EXPORT select_source(const char* filename, const char* auxname = nullptr) -> source;
 
 struct draw_properties final
 {
@@ -210,30 +260,31 @@ struct draw_properties final
     Style_t line_style{-1};
 #endif
 
-    draw_properties& set_line_color(Int_t color)
+    auto set_line_color(Int_t color) -> draw_properties&
     {
         line_color = color;
         return *this;
     }
-    draw_properties& set_line_width(Int_t width)
+    auto set_line_width(Int_t width) -> draw_properties&
     {
         line_width = width;
         return *this;
     }
-    draw_properties& set_line_style(Int_t style)
+    auto set_line_style(Int_t style) -> draw_properties&
     {
         line_style = style;
         return *this;
     }
 
-    void apply_style(TF1* f);
+    auto apply_style(TF1* function) -> void;
 };
 
 auto HELLOFITTY_EXPORT format_name(const TString& name, const TString& decorator) -> TString;
 
-std::unique_ptr<histogram_fit> HELLOFITTY_EXPORT parse_line_entry(const TString& line, int version);
+auto HELLOFITTY_EXPORT parse_line_entry(const TString& line, int version) -> std::unique_ptr<fit_entry>;
 
 } // namespace tools
 
 } // namespace hf
+
 #endif // HELLOFITTY_HELLOFITTY_H

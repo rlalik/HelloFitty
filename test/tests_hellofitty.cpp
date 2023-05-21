@@ -1,6 +1,6 @@
-#include "gtest/gtest.h"
+#include <gtest/gtest.h>
 
-#include "hellofitty.hpp"
+#include <hellofitty.hpp>
 
 #include <TString.h>
 
@@ -17,34 +17,31 @@ template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&...
 using std::make_unique;
 #endif
 
-TEST(tests_fitter, prefix_suffix_test)
+TEST(TestsFitter, PrefixSuffixTest)
 {
-    std::string f1 = "pref1_*";
-    std::string f2 = "p_*_suff1";
+    const std::string pat1 = "pref1_*";
+    const std::string pat2 = "p_*_suff1";
 
-    std::string tn1 = "test_name";
-    std::string tn2 = "replaced";
+    const std::string tn1 = "test_name";
+    const std::string tn2 = "replaced";
 
-    hf::fitter ff1;
-    hf::fitter ff2;
+    ASSERT_STREQ("pref1_test_name", hf::tools::format_name(tn1, pat1));
+    ASSERT_STREQ("pref1_replaced", hf::tools::format_name(tn2, pat1));
 
-    ASSERT_STREQ("pref1_test_name", hf::tools::format_name(tn1, f1));
-    ASSERT_STREQ("pref1_replaced", hf::tools::format_name(tn2, f1));
-
-    ASSERT_STREQ("p_test_name_suff1", hf::tools::format_name(tn1, f2));
-    ASSERT_STREQ("p_replaced_suff1", hf::tools::format_name(tn2, f2));
+    ASSERT_STREQ("p_test_name_suff1", hf::tools::format_name(tn1, pat2));
+    ASSERT_STREQ("p_replaced_suff1", hf::tools::format_name(tn2, pat2));
 }
 
-TEST(tests_fitter, insert_parameters)
+TEST(TestsFitter, InsertParameters)
 {
-    hf::fitter ff;
+    hf::fitter fitter;
 
-    auto o1 = ff.find_fit("name1");
-    ASSERT_EQ(o1, nullptr);
+    const auto fit1 = fitter.find_fit("name1");
+    ASSERT_EQ(fit1, nullptr);
 
-    auto hf1 = make_unique<hf::histogram_fit>("name1", "1", "0", 0, 1);
-    ff.insert_parameters(std::move(hf1));
+    auto hf1 = make_unique<hf::fit_entry>("name1", "1", "0", 0, 1);
+    fitter.insert_parameters(std::move(hf1));
 
-    auto o2 = ff.find_fit("name1");
-    ASSERT_NE(o2, nullptr);
+    const auto fit2 = fitter.find_fit("name1");
+    ASSERT_NE(fit2, nullptr);
 }
