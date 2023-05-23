@@ -287,4 +287,60 @@ auto HELLOFITTY_EXPORT parse_line_entry(const TString& line, int version) -> std
 
 } // namespace hf
 
+#ifdef FMT_RANGES_H_
+template <> struct fmt::formatter<hf::param>
+{
+    char presentation = 'g';
+    CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // Parse the presentation format and store it in the formatter:
+        auto it = ctx.begin(), end = ctx.end();
+        // if (it != end && (*it == 'f' || *it == 'e' || *it == 'g')) presentation = *it++;
+        if (it != end && *it != '}') FMT_THROW(format_error("invalid format"));
+
+        // Check if reached the end of the range:
+        // if (it != end && *it != '}') format_error("invalid format");
+
+        // Return an iterator past the end of the parsed range:
+        return it;
+    }
+    auto format(const hf::param& par, format_context& ctx) const -> format_context::iterator
+    {
+        char sep{0};
+
+        switch (par.mode)
+        {
+            case hf::param::fit_mode::free:
+                if (par.has_limits) { sep = ':'; }
+                else { sep = ' '; }
+                break;
+            case hf::param::fit_mode::fixed:
+                if (par.has_limits) { sep = 'F'; }
+                else { sep = 'f'; }
+                break;
+            default:                                                // LCOV_EXCL_LINE
+                throw std::runtime_error("Unknown hf::param mode"); // LCOV_EXCL_LINE
+                break;                                              // LCOV_EXCL_LINE
+        }
+
+        if (par.mode == hf::param::fit_mode::free and par.has_limits == false)
+        {
+            fmt::format_to(ctx.out(), "{:g}", par.value);
+        }
+        else if (par.mode == hf::param::fit_mode::fixed and par.has_limits == false)
+        {
+            fmt::format_to(ctx.out(), "{:g} {:c}", par.value, sep);
+        }
+        else
+        {
+            fmt::format_to(ctx.out(), "{:g} {:c} {:g} {:g}", par.value, sep, par.min, par.max);
+
+            return ctx.out();
+        }
+
+        return ctx.out();
+    }
+};
+#endif
+
 #endif // HELLOFITTY_HELLOFITTY_H

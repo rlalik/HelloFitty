@@ -3,7 +3,7 @@
 #include <hellofitty.hpp>
 #include <hellofitty_config.h>
 
-TEST(TestsHelloKittyTools, SourceSelect)
+TEST(TestsTools, SourceSelect)
 {
     auto true_in = tests_src_path + "test_input.txt";
     auto true_out = tests_src_path + "test_output.txt";

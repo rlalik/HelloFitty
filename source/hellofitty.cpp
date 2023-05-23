@@ -16,6 +16,9 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <fmt/core.h>
+#include <fmt/ranges.h>
+
 #include "hellofitty.hpp"
 
 #include "parser.hpp"
@@ -23,9 +26,6 @@
 #include <TF1.h>
 #include <TH1.h>
 #include <TList.h>
-
-#include <fmt/core.h>
-#include <fmt/ranges.h>
 
 #include <algorithm>
 #include <chrono>
@@ -87,63 +87,6 @@ template <> struct fmt::formatter<params_vector>
                 fmt::format_to(ctx.out(), "{:g} ", par);
         else
             throw format_error("invalid format specifier");
-
-        return ctx.out();
-    }
-};
-
-template <> struct fmt::formatter<hf::param>
-{
-    // Presentation format: 'f' - fixed, 'e' - exponential, 'g' - either.
-    char presentation = 'g';
-
-    // Parses format specifications of the form ['f' | 'e' | 'g'].
-    CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
-    {
-        // Parse the presentation format and store it in the formatter:
-        auto it = ctx.begin(), end = ctx.end();
-        if (it != end && (*it == 'f' || *it == 'e' || *it == 'g')) presentation = *it++;
-
-        // Check if reached the end of the range:
-        if (it != end && *it != '}') format_error("invalid format");
-
-        // Return an iterator past the end of the parsed range:
-        return it;
-    }
-
-    auto format(const hf::param& par, format_context& ctx) const -> format_context::iterator
-    {
-        char sep{0};
-
-        switch (par.mode)
-        {
-            case hf::param::fit_mode::free:
-                if (par.has_limits) { sep = ':'; }
-                else { sep = ' '; }
-                break;
-            case hf::param::fit_mode::fixed:
-                if (par.has_limits) { sep = 'F'; }
-                else { sep = 'f'; }
-                break;
-            default:
-                throw std::runtime_error("Unknown hf::param mode");
-                break;
-        }
-
-        if (par.mode == hf::param::fit_mode::free and par.has_limits == false)
-        {
-            fmt::format_to(ctx.out(), " {:g} ", par.value);
-        }
-        else if (par.mode == hf::param::fit_mode::fixed and par.has_limits == false)
-        {
-            fmt::format_to(ctx.out(), " {:g} {:c}", par.value, sep);
-        }
-        else
-        {
-            fmt::format_to(ctx.out(), " {:g} {:c} {:g} {:g}", par.value, sep, par.min, par.max);
-
-            return ctx.out();
-        }
 
         return ctx.out();
     }
@@ -676,10 +619,10 @@ auto fitter::set_replacement(const TString& src, const TString& dst) -> void
     m_d->rep_dst = dst;
 }
 
-auto fitter::set_name_decorator(const TString& decorator) -> void { m_d->name_decorator = decorator; };
-auto fitter::clear_name_decorator() -> void { m_d->name_decorator = "*"; };
+auto fitter::set_name_decorator(const TString& decorator) -> void { m_d->name_decorator = decorator; }
+auto fitter::clear_name_decorator() -> void { m_d->name_decorator = "*"; }
 
-auto fitter::set_function_decorator(const TString& decorator) -> void { m_d->function_decorator = decorator; };
+auto fitter::set_function_decorator(const TString& decorator) -> void { m_d->function_decorator = decorator; }
 
 auto fitter::set_draw_bits(bool sum, bool sig, bool bkg) -> void
 {
