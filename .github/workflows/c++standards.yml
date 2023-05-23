@@ -20,7 +20,7 @@ jobs:
         compiler: [ gcc-latest, clang-latest ]
         cmake-version: [ latest ]
         root-version:
-          - name: 6.24.06
+          - name: 6.24.08
             std: 11
           - name: 6.26.06
             std: 14
@@ -75,7 +75,7 @@ jobs:
           cd build
           cmake .. \
             -DHelloFitty_DEVELOPER_MODE=ON \
-            -DBUILS_TESTING=ON \
+            -DBUILD_TESTING=ON \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_INSTALL_PREFIX:PATH=instdir
 

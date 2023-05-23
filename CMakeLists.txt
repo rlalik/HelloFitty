@@ -5,7 +5,7 @@ include(cmake/prelude.cmake)
 project(
     HelloFitty
     VERSION 0.9.5
-    DESCRIPTION "Fit'em All - a versatile histogram fitting tool for ROOT-based projects."
+    DESCRIPTION "Hello Fitty - a versatile histogram fitting tool for ROOT-based projects."
     HOMEPAGE_URL "https://github.com/rlalik/HelloFitty"
     LANGUAGES CXX
 )
@@ -28,7 +28,7 @@ add_library(
 )
 add_library(HelloFitty::HelloFitty ALIAS HelloFitty)
 
-target_link_libraries(HelloFitty PUBLIC ROOT::Core ROOT::Hist fmt::fmt)
+target_link_libraries(HelloFitty PUBLIC ROOT::Core ROOT::Hist PRIVATE fmt::fmt)
 
 configure_file(config.h.in hellofitty_config.h)
 

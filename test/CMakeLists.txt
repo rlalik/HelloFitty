@@ -21,7 +21,7 @@ else()
   set(GTEST_TRG gtest gtest_main)
 endif()
 
-target_link_libraries(gtests PRIVATE HelloFitty::HelloFitty ROOT::Core ${GTEST_TRG})
+target_link_libraries(gtests PRIVATE HelloFitty::HelloFitty ROOT::Core ${GTEST_TRG} fmt::fmt)
 if(ENABLE_ADVANCE_TOOLS)
   target_code_coverage(gtests ALL)
 endif()
