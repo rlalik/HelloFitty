@@ -23,12 +23,11 @@ auto create_input_file(const TString& filename) -> void
         }
         else
         {
-            fmt::print(stderr, "{}\n",
-                       "Parameter file can't be created, unable to execute example.");
+            fmt::print(stderr, "{}\n", "Parameter file can't be created, unable to execute example.");
             std::exit(EXIT_FAILURE);
         }
     }
-    else { fmt::print("Good, parameter file {} exists.\n", filename); }
+    else { fmt::print("Good, parameter file {} exists.\n", filename.Data()); }
 };
 
 auto create_root_file(const TString& filename) -> TH1I*
@@ -140,7 +139,7 @@ auto create_root_file(const TString& filename) -> TH1I*
     if (fp) { unnamed->Write(); }
     else
     {
-        fmt::print(stderr, "File {} not open\n", filename);
+        fmt::print(stderr, "File {} not open\n", filename.Data());
         abort();
     }
 
@@ -193,7 +192,7 @@ auto main() -> int
     if (fp) { hist->Write(); }
     else
     {
-        fmt::print(stderr, "File {} not open\n", root_outout_name);
+        fmt::print(stderr, "File {} not open\n", root_outout_name.Data());
         abort();
     }
     fp->Close();
