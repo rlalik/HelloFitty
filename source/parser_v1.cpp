@@ -24,11 +24,11 @@ auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
         return nullptr;
     };
 
-    auto hfp = std::make_unique<fit_entry>(dynamic_cast<TObjString*>(arr->At(0))->String(),        // hist name
-                                           dynamic_cast<TObjString*>(arr->At(1))->String(),        // func val
-                                           dynamic_cast<TObjString*>(arr->At(2))->String(),        // func val
-                                           dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
-                                           dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
+    auto hfp = make_unique<fit_entry>(dynamic_cast<TObjString*>(arr->At(0))->String(),        // hist name
+                                      dynamic_cast<TObjString*>(arr->At(1))->String(),        // func val
+                                      dynamic_cast<TObjString*>(arr->At(2))->String(),        // func val
+                                      dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
+                                      dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
 
     auto npars = hfp->get_sum_func().GetNpar();
 
