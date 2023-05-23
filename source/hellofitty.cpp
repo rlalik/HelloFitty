@@ -44,15 +44,6 @@
 #include <sys/stat.h>
 #endif
 
-#if __cplusplus < 201402L
-template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)
-{
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-#else
-using std::make_unique;
-#endif
-
 struct params_vector
 {
     std::vector<double> pars;
@@ -66,7 +57,7 @@ template <> struct fmt::formatter<params_vector>
     char presentation = 'f';
 
     // Parses format specifications of the form ['f' | 'e' | 'g'].
-    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         // Parse the presentation format and store it in the formatter:
         auto it = ctx.begin(), end = ctx.end();
@@ -107,7 +98,7 @@ template <> struct fmt::formatter<hf::param>
     char presentation = 'g';
 
     // Parses format specifications of the form ['f' | 'e' | 'g'].
-    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         // Parse the presentation format and store it in the formatter:
         auto it = ctx.begin(), end = ctx.end();
@@ -164,7 +155,7 @@ template <> struct fmt::formatter<hf::fit_entry>
     char presentation = 'g';
 
     // Parses format specifications of the form ['f' | 'e' | 'g'].
-    constexpr auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         // Parse the presentation format and store it in the formatter:
         auto it = ctx.begin(), end = ctx.end();
