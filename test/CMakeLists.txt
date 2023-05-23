@@ -1,12 +1,4 @@
-include(FetchContent)
-FetchContent_Declare(
-  cmake_tools
-  GIT_REPOSITORY https://github.com/rlalik/cmake_tools
-  GIT_TAG master)
-FetchContent_MakeAvailable(cmake_tools)
-list(APPEND CMAKE_MODULE_PATH ${cmake_tools_SOURCE_DIR})
-
-include(find_or_fetch_package)
+include(../cmake/find_or_fetch_package.cmake)
 
 set(INSTALL_GTEST OFF)
 find_or_fetch_package(GTest https://github.com/google/googletest GIT_TAG main)

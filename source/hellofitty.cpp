@@ -64,7 +64,7 @@ template <> struct fmt::formatter<params_vector>
         if (it != end && (*it == 'f' || *it == 'e' || *it == 'g')) presentation = *it++;
 
         // Check if reached the end of the range:
-        if (it != end && *it != '}') ctx.on_error("invalid format");
+        if (it != end && *it != '}') format_error("invalid format");
 
         // Return an iterator past the end of the parsed range:
         return it;
@@ -105,7 +105,7 @@ template <> struct fmt::formatter<hf::param>
         if (it != end && (*it == 'f' || *it == 'e' || *it == 'g')) presentation = *it++;
 
         // Check if reached the end of the range:
-        if (it != end && *it != '}') ctx.on_error("invalid format");
+        if (it != end && *it != '}') format_error("invalid format");
 
         // Return an iterator past the end of the parsed range:
         return it;
@@ -144,7 +144,7 @@ template <> struct fmt::formatter<hf::param>
 
             return ctx.out();
         }
-        
+
         return ctx.out();
     }
 };
@@ -162,7 +162,7 @@ template <> struct fmt::formatter<hf::fit_entry>
         if (it != end && (*it == 'f' || *it == 'e' || *it == 'g')) presentation = *it++;
 
         // Check if reached the end of the range:
-        if (it != end && *it != '}') ctx.on_error("invalid format");
+        if (it != end && *it != '}') format_error("invalid format");
 
         // Return an iterator past the end of the parsed range:
         return it;

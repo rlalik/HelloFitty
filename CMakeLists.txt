@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.14)
 
 include(cmake/prelude.cmake)
 
@@ -18,7 +18,7 @@ include(cmake/find_or_fetch_package.cmake)
 #list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)
 
-find_or_fetch_package(fmt https://github.com/fmtlib/fmt)
+find_or_fetch_package(fmt https://github.com/fmtlib/fmt GIT_TAG 10.0.0 VERSION 10.0.0)
 
 # ---- Declare library ----
 add_library(
@@ -41,7 +41,7 @@ generate_export_header(
 )
 
 if(NOT BUILD_SHARED_LIBS)
-  target_compile_definitions(HelloFitty PUBLIC FITTERFACTORY_STATIC_DEFINE)
+  target_compile_definitions(HelloFitty PUBLIC HELLOFITTY_STATIC_DEFINE)
 endif()
 
 set_target_properties(

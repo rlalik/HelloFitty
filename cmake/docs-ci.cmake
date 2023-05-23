@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.12)
+cmake_minimum_required(VERSION 3.14)
 
 foreach(var IN ITEMS PROJECT_BINARY_DIR PROJECT_SOURCE_DIR)
   if(NOT DEFINED "${var}")

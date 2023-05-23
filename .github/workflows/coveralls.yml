@@ -1,7 +1,5 @@
-# This is a basic workflow to help you get started with Actions
 name: Coveralls
 
-# Controls when the action will run. Triggers the workflow on push
 on:
   push:
   pull_request:
@@ -9,12 +7,9 @@ on:
     # tags:
     # - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   build:
-    # The type of runner that the job will run on
-    name: "Coveralls with ROOT 6.24.00 17"
+    name: "Coveralls with ROOT 6.28.04 17"
     runs-on: ubuntu-latest
 
     steps:
@@ -29,8 +24,8 @@ jobs:
           sudo apt install cmake wget libgtest-dev lcov -y
           sudo apt install python3-numpy libtbb-dev libxxhash0 -y
           cmake --version
-          wget http://gccb.if.uj.edu.pl/code/root-cpp17_6.24.00_amd64.deb
-          sudo dpkg -i root-cpp17_6.24.00_amd64.deb
+          wget http://gccb.if.uj.edu.pl/code/root-cpp17_6.28.04_amd64.deb
+          sudo dpkg -i root-cpp17_6.28.04_amd64.deb
 
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - name: Checkout repository
@@ -39,7 +34,7 @@ jobs:
           submodules: recursive
 
       - name: Setup CMake
-        uses: jwlawson/actions-setup-cmake@v1.9
+        uses: jwlawson/actions-setup-cmake@v1.14.0
         with:
           cmake-version: latest
 
@@ -57,7 +52,8 @@ jobs:
           mkdir build
           cd build
           cmake .. \
-            -DENABLE_TESTING=On \
+            -DHelloFitty_DEVELOPER_MODE=ON \
+            -DBUILD_TESTING=ON \
             -DCMAKE_BUILD_TYPE=Debug \
             -DCMAKE_INSTALL_PREFIX:PATH=instdir
 
@@ -82,7 +78,7 @@ jobs:
           build/examples/example2 build/examples/test_hist.root build/examples/test_input.txt build/examples/results2.root
 
       - name: lcov-action
-        uses: rlalik/lcov-action@v2-beta
+        uses: danielealbano/lcov-action@v3
         with:
           remove_patterns: build,examples,tests
           build_dir: build
