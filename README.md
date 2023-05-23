@@ -1,11 +1,12 @@
 ![HelloFitty: fitting tool](https://img.shields.io/badge/HelloFitty-fitting%20tool-orange)
 [![Coverage Status](https://coveralls.io/repos/github/rlalik/HelloFitty/badge.svg)](https://coveralls.io/github/rlalik/HelloFitty)
-[![Compiler Checks](https://github.com/rlalik/HelloFitty/actions/workflows/CI.yml/badge.svg)](https://github.com/rlalik/HelloFitty/actions/workflows/CI.yml)
+[![Compiler Checks](https://github.com/rlalik/HelloFitty/actions/workflows/sys_checks.yml/badge.svg)](https://github.com/rlalik/HelloFitty/actions/workflows/sys_checks.yml)
 [![clang-format Check](https://github.com/rlalik/HelloFitty/actions/workflows/clang-format-check.yml/badge.svg)](https://github.com/rlalik/HelloFitty/actions/workflows/clang-format-check.yml)
 ![GitHub](https://img.shields.io/github/license/rlalik/HelloFitty)
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/rlalik/HelloFitty)
 ![GitHub tag (latest by date)](https://img.shields.io/github/v/tag/rlalik/HelloFitty)
 
+<p align="center"><img src="docs/HelloFitty.svg" width="100" alt="HelloFitty logo"></p>
 HelloFitty allows for massive fitting of the histograms. It is a tool designed for use with CERN's ROOT framework.
 
 See example below for usage case.
