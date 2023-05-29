@@ -24,25 +24,40 @@ auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
         return nullptr;
     };
 
+    // auto hfp = make_unique<fit_entry>(dynamic_cast<TObjString*>(arr->At(0))->String(),        // hist name
+    //                                   dynamic_cast<TObjString*>(arr->At(1))->String(),        // func val
+    //                                   dynamic_cast<TObjString*>(arr->At(2))->String(),        // func val
+    //                                   dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
+    //                                   dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
+
     auto hfp = make_unique<fit_entry>(dynamic_cast<TObjString*>(arr->At(0))->String(),        // hist name
-                                      dynamic_cast<TObjString*>(arr->At(1))->String(),        // func val
-                                      dynamic_cast<TObjString*>(arr->At(2))->String(),        // func val
                                       dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
                                       dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
 
-    auto npars = hfp->get_sum_func().GetNpar();
+    const auto sig_id = hfp->add_function(dynamic_cast<TObjString*>(arr->At(1))->String());
+    const auto bkg_id = hfp->add_function(dynamic_cast<TObjString*>(arr->At(2))->String());
+
+    std::array<int, 2> param_counter = {hfp->get_function_params_count(sig_id), hfp->get_function_params_count(bkg_id)};
 
     Int_t step = 0;
-    Int_t parnum = 0;
 
     auto entries = arr->GetEntries();
-    for (int i = 6; i < entries; i += step, ++parnum)
+
+    size_t function_counter = 0;
+    size_t current_param = 0;
+    for (int i = 6; i < entries; i += step)
     {
+        if (param_counter[function_counter] == 0)
+        {
+            function_counter++;
+            current_param = 0;
+        }
+
+        if (function_counter > 1) { throw std::length_error("To many parameters"); }
+
         Double_t l_, u_;
         param::fit_mode flag_;
         bool has_limits_ = false;
-
-        if (parnum >= npars) { return nullptr; }
 
         const TString val = dynamic_cast<TObjString*>(arr->At(i))->String();
         const TString nval =
@@ -82,8 +97,11 @@ auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
             has_limits_ = false;
         }
 
-        if (has_limits_) { hfp->set_param(parnum, par_, l_, u_, flag_); }
-        else { hfp->set_param(parnum, par_, flag_); }
+        if (has_limits_) { hfp->set_param(function_counter, current_param, par_, l_, u_, flag_); }
+        else { hfp->set_param(function_counter, current_param, par_, flag_); }
+
+        current_param++;
+        param_counter[function_counter]--;
     }
 
     return hfp;
@@ -91,41 +109,46 @@ auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
 
 auto format_line_entry_v1(const hf::fit_entry* hist_fit) -> TString
 {
-    auto out = TString::Format("%c%s\t%s %s %d %.0f %.0f", hist_fit->get_flag_disabled() ? '@' : ' ',
-                               hist_fit->get_name().Data(), hist_fit->get_sig_string().Data(),
-                               hist_fit->get_bkg_string().Data(), hist_fit->get_flag_rebin(),
-                               hist_fit->get_fit_range_min(), hist_fit->get_fit_range_max());
-    auto limit = hist_fit->get_params_number();
+    auto out =
+        TString::Format("%c%s\t%s %s %d %.0f %.0f", hist_fit->get_flag_disabled() ? '@' : ' ',
+                        hist_fit->get_name().Data(), hist_fit->get_function(0), hist_fit->get_function(1),
+                        hist_fit->get_flag_rebin(), hist_fit->get_fit_range_min(), hist_fit->get_fit_range_max());
+    auto limit = hist_fit->get_function_params_count();
 
-    for (decltype(limit) i = 0; i < limit; ++i)
+    for (size_t function_counter = 0; function_counter < 2; ++function_counter)
     {
-        const TString val = TString::Format("%g", hist_fit->get_param(i).value);
-        const TString min = TString::Format("%g", hist_fit->get_param(i).min);
-        const TString max = TString::Format("%g", hist_fit->get_param(i).max);
-
-        char sep{0};
-
-        switch (hist_fit->get_param(i).mode)
+        auto max_params = hist_fit->get_function_params_count(function_counter);
+        for (size_t param_counter = 0; param_counter < max_params; ++param_counter)
         {
-            case param::fit_mode::free:
-                if (hist_fit->get_param(i).has_limits) { sep = ':'; }
-                else { sep = ' '; }
-                break;
-            case param::fit_mode::fixed:
-                if (hist_fit->get_param(i).has_limits) { sep = 'F'; }
-                else { sep = 'f'; }
-                break;
-        }
+            const auto param = hist_fit->get_param(function_counter, param_counter);
+            const TString val = TString::Format("%g", param.value);
+            const TString min = TString::Format("%g", param.min);
+            const TString max = TString::Format("%g", param.max);
 
-        if (hist_fit->get_param(i).mode == param::fit_mode::free and hist_fit->get_param(i).has_limits == false)
-        {
-            out += TString::Format(" %s", val.Data());
+            char sep{0};
+
+            switch (param.mode)
+            {
+                case param::fit_mode::free:
+                    if (param.has_limits) { sep = ':'; }
+                    else { sep = ' '; }
+                    break;
+                case param::fit_mode::fixed:
+                    if (param.has_limits) { sep = 'F'; }
+                    else { sep = 'f'; }
+                    break;
+            }
+
+            if (param.mode == param::fit_mode::free and param.has_limits == false)
+            {
+                out += TString::Format(" %s", val.Data());
+            }
+            else if (param.mode == param::fit_mode::fixed and param.has_limits == false)
+            {
+                out += TString::Format(" %s %c", val.Data(), sep);
+            }
+            else { out += TString::Format(" %s %c %s %s", val.Data(), sep, min.Data(), max.Data()); }
         }
-        else if (hist_fit->get_param(i).mode == param::fit_mode::fixed and hist_fit->get_param(i).has_limits == false)
-        {
-            out += TString::Format(" %s %c", val.Data(), sep);
-        }
-        else { out += TString::Format(" %s %c %s %s", val.Data(), sep, min.Data(), max.Data()); }
     }
 
     return out;

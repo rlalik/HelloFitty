@@ -1,5 +1,5 @@
 /*
-    Fit'em All - a versatile histogram fitting tool for ROOT-based projects
+    Hello Fitty - a versatile histogram fitting tool for ROOT-based projects
     Copyright (C) 2015-2023  Rafał Lalik <rafallalik@gmail.com>
 
     This program is free software: you can redistribute it and/or modify
@@ -94,8 +94,7 @@ class HELLOFITTY_EXPORT fit_entry final
 {
 public:
     constexpr fit_entry() = delete;
-    explicit fit_entry(TString hist_name, TString formula_s, TString formula_b, Double_t range_lower,
-                       Double_t range_upper);
+    explicit fit_entry(TString hist_name, Double_t range_lower, Double_t range_upper);
 
     explicit fit_entry(const fit_entry&) = delete;
     auto operator=(const fit_entry&) -> fit_entry& = delete;
@@ -108,55 +107,62 @@ public:
     auto clone(TString new_name) const -> std::unique_ptr<fit_entry>;
 
     auto init() -> void;
-    auto set_param(Int_t par, param value) -> void;
-    auto set_param(Int_t par, Double_t val, param::fit_mode mode) -> void;
-    auto set_param(Int_t par, Double_t val, Double_t min, Double_t max, param::fit_mode mode) -> void;
-    auto update_param(Int_t par, Double_t val) -> void;
+
+    /// Add function of given body to functions collection
+    /// @param formula the function body
+    /// @return function id
+    auto add_function(TString formula) -> int;
+
+    /// Get function body string
+    /// @return function body as string
+    /// @throw std::out_of_range if fun_id incorrect
+    auto get_function(int fun_id) const -> const char *;
+
+    auto set_param(int fun_id, int par_id, param value) -> void;
+    auto set_param(int fun_id, int par_id, Double_t val, param::fit_mode mode) -> void;
+    auto set_param(int fun_id, int par_id, Double_t val, Double_t min, Double_t max, param::fit_mode mode) -> void;
+    auto update_param(int fun_id, int par_id, Double_t val) -> void;
 
     auto get_name() const -> TString;
 
-    auto get_param(Int_t par) const -> param;
-    auto get_params_number() const -> Int_t;
+    auto get_param(int fun_id, int par_id) -> param&;
+    auto get_param(int fun_id, int par_id) const -> param;
 
     auto get_fit_range_min() const -> Double_t;
     auto get_fit_range_max() const -> Double_t;
 
+    /// Return numbers of functions
+    /// @return number of functions
+    auto get_functions_count() const -> int;
+
+    /// Return reference to given function
+    /// @param fun_id function id
+    /// @return function reference
+    /// @throw std::out_of_range
+    auto get_function_object(int fun_id) const -> const TF1&;
+
     /// Return reference to signal function
     /// @return function reference
-    auto get_sig_func() const -> const TF1&;
+    auto get_function_object(int fun_id) -> TF1&;
 
-    /// Return reference to background function
+    /// Return reference to total function
     /// @return function reference
-    auto get_bkg_func() const -> const TF1&;
+    auto get_function_object() const -> const TF1&;
 
-    /// Return reference to signal+background function
+    /// Return reference to total function
     /// @return function reference
-    auto get_sum_func() const -> const TF1&;
+    auto get_function_object() -> TF1&;
 
-    /// Return reference to signal function
-    /// @return function reference
-    auto get_sig_func() -> TF1&;
+    /// Return numbers of params in requested function.
+    /// @param fun_id function id
+    /// @throw std::out_of_rangem @see std::vector::at()
+    auto get_function_params_count(int fun_id) const -> int;
 
-    /// Return reference to background function
-    /// @return function reference
-    auto get_bkg_func() -> TF1&;
-
-    /// Return reference to signal+background function
-    /// @return function reference
-    auto get_sum_func() -> TF1&;
-
-    /// Return signal function string
-    /// @return function string
-    auto get_sig_string() const -> const TString&;
-
-    /// Return background function string
-    /// @return function string
-    auto get_bkg_string() const -> const TString&;
+    /// Return numbers of params in total function.
+    auto get_function_params_count() const -> int;
 
     auto get_flag_rebin() const -> Int_t;
     auto get_flag_disabled() const -> bool;
-
-    auto load(TF1* function) -> bool;
 
     auto clear() -> void;
 
@@ -341,6 +347,6 @@ template <> struct fmt::formatter<hf::param>
         return ctx.out();
     }
 };
-#endif
+#endif // FMT_RANGES_H_
 
 #endif // HELLOFITTY_HELLOFITTY_H

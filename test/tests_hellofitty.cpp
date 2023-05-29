@@ -39,7 +39,9 @@ TEST(TestsFitter, InsertParameters)
     const auto fit1 = fitter.find_fit("name1");
     ASSERT_EQ(fit1, nullptr);
 
-    auto hf1 = make_unique<hf::fit_entry>("name1", "1", "0", 0, 1);
+    auto hf1 = make_unique<hf::fit_entry>("name1", 0, 1);
+    hf1->add_function("1");
+    hf1->add_function("0");
     fitter.insert_parameters(std::move(hf1));
 
     const auto fit2 = fitter.find_fit("name1");

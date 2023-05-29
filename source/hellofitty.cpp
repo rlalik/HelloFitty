@@ -33,6 +33,7 @@
 #include <fstream>
 #include <limits>
 #include <map>
+#include <numeric>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -139,6 +140,105 @@ auto param::print() const -> void
 
 namespace detail
 {
+
+/// Structure stores a set of values for a single function parameters like the the mean value,
+/// lwoer or upper boundaries, free or fixed fitting mode.
+struct function final
+{
+    TString body_string;
+    TF1 function_obj;
+
+    size_t params_offset;
+    size_t number_of_params;
+    std::vector<param> pars;
+
+    std::vector<Double_t> parameters_backup; // backup for parameters
+
+    /// Print param value line.
+    auto print() const -> void { function_obj.Print("V"); }
+
+    /// Accept param value and fit mode
+    /// @param par_value initial parameter value
+    /// @param par_mode parameter fitting mode, see @ref fit_mode
+    explicit function(TString body, Double_t range_min, Double_t range_max, size_t offset) : params_offset(offset)
+    {
+        function_obj = TF1("", body, range_min, range_max, TF1::EAddToList::kNo);
+        const auto sequential_number_of_params = int2size_t(function_obj.GetNpar());
+
+        if (sequential_number_of_params == 0)
+        {
+            // must be no-param function, e.g. constant value or 'x+2'
+            number_of_params = 0;
+        }
+        else if (sequential_number_of_params <= offset)
+        {
+            // new function repeats previous params, this is an logic error
+            throw std::invalid_argument("Function parameters are out of sequence");
+        }
+        else { number_of_params = sequential_number_of_params - offset; }
+
+        pars.resize(number_of_params);
+        parameters_backup.resize(number_of_params);
+        body_string = std::move(body);
+    }
+
+    auto backup() -> void
+    {
+        parameters_backup.clear();
+        for (auto& p : pars)
+        {
+            parameters_backup.push_back(p.value);
+        }
+    }
+
+    auto restore() -> void
+    {
+        if (parameters_backup.size() != pars.size()) throw std::out_of_range("Backup storage is empty.");
+
+        const auto n = pars.size();
+        for (std::remove_const<decltype(n)>::type i = 0; i < n; ++i)
+        {
+            pars[i].value = parameters_backup[i];
+        }
+    }
+
+    auto print(bool detailed) const -> void
+    {
+        if (detailed) { function_obj.Print("V"); }
+
+        auto s = pars.size();
+        for (decltype(s) i = 0; i < s; ++i)
+        {
+            fmt::print("   {}: ", i);
+            pars[i].print();
+        }
+    }
+};
+
+struct fit_entry_impl
+{
+    TString hist_name; // histogram name
+
+    Double_t range_min; // function range
+    Double_t range_max; // function range
+
+    int rebin{0}; // rebin, 0 == no rebin
+    bool fit_disabled{false};
+
+    std::vector<function> funcs;
+    TString total_function_body;
+    TF1 total_function_object;
+
+    auto compile() -> void
+    {
+        if (funcs.size() == 0) { return; }
+        total_function_body =
+            std::accumulate(std::next(funcs.begin()), funcs.end(), funcs[0].body_string,
+                            [](TString a, hf::detail::function b) { return std::move(a) + "+" + b.body_string; });
+        total_function_object = TF1("", total_function_body, range_min, range_max, TF1::EAddToList::kNo);
+    }
+};
+
 struct fitter_impl
 {
     fitter::priority_mode mode;
@@ -165,112 +265,128 @@ struct fitter_impl
 };
 
 bool fitter_impl::verbose_flag = true;
-
-struct fit_entry_impl
-{
-    TString hist_name;  // histogram name
-    TString sig_string; // signal and background functions
-    TString bkg_string;
-
-    Double_t range_min; // function range
-    Double_t range_max; // function range
-
-    int rebin{0}; // rebin, 0 == no rebin
-    bool fit_disabled{false};
-
-    std::vector<param> pars;
-    TF1 function_sig;
-    TF1 function_bkg;
-    TF1 function_sum;
-
-    std::vector<Double_t> backup_p; // backup for parameters
-};
 } // namespace detail
 
-fit_entry::fit_entry(TString hist_name, TString formula_s, TString formula_b, Double_t range_min, Double_t range_max)
+fit_entry::fit_entry(TString hist_name, Double_t range_min, Double_t range_max)
     : m_d{make_unique<detail::fit_entry_impl>()}
 {
     m_d->range_min = range_min;
     m_d->range_max = range_max;
-    m_d->function_sig = TF1("", formula_s, range_min, range_max, TF1::EAddToList::kNo);
-    m_d->function_bkg = TF1("", formula_b, range_min, range_max, TF1::EAddToList::kNo);
-    m_d->function_sum = TF1("", formula_s + "+" + formula_b, range_min, range_max, TF1::EAddToList::kNo);
+
     m_d->hist_name = std::move(hist_name);
-    m_d->sig_string = std::move(formula_s);
-    m_d->bkg_string = std::move(formula_b);
 
     if (m_d->hist_name[0] == '@') { m_d->fit_disabled = true; }
-
-    m_d->pars.resize(int2size_t(m_d->function_sum.GetNpar()));
 }
 
 fit_entry::~fit_entry() noexcept = default;
 
 auto fit_entry::clone(TString new_name) const -> std::unique_ptr<fit_entry>
 {
-    return make_unique<fit_entry>(std::move(new_name), m_d->sig_string, m_d->bkg_string, m_d->range_min,
-                                  m_d->range_max);
+    auto cloned = make_unique<fit_entry>(std::move(new_name), m_d->range_min, m_d->range_max);
+    for (const auto& func : m_d->funcs)
+    {
+        cloned->add_function(func.body_string);
+    }
+    return cloned;
 }
 
 auto fit_entry::clear() -> void { drop(); }
 
+auto fit_entry::add_function(TString formula) -> int
+{
+    auto current_function_idx = m_d->funcs.size();
+
+    auto offset = current_function_idx == 0 ? 0 : get_function_params_count(size_t2int(current_function_idx) - 1);
+
+    m_d->funcs.emplace_back(formula, m_d->range_min, m_d->range_max, offset);
+
+    return size_t2int(current_function_idx);
+}
+
+auto fit_entry::get_function(int fun_id) const -> const char* {
+    return m_d->funcs.at(int2size_t(fun_id)).body_string.Data();
+}
+
 auto fit_entry::init() -> void
 {
-    for (size_t i = 0; i < m_d->pars.size(); ++i)
-        if (m_d->pars[i].mode == param::fit_mode::fixed)
-            m_d->function_sum.FixParameter(size_t2int(i), m_d->pars[i].value);
-        else
-        {
-            m_d->function_sum.SetParameter(size_t2int(i), m_d->pars[i].value);
-            if (m_d->pars[i].has_limits)
-                m_d->function_sum.SetParLimits(size_t2int(i), m_d->pars[i].min, m_d->pars[i].max);
-        }
+    // for (size_t i = 0; i < m_d->pars.size(); ++i)
+    //     if (m_d->pars[i].mode == fit_mode::fixed)
+    //         m_d->function_sum.FixParameter(size_t2int(i), m_d->pars[i].value);
+    //     else
+    //     {
+    //         m_d->function_sum.SetParameter(size_t2int(i), m_d->pars[i].value);
+    //         if (m_d->pars[i].has_limits)
+    //             m_d->function_sum.SetParLimits(size_t2int(i), m_d->pars[i].min, m_d->pars[i].max);
+    //     } FIXME
 }
 
-auto fit_entry::set_param(Int_t par, param value) -> void
+auto fit_entry::set_param(int fun_id, int par_id, param value) -> void
 {
-    const auto upar = int2size_t(par);
-    if (!(upar < m_d->pars.size())) throw;
-    m_d->pars[upar] = value;
+    const auto ufun_id = int2size_t(fun_id);
+    const auto upar_id = int2size_t(par_id);
+
+    auto& fun = m_d->funcs.at(ufun_id);
+    fun.pars.at(upar_id) = value;
 }
 
-auto fit_entry::set_param(Int_t par, Double_t val, param::fit_mode mode) -> void
+auto fit_entry::set_param(int fun_id, int par_id, Double_t val, param::fit_mode mode) -> void
 {
-    const auto upar = int2size_t(par);
-    if (!(upar < m_d->pars.size())) throw;
-    m_d->pars[upar].value = val;
-    m_d->pars[upar].min = 0;
-    m_d->pars[upar].max = 0;
-    m_d->pars[upar].mode = mode;
-    m_d->pars[upar].has_limits = false;
+    const auto ufun_id = int2size_t(fun_id);
+    const auto upar_id = int2size_t(par_id);
+
+    auto& fun = m_d->funcs.at(ufun_id);
+    auto& par = fun.pars.at(upar_id);
+
+    par.value = val;
+    par.min = 0;
+    par.max = 0;
+    par.mode = mode;
+    par.has_limits = false;
 }
 
-auto fit_entry::set_param(Int_t par, Double_t val, Double_t l, Double_t u, param::fit_mode mode) -> void
+auto fit_entry::set_param(int fun_id, int par_id, Double_t val, Double_t l, Double_t u, param::fit_mode mode) -> void
 {
-    const auto upar = int2size_t(par);
-    if (!(upar < m_d->pars.size())) throw;
-    m_d->pars[upar].value = val;
-    m_d->pars[upar].min = l;
-    m_d->pars[upar].max = u;
-    m_d->pars[upar].mode = mode;
-    m_d->pars[upar].has_limits = true;
+    const auto ufun_id = int2size_t(fun_id);
+    const auto upar_id = int2size_t(par_id);
+
+    auto& fun = m_d->funcs.at(ufun_id);
+    auto& par = fun.pars.at(upar_id);
+
+    par.value = val;
+    par.min = l;
+    par.max = u;
+    par.mode = mode;
+    par.has_limits = true;
 }
 
-auto fit_entry::update_param(Int_t par, Double_t value) -> void
+auto fit_entry::update_param(int fun_id, int par_id, Double_t value) -> void
 {
-    const auto upar = int2size_t(par);
-    if (!(upar < m_d->pars.size())) throw;
-    m_d->pars[upar].value = value;
+    const auto ufun_id = int2size_t(fun_id);
+    const auto upar_id = int2size_t(par_id);
+
+    auto& fun = m_d->funcs.at(ufun_id);
+    auto& par = fun.pars.at(upar_id);
+
+    par.value = value;
 }
 
-auto fit_entry::get_param(Int_t par) const -> param
+auto fit_entry::get_param(int fun_id, int par_id) const -> param
 {
-    const auto upar = int2size_t(par);
-    if (!(upar < m_d->pars.size())) throw;
-    return m_d->pars[upar];
+    const auto ufun_id = int2size_t(fun_id);
+    const auto upar_id = int2size_t(par_id);
+
+    auto& fun = m_d->funcs.at(ufun_id);
+    return fun.pars.at(upar_id);
 }
 
-auto fit_entry::get_params_number() const -> Int_t { return size_t2int(m_d->pars.size()); }
+auto fit_entry::get_param(int fun_id, int par_id) -> param&
+{
+    const auto ufun_id = int2size_t(fun_id);
+    const auto upar_id = int2size_t(par_id);
+
+    auto& fun = m_d->funcs.at(ufun_id);
+    return fun.pars.at(upar_id);
+}
 
 auto fit_entry::get_name() const -> TString { return m_d->hist_name; }
 
@@ -278,21 +394,33 @@ auto fit_entry::get_fit_range_min() const -> Double_t { return m_d->range_min; }
 
 auto fit_entry::get_fit_range_max() const -> Double_t { return m_d->range_max; }
 
-auto fit_entry::get_sig_func() const -> const TF1& { return m_d->function_sig; }
+auto fit_entry::get_functions_count() const -> int { return size_t2int(m_d->funcs.size()); }
 
-auto fit_entry::get_bkg_func() const -> const TF1& { return m_d->function_bkg; }
+auto fit_entry::get_function_object(int fun_id) const -> const TF1& { return m_d->funcs.at(int2size_t(fun_id)).function_obj; }
 
-auto fit_entry::get_sum_func() const -> const TF1& { return m_d->function_sum; }
+auto fit_entry::get_function_object(int fun_id) -> TF1&
+{
+    return const_cast<TF1&>(const_cast<const fit_entry*>(this)->get_function_object(fun_id));
+}
 
-auto fit_entry::get_sig_func() -> TF1& { return m_d->function_sig; }
+auto fit_entry::get_function_object() const -> const TF1&
+{
+    if (!m_d->total_function_object.IsValid()) { m_d->compile(); }
+    return m_d->total_function_object;
+}
 
-auto fit_entry::get_bkg_func() -> TF1& { return m_d->function_bkg; }
+auto fit_entry::get_function_object() -> TF1& { return const_cast<TF1&>(const_cast<const fit_entry*>(this)->get_function_object()); }
 
-auto fit_entry::get_sum_func() -> TF1& { return m_d->function_sum; }
+auto fit_entry::get_function_params_count(int fun_id) const -> int
+{
+    return int2size_t(m_d->funcs.at(int2size_t(fun_id)).number_of_params);
+}
 
-auto fit_entry::get_sig_string() const -> const TString& { return m_d->sig_string; }
-
-auto fit_entry::get_bkg_string() const -> const TString& { return m_d->bkg_string; }
+auto fit_entry::get_function_params_count() const -> int
+{
+    if (!m_d->total_function_object.IsValid()) { m_d->compile(); }
+    return m_d->total_function_object.GetNpar();
+}
 
 auto fit_entry::get_flag_rebin() const -> int { return m_d->rebin; }
 
@@ -303,64 +431,55 @@ auto fit_entry::export_entry() const -> TString { return parser::format_line_ent
 auto fit_entry::print(bool detailed) const -> void
 {
     fmt::print("## name: {:s}    rebin: {:d}   range: {:g} -- {:g}  param num: {:d}\n", m_d->hist_name.Data(),
-               m_d->rebin, m_d->range_min, m_d->range_min, m_d->pars.size());
+               m_d->rebin, m_d->range_min, m_d->range_min, get_function_params_count());
 
-    auto s = m_d->pars.size();
-    for (decltype(s) i = 0; i < s; ++i)
+    for (const auto& func : m_d->funcs)
     {
-        fmt::print("   {}: ", i);
-        m_d->pars[i].print();
+        func.print();
     }
 
-    if (detailed)
-    {
-        fmt::print("{}\n", "+++++++++ SIG function +++++++++");
-        m_d->function_sig.Print("V");
-        fmt::print("{}\n", "+++++++++ BKG function +++++++++");
-        m_d->function_bkg.Print("V");
-        fmt::print("{}\n", "+++++++++ SUM function +++++++++");
-        m_d->function_sum.Print("V");
-        fmt::print("{}\n", "++++++++++++++++++++++++++++++++");
-    }
-}
-
-auto fit_entry::load(TF1* function) -> bool
-{
-    const auto s = m_d->pars.size();
-    if (size_t2int(s) == function->GetNpar())
-    {
-        for (std::remove_const<decltype(s)>::type i = 0; i < s; ++i)
-        {
-            m_d->pars[i].value = function->GetParameter(size_t2int(i));
-        }
-    }
-    else
-        return false;
-
-    return true;
+    // auto s = m_d->pars.size();
+    // for (decltype(s) i = 0; i < s; ++i)
+    // {
+    //     fmt::print("   {}: ", i);
+    //     m_d->pars[i].print();
+    // }
+    //
+    // if (detailed)
+    // {
+    //     fmt::print("{}\n", "+++++++++ SIG function +++++++++");
+    //     m_d->function_sig.Print("V");
+    //     fmt::print("{}\n", "+++++++++ BKG function +++++++++");
+    //     m_d->function_bkg.Print("V");
+    //     fmt::print("{}\n", "+++++++++ SUM function +++++++++");
+    //     m_d->function_sum.Print("V");
+    //     fmt::print("{}\n", "++++++++++++++++++++++++++++++++");
+    // } FIXME
 }
 
 auto fit_entry::backup() -> void
 {
-    m_d->backup_p.clear();
-    for (auto& p : m_d->pars)
+    for (auto& fs : m_d->funcs)
     {
-        m_d->backup_p.push_back(p.value);
+        fs.backup();
     }
 }
 
 auto fit_entry::restore() -> void
 {
-    if (m_d->backup_p.size() != m_d->pars.size()) throw std::out_of_range("Backup storage is empty.");
-
-    const auto n = m_d->pars.size();
-    for (std::remove_const<decltype(n)>::type i = 0; i < n; ++i)
+    for (auto& fs : m_d->funcs)
     {
-        m_d->pars[i].value = m_d->backup_p[i];
+        fs.restore();
     }
 }
 
-auto fit_entry::drop() -> void { m_d->backup_p.clear(); }
+auto fit_entry::drop() -> void
+{
+    for (auto& fs : m_d->funcs)
+    {
+        fs.parameters_backup.clear();
+    }
+}
 
 auto fitter::set_verbose(bool verbose) -> void { detail::fitter_impl::verbose_flag = verbose; }
 
@@ -377,8 +496,8 @@ auto fitter::init_fitter_from_file(const char* filename, const char* auxname) ->
     m_d->par_ref = filename;
     m_d->par_aux = auxname;
 
-    if (!filename) { fprintf(stderr, "No reference input file given\n"); }
-    if (!auxname) { fprintf(stderr, "No output file given\n"); }
+    if (!filename) { fmt::print(stderr, "No reference input file given\n"); }
+    if (!auxname) { fmt::print(stderr, "No output file given\n"); }
 
     auto selected = tools::select_source(filename, auxname);
 
@@ -513,9 +632,9 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
 
     if (hist->Integral(bin_l, bin_u) == 0) return false;
 
-    TF1* tfSig = &hfp->get_sig_func();
-    TF1* tfBkg = &hfp->get_bkg_func();
-    TF1* tfSum = &hfp->get_sum_func();
+    TF1* tfSig = &hfp->get_function_object(0);
+    TF1* tfBkg = &hfp->get_function_object(1);
+    TF1* tfSum = &hfp->get_function_object();
 
     tfSig->SetName(tools::format_name(hfp->get_name(), m_d->function_decorator + "_sig"));
     tfBkg->SetName(tools::format_name(hfp->get_name(), m_d->function_decorator + "_bkg"));
@@ -587,7 +706,7 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
         tfSig->SetParameter(i, par);
         tfSig->SetParError(i, err);
 
-        hfp->update_param(i, par);
+        hfp->update_param(0, i, par);
     }
 
     for (auto i = parnsig; i < tfBkg->GetNpar(); ++i)
@@ -598,7 +717,7 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
         tfBkg->SetParameter(i, par);
         tfBkg->SetParError(i, err);
 
-        hfp->update_param(i, par);
+        hfp->update_param(1, i, par);
     }
 
     hist->GetListOfFunctions()->Add(
