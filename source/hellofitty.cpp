@@ -143,75 +143,25 @@ namespace detail
 
 /// Structure stores a set of values for a single function parameters like the the mean value,
 /// lwoer or upper boundaries, free or fixed fitting mode.
-struct function final
+struct function_impl final
 {
     TString body_string;
     TF1 function_obj;
 
-    size_t params_offset;
-    size_t number_of_params;
-    std::vector<param> pars;
-
-    std::vector<Double_t> parameters_backup; // backup for parameters
-
-    /// Print param value line.
-    auto print() const -> void { function_obj.Print("V"); }
-
     /// Accept param value and fit mode
     /// @param par_value initial parameter value
     /// @param par_mode parameter fitting mode, see @ref fit_mode
-    explicit function(TString body, Double_t range_min, Double_t range_max, size_t offset) : params_offset(offset)
+    explicit function_impl(TString body, Double_t range_min, Double_t range_max)
     {
         function_obj = TF1("", body, range_min, range_max, TF1::EAddToList::kNo);
-        const auto sequential_number_of_params = int2size_t(function_obj.GetNpar());
-
-        if (sequential_number_of_params == 0)
-        {
-            // must be no-param function, e.g. constant value or 'x+2'
-            number_of_params = 0;
-        }
-        else if (sequential_number_of_params <= offset)
-        {
-            // new function repeats previous params, this is an logic error
-            throw std::invalid_argument("Function parameters are out of sequence");
-        }
-        else { number_of_params = sequential_number_of_params - offset; }
-
-        pars.resize(number_of_params);
-        parameters_backup.resize(number_of_params);
         body_string = std::move(body);
-    }
-
-    auto backup() -> void
-    {
-        parameters_backup.clear();
-        for (auto& p : pars)
-        {
-            parameters_backup.push_back(p.value);
-        }
-    }
-
-    auto restore() -> void
-    {
-        if (parameters_backup.size() != pars.size()) throw std::out_of_range("Backup storage is empty.");
-
-        const auto n = pars.size();
-        for (std::remove_const<decltype(n)>::type i = 0; i < n; ++i)
-        {
-            pars[i].value = parameters_backup[i];
-        }
     }
 
     auto print(bool detailed) const -> void
     {
-        if (detailed) { function_obj.Print("V"); }
+        fmt::print("  Function: {}    params: {}\n", body_string.Data(), 0);
 
-        auto s = pars.size();
-        for (decltype(s) i = 0; i < s; ++i)
-        {
-            fmt::print("   {}: ", i);
-            pars[i].print();
-        }
+        if (detailed) { function_obj.Print("V"); }
     }
 };
 
@@ -225,24 +175,62 @@ struct fit_entry_impl
     int rebin{0}; // rebin, 0 == no rebin
     bool fit_disabled{false};
 
-    std::vector<function> funcs;
+    std::vector<function_impl> funcs;
     TString total_function_body;
     TF1 total_function_object;
+
+    std::vector<param> pars;
+    std::vector<Double_t> parameters_backup; // backup for parameters
+
+    fit_entry_impl() : pars(10), parameters_backup(10) {}
+    /// Does not recompile the total function. Use compile() after adding last function.
+    auto add_function_lazy(TString formula) -> int
+    {
+        auto current_function_idx = funcs.size();
+        funcs.emplace_back(formula, range_min, range_max);
+        return size_t2int(current_function_idx);
+    }
 
     auto compile() -> void
     {
         if (funcs.size() == 0) { return; }
         total_function_body =
             std::accumulate(std::next(funcs.begin()), funcs.end(), funcs[0].body_string,
-                            [](TString a, hf::detail::function b) { return std::move(a) + "+" + b.body_string; });
+                            [](TString a, hf::detail::function_impl b) { return std::move(a) + "+" + b.body_string; });
+
         total_function_object = TF1("", total_function_body, range_min, range_max, TF1::EAddToList::kNo);
+
+        auto npars = int2size_t(total_function_object.GetNpar());
+        pars.resize(npars);
+        parameters_backup.resize(npars);
+    }
+
+    auto backup() -> void
+    {
+        parameters_backup.clear();
+        for (auto& p : pars)
+        {
+            parameters_backup.push_back(p.value);
+        }
+    }
+
+    auto restore() -> void
+    {
+        if (parameters_backup.size() != pars.size()) throw hf::length_error("Backup storage is empty.");
+
+        const auto n = pars.size();
+        for (std::remove_const<decltype(n)>::type i = 0; i < n; ++i)
+        {
+            pars[i].value = parameters_backup[i];
+        }
     }
 };
 
 struct fitter_impl
 {
     fitter::priority_mode mode;
-    int version{0};
+    format_version input_format_version{format_version::detect};
+    format_version output_format_version{format_version::v2};
 
     static bool verbose_flag;
 
@@ -294,16 +282,13 @@ auto fit_entry::clear() -> void { drop(); }
 
 auto fit_entry::add_function(TString formula) -> int
 {
-    auto current_function_idx = m_d->funcs.size();
-
-    auto offset = current_function_idx == 0 ? 0 : get_function_params_count(size_t2int(current_function_idx) - 1);
-
-    m_d->funcs.emplace_back(formula, m_d->range_min, m_d->range_max, offset);
-
+    auto current_function_idx = m_d->add_function_lazy(std::move(formula));
+    m_d->compile();
     return size_t2int(current_function_idx);
 }
 
-auto fit_entry::get_function(int fun_id) const -> const char* {
+auto fit_entry::get_function(int fun_id) const -> const char*
+{
     return m_d->funcs.at(int2size_t(fun_id)).body_string.Data();
 }
 
@@ -320,22 +305,16 @@ auto fit_entry::init() -> void
     //     } FIXME
 }
 
-auto fit_entry::set_param(int fun_id, int par_id, param value) -> void
+auto fit_entry::set_param(int par_id, param value) -> void
 {
-    const auto ufun_id = int2size_t(fun_id);
     const auto upar_id = int2size_t(par_id);
-
-    auto& fun = m_d->funcs.at(ufun_id);
-    fun.pars.at(upar_id) = value;
+    m_d->pars.at(upar_id) = value;
 }
 
-auto fit_entry::set_param(int fun_id, int par_id, Double_t val, param::fit_mode mode) -> void
+auto fit_entry::set_param(int par_id, Double_t val, param::fit_mode mode) -> void
 {
-    const auto ufun_id = int2size_t(fun_id);
     const auto upar_id = int2size_t(par_id);
-
-    auto& fun = m_d->funcs.at(ufun_id);
-    auto& par = fun.pars.at(upar_id);
+    auto& par = m_d->pars.at(upar_id);
 
     par.value = val;
     par.min = 0;
@@ -344,13 +323,10 @@ auto fit_entry::set_param(int fun_id, int par_id, Double_t val, param::fit_mode 
     par.has_limits = false;
 }
 
-auto fit_entry::set_param(int fun_id, int par_id, Double_t val, Double_t l, Double_t u, param::fit_mode mode) -> void
+auto fit_entry::set_param(int par_id, Double_t val, Double_t l, Double_t u, param::fit_mode mode) -> void
 {
-    const auto ufun_id = int2size_t(fun_id);
     const auto upar_id = int2size_t(par_id);
-
-    auto& fun = m_d->funcs.at(ufun_id);
-    auto& par = fun.pars.at(upar_id);
+    auto& par = m_d->pars.at(upar_id);
 
     par.value = val;
     par.min = l;
@@ -359,33 +335,41 @@ auto fit_entry::set_param(int fun_id, int par_id, Double_t val, Double_t l, Doub
     par.has_limits = true;
 }
 
-auto fit_entry::update_param(int fun_id, int par_id, Double_t value) -> void
+auto fit_entry::update_param(int par_id, Double_t value) -> void
 {
-    const auto ufun_id = int2size_t(fun_id);
     const auto upar_id = int2size_t(par_id);
-
-    auto& fun = m_d->funcs.at(ufun_id);
-    auto& par = fun.pars.at(upar_id);
+    auto& par = m_d->pars.at(upar_id);
 
     par.value = value;
 }
 
-auto fit_entry::get_param(int fun_id, int par_id) const -> param
+auto fit_entry::get_param(int par_id) const -> param
 {
-    const auto ufun_id = int2size_t(fun_id);
     const auto upar_id = int2size_t(par_id);
-
-    auto& fun = m_d->funcs.at(ufun_id);
-    return fun.pars.at(upar_id);
+    return m_d->pars.at(upar_id);
 }
 
-auto fit_entry::get_param(int fun_id, int par_id) -> param&
+auto fit_entry::get_param(int par_id) -> param&
 {
-    const auto ufun_id = int2size_t(fun_id);
     const auto upar_id = int2size_t(par_id);
+    return m_d->pars.at(upar_id);
+}
 
-    auto& fun = m_d->funcs.at(ufun_id);
-    return fun.pars.at(upar_id);
+auto get_param_name_index(TF1* fun, const char* name) -> Int_t
+{
+    auto par_index = fun->GetParNumber(name);
+    if (par_index == -1) { throw hf::index_error("No such parameter"); }
+    return par_index;
+}
+
+auto fit_entry::get_param(const char* name) -> param&
+{
+    return get_param(get_param_name_index(&m_d->total_function_object, name));
+}
+
+auto fit_entry::get_param(const char* name) const -> param
+{
+    return get_param(get_param_name_index(&m_d->total_function_object, name));
 }
 
 auto fit_entry::get_name() const -> TString { return m_d->hist_name; }
@@ -396,7 +380,10 @@ auto fit_entry::get_fit_range_max() const -> Double_t { return m_d->range_max; }
 
 auto fit_entry::get_functions_count() const -> int { return size_t2int(m_d->funcs.size()); }
 
-auto fit_entry::get_function_object(int fun_id) const -> const TF1& { return m_d->funcs.at(int2size_t(fun_id)).function_obj; }
+auto fit_entry::get_function_object(int fun_id) const -> const TF1&
+{
+    return m_d->funcs.at(int2size_t(fun_id)).function_obj;
+}
 
 auto fit_entry::get_function_object(int fun_id) -> TF1&
 {
@@ -405,28 +392,21 @@ auto fit_entry::get_function_object(int fun_id) -> TF1&
 
 auto fit_entry::get_function_object() const -> const TF1&
 {
-    if (!m_d->total_function_object.IsValid()) { m_d->compile(); }
+    // if (!m_d->total_function_object.IsValid()) { m_d->compile(); }
+    m_d->compile();
     return m_d->total_function_object;
 }
 
-auto fit_entry::get_function_object() -> TF1& { return const_cast<TF1&>(const_cast<const fit_entry*>(this)->get_function_object()); }
-
-auto fit_entry::get_function_params_count(int fun_id) const -> int
+auto fit_entry::get_function_object() -> TF1&
 {
-    return int2size_t(m_d->funcs.at(int2size_t(fun_id)).number_of_params);
+    return const_cast<TF1&>(const_cast<const fit_entry*>(this)->get_function_object());
 }
 
-auto fit_entry::get_function_params_count() const -> int
-{
-    if (!m_d->total_function_object.IsValid()) { m_d->compile(); }
-    return m_d->total_function_object.GetNpar();
-}
+auto fit_entry::get_function_params_count() const -> int { return get_function_object().GetNpar(); }
 
 auto fit_entry::get_flag_rebin() const -> int { return m_d->rebin; }
 
 auto fit_entry::get_flag_disabled() const -> bool { return m_d->fit_disabled; }
-
-auto fit_entry::export_entry() const -> TString { return parser::format_line_entry_v1(this); }
 
 auto fit_entry::print(bool detailed) const -> void
 {
@@ -435,7 +415,14 @@ auto fit_entry::print(bool detailed) const -> void
 
     for (const auto& func : m_d->funcs)
     {
-        func.print();
+        func.print(detailed);
+    }
+
+    auto s = m_d->pars.size();
+    for (decltype(s) i = 0; i < s; ++i)
+    {
+        fmt::print("   {}: ", i);
+        m_d->pars[i].print();
     }
 
     // auto s = m_d->pars.size();
@@ -457,29 +444,11 @@ auto fit_entry::print(bool detailed) const -> void
     // } FIXME
 }
 
-auto fit_entry::backup() -> void
-{
-    for (auto& fs : m_d->funcs)
-    {
-        fs.backup();
-    }
-}
+auto fit_entry::backup() -> void { m_d->backup(); }
 
-auto fit_entry::restore() -> void
-{
-    for (auto& fs : m_d->funcs)
-    {
-        fs.restore();
-    }
-}
+auto fit_entry::restore() -> void { m_d->restore(); }
 
-auto fit_entry::drop() -> void
-{
-    for (auto& fs : m_d->funcs)
-    {
-        fs.parameters_backup.clear();
-    }
-}
+auto fit_entry::drop() -> void { m_d->parameters_backup.clear(); }
 
 auto fitter::set_verbose(bool verbose) -> void { detail::fitter_impl::verbose_flag = verbose; }
 
@@ -563,7 +532,7 @@ auto fitter::import_parameters(const std::string& filename) -> bool
     std::string line;
     while (std::getline(fparfile, line))
     {
-        insert_parameters(tools::parse_line_entry(line, m_d->version));
+        insert_parameters(tools::parse_line_entry(line, m_d->input_format_version));
     }
 
     return true;
@@ -578,7 +547,7 @@ auto fitter::export_parameters(const std::string& filename) -> bool
         fmt::print("AUX file {} opened...  Exporting {} entries.\n", filename, m_d->hfpmap.size());
         for (auto it = m_d->hfpmap.begin(); it != m_d->hfpmap.end(); ++it)
         {
-            fparfile << it->second->export_entry().Data() << std::endl;
+            fparfile << tools::format_line_entry(it->second.get(), m_d->output_format_version) << std::endl;
         }
     }
     fparfile.close();
@@ -697,7 +666,7 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
 
     new_sig_func->SetChisquare(hist->Chisquare(tfSum, "R"));
 
-    auto parnsig = tfSig->GetNpar();
+    auto parnsig = tfSum->GetNpar();
     for (decltype(parnsig) i = 0; i < parnsig; ++i)
     {
         double par = tfSum->GetParameter(i);
@@ -706,18 +675,7 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
         tfSig->SetParameter(i, par);
         tfSig->SetParError(i, err);
 
-        hfp->update_param(0, i, par);
-    }
-
-    for (auto i = parnsig; i < tfBkg->GetNpar(); ++i)
-    {
-        double par = tfSum->GetParameter(i);
-        double err = tfSum->GetParError(i);
-
-        tfBkg->SetParameter(i, par);
-        tfBkg->SetParError(i, err);
-
-        hfp->update_param(1, i, par);
+        hfp->update_param(i, par);
     }
 
     hist->GetListOfFunctions()->Add(
@@ -816,9 +774,45 @@ auto format_name(const TString& name, const TString& decorator) -> TString
     return str;
 }
 
-auto parse_line_entry(const TString& line, int /*version*/) -> std::unique_ptr<fit_entry>
+auto HELLOFITTY_EXPORT detect_format(const TString& line) -> format_version
 {
-    return parser::parse_line_entry_v1(line);
+    if (line.First('|') == -1) { return hf::format_version::v1; }
+
+    return hf::format_version::v2;
+}
+
+auto parse_line_entry(const TString& line, format_version version) -> std::unique_ptr<fit_entry>
+{
+    if (version == hf::format_version::detect) { version = tools::detect_format(line); }
+
+    switch (version)
+    {
+        case format_version::v1:
+            return parser::parse_line_entry_v1(line);
+            break;
+        case format_version::v2:
+            return parser::parse_line_entry_v2(line);
+            break;
+        default:
+            throw std::runtime_error("Parser not implemented");
+            break;
+    }
+}
+
+auto HELLOFITTY_EXPORT format_line_entry(const hf::fit_entry* entry, format_version version) -> TString
+{
+    switch (version)
+    {
+        case format_version::v1:
+            return parser::format_line_entry_v1(entry);
+            break;
+        case format_version::v2:
+            return parser::format_line_entry_v2(entry);
+            break;
+        default:
+            throw std::runtime_error("Parser not implemented");
+            break;
+    }
 }
 
 } // namespace tools

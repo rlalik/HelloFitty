@@ -36,26 +36,28 @@ TEST(TestsFitEntry, Basic)
 
 TEST(TestsFitEntry, ParsingLine)
 {
-    auto hfp0 = hf::tools::parse_line_entry("hist_1 gaus(0) 0  0  1 10  1  2 : 1 3  3 F 2 5", 0);
+    auto hfp0 = hf::tools::parse_line_entry("hist_1 gaus(0) 0  0  1 10  1  2 : 1 3  3 F 2 5", hf::format_version::v1);
 
     ASSERT_TRUE(hfp0.get());
 
-    auto hfp1 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  0  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
+    auto hfp1 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  0  1 10  1  2 : 1 3  3 F 2 5  4 f",
+                                            hf::format_version::v1);
 
-    auto export1 = hfp1->export_entry();
-    ASSERT_STREQ(export1, " hist_1\tgaus(0) pol0(3) 0 1 10 1 2 : 1 3 3 F 2 5 4 f");
+    auto export1 = hf::tools::format_line_entry(hfp1.get(), hf::format_version::v1);
+    ASSERT_STREQ(export1, " hist_1\tgaus(0) pol0(3) 0 1 10  1  2 : 1 3  3 F 2 5  4 f");
 
-    auto hfp2 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1 10  1  2 : 1 3  3 F 2 5  4 f", 0);
+    auto hfp2 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1 10  1  2 : 1 3  3 F 2 5  4 f",
+                                            hf::format_version::v1);
 
-    auto export2 = hfp2->export_entry();
-    ASSERT_STREQ(export2, " hist_1\tgaus(0) pol0(3) 0 1 10 1 2 : 1 3 3 F 2 5 4 f");
+    auto export2 = hf::tools::format_line_entry(hfp2.get(), hf::format_version::v1);
+    ASSERT_STREQ(export2, " hist_1\tgaus(0) pol0(3) 0 1 10  1  2 : 1 3  3 F 2 5  4 f");
 
-    auto hfp3 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1 10", 0);
+    auto hfp3 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1 10", hf::format_version::v1);
 
-    auto export3 = hfp3->export_entry();
-    ASSERT_STREQ(export3, " hist_1\tgaus(0) pol0(3) 0 1 10 0 0 0 0");
+    auto export3 = hf::tools::format_line_entry(hfp3.get(), hf::format_version::v1);
+    ASSERT_STREQ(export3, " hist_1\tgaus(0) pol0(3) 0 1 10  0  0  0  0");
 
-    auto hfp4 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1", 0);
+    auto hfp4 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1", hf::format_version::v1);
 
     ASSERT_FALSE(hfp4.get());
 }
@@ -90,30 +92,30 @@ TEST(TestsFitEntry, Backups)
     ASSERT_EQ(hfp1.add_function("gaus(0)"), 0);
     ASSERT_EQ(hfp1.add_function("expo(3)"), 1);
 
-    std::tuple<int, int, int> test_values_1[] = {
+    std::tuple<int, int> test_values_1[] = {
         // clang-format: off
-        {0, 0, 0}, // NOLINT
-        {0, 1, 0}, // NOLINT
-        {0, 2, 3}, // NOLINT
-        {1, 0, 4}  // NOLINT
+        {0, 0}, // NOLINT
+        {1, 0}, // NOLINT
+        {2, 3}, // NOLINT
+        {3, 4}  // NOLINT
         // clang-format: on
     };
 
-    std::tuple<int, int, int> test_values_2[] = {
+    std::tuple<int, int> test_values_2[] = {
         // clang-format: off
-        {0, 0, 10}, // NOLINT
-        {0, 1, 20}, // NOLINT
-        {0, 2, 30}, // NOLINT
-        {1, 0, 40}  // NOLINT
+        {0, 10}, // NOLINT
+        {1, 20}, // NOLINT
+        {2, 30}, // NOLINT
+        {3, 40}  // NOLINT
         // clang-format: on
     };
 
-    std::tuple<int, int, int> test_values_3[] = {
+    std::tuple<int, int> test_values_3[] = {
         // clang-format: off
-        {0, 0, 100}, // NOLINT
-        {0, 1, 200}, // NOLINT
-        {0, 2, 300}, // NOLINT
-        {1, 0, 400}  // NOLINT
+        {0, 100}, // NOLINT
+        {1, 200}, // NOLINT
+        {2, 300}, // NOLINT
+        {3, 400}  // NOLINT
         // clang-format: on
     };
 
@@ -123,13 +125,11 @@ TEST(TestsFitEntry, Backups)
     const auto par3 = hf::param(4, 1, 10, hf::param::fit_mode::free); // NOLINT
 
     ASSERT_EQ(hfp1.get_function_params_count(), 5);
-    ASSERT_EQ(hfp1.get_function_params_count(0), 3);
-    ASSERT_EQ(hfp1.get_function_params_count(1), 2);
 
-    hfp1.set_param(0, 0, par0);
-    hfp1.set_param(0, 1, par1);
-    hfp1.set_param(0, 2, par2);
-    hfp1.set_param(1, 0, par3);
+    hfp1.set_param(0, par0);
+    hfp1.set_param(1, par1);
+    hfp1.set_param(2, par2);
+    hfp1.set_param(3, par3);
 
     // try {
     //     hfp1.set_param(5, p4);
@@ -143,19 +143,19 @@ TEST(TestsFitEntry, Backups)
     // should still contain test_values_1
     for (auto& test_data : test_values_1)
     {
-        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data), std::get<1>(test_data)).value, std::get<2>(test_data));
+        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
     }
 
     // set to test_values_2
     for (auto& test_data : test_values_2)
     {
-        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data), std::get<2>(test_data));
+        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data));
     }
 
     // should read test_values_2
     for (auto& test_data : test_values_2)
     {
-        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data), std::get<1>(test_data)).value, std::get<2>(test_data));
+        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
     }
 
     // should restore test_values_1
@@ -164,13 +164,13 @@ TEST(TestsFitEntry, Backups)
     // should read test_values_1
     for (auto& test_data : test_values_1)
     {
-        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data), std::get<1>(test_data)).value, std::get<2>(test_data));
+        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
     }
 
     // should set test_values_2
     for (auto& test_data : test_values_3)
     {
-        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data), std::get<2>(test_data));
+        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data));
     }
 
     // should restore test_values_1
@@ -179,24 +179,24 @@ TEST(TestsFitEntry, Backups)
     // should read test_values_1
     for (auto& test_data : test_values_1)
     {
-        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data), std::get<1>(test_data)).value, std::get<2>(test_data));
+        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
     }
 
     for (auto& test_data : test_values_3)
     {
-        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data), std::get<2>(test_data));
+        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data));
     }
 
     // clear backup storage
     hfp1.drop();
 
     // should not allow to restore from empty
-    ASSERT_THROW(hfp1.restore(), std::out_of_range);
+    ASSERT_THROW(hfp1.restore(), hf::length_error);
 
     // still test_values_2
     for (auto& test_data : test_values_3)
     {
-        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data), std::get<1>(test_data)).value, std::get<2>(test_data));
+        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
     }
 
     hfp1.drop();

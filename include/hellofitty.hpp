@@ -26,6 +26,7 @@
 
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 
 #if __cplusplus < 201402L
@@ -39,6 +40,27 @@ class TH1;
 
 namespace hf
 {
+
+/// Exceptions
+
+// Thrown when the entry line is ill-formed
+class format_error : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
+
+class index_error : public std::out_of_range
+{
+public:
+    using std::out_of_range::out_of_range;
+};
+
+class length_error : public std::length_error
+{
+public:
+    using std::length_error::length_error;
+};
 
 namespace detail
 {
@@ -116,17 +138,20 @@ public:
     /// Get function body string
     /// @return function body as string
     /// @throw std::out_of_range if fun_id incorrect
-    auto get_function(int fun_id) const -> const char *;
+    auto get_function(int fun_id) const -> const char*;
 
-    auto set_param(int fun_id, int par_id, param value) -> void;
-    auto set_param(int fun_id, int par_id, Double_t val, param::fit_mode mode) -> void;
-    auto set_param(int fun_id, int par_id, Double_t val, Double_t min, Double_t max, param::fit_mode mode) -> void;
-    auto update_param(int fun_id, int par_id, Double_t val) -> void;
+    auto set_param(int par_id, param value) -> void;
+    auto set_param(int par_id, Double_t val, param::fit_mode mode) -> void;
+    auto set_param(int par_id, Double_t val, Double_t min, Double_t max, param::fit_mode mode) -> void;
+    auto update_param(int par_id, Double_t val) -> void;
 
     auto get_name() const -> TString;
 
-    auto get_param(int fun_id, int par_id) -> param&;
-    auto get_param(int fun_id, int par_id) const -> param;
+    auto get_param(int par_id) -> param&;
+    auto get_param(int par_id) const -> param;
+
+    auto get_param(const char* name) -> param&;
+    auto get_param(const char* name) const -> param;
 
     auto get_fit_range_min() const -> Double_t;
     auto get_fit_range_max() const -> Double_t;
@@ -153,11 +178,6 @@ public:
     /// @return function reference
     auto get_function_object() -> TF1&;
 
-    /// Return numbers of params in requested function.
-    /// @param fun_id function id
-    /// @throw std::out_of_rangem @see std::vector::at()
-    auto get_function_params_count(int fun_id) const -> int;
-
     /// Return numbers of params in total function.
     auto get_function_params_count() const -> int;
 
@@ -179,6 +199,14 @@ public:
 
 private:
     std::unique_ptr<detail::fit_entry_impl> m_d;
+};
+
+/// Specifies the data file format
+enum class format_version
+{
+    detect, ///< tries to detect the format, uses the same format for export
+    v1,     ///< fixed two functions format
+    v2,     ///< variable function number with params on the tail of line
 };
 
 class HELLOFITTY_EXPORT fitter final
@@ -287,7 +315,25 @@ struct draw_properties final
 
 auto HELLOFITTY_EXPORT format_name(const TString& name, const TString& decorator) -> TString;
 
-auto HELLOFITTY_EXPORT parse_line_entry(const TString& line, int version) -> std::unique_ptr<fit_entry>;
+/// Detect format of the line. A simple check of the pattern characteristic is made. In case of ill-formed line it may
+/// result in false detection.
+/// @param line entry line to be tested
+/// @return format name
+auto HELLOFITTY_EXPORT detect_format(const TString& line) -> format_version;
+
+/// Parse the entry line according to given format, by default tries to detect the format.
+/// @param line entry line to be parsed
+/// @param version entry version
+/// @return ownership of the parsed entry
+auto HELLOFITTY_EXPORT parse_line_entry(const TString& line, format_version version = hf::format_version::detect)
+    -> std::unique_ptr<fit_entry>;
+
+/// Export the entry to the text line using given format. By default the newest v2 is used.
+/// @param entry fit entry
+/// @param version entry version
+/// @return the entry string
+auto HELLOFITTY_EXPORT format_line_entry(const hf::fit_entry* entry, format_version version = hf::format_version::v2)
+    -> TString;
 
 } // namespace tools
 

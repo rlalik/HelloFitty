@@ -12,7 +12,7 @@
 
 namespace hf::parser
 {
-auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
+auto parse_line_entry_v2(const TString& line) -> std::unique_ptr<fit_entry>
 {
     TString line_ = line;
     line_.ReplaceAll("\t", " ");
@@ -31,20 +31,31 @@ auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
     //                                   dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
 
     auto hfp = make_unique<fit_entry>(dynamic_cast<TObjString*>(arr->At(0))->String(),        // hist name
-                                      dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
-                                      dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
+                                      dynamic_cast<TObjString*>(arr->At(1))->String().Atof(), // low range
+                                      dynamic_cast<TObjString*>(arr->At(2))->String().Atof());
 
-    hfp->add_function(dynamic_cast<TObjString*>(arr->At(1))->String());
-    hfp->add_function(dynamic_cast<TObjString*>(arr->At(2))->String());
+    auto rebin_value = dynamic_cast<TObjString*>(arr->At(3))->String().Atoi();
+    // hfp->set_rebin_flag(rebin_value); // TODO implement this
+
+    const auto all_tokens = arr->GetEntries();
+    auto token_id = 4;
+
+    for (; token_id < all_tokens; token_id++)
+    {
+        const auto token = dynamic_cast<TObjString*>(arr->At(token_id))->String();
+        if (token == "|") { break; }
+
+        if (token == ":" or token == "f" or token == "F") { throw hf::format_error("Param signature detected"); }
+
+        hfp->add_function(token);
+    }
 
     Int_t step = 0;
-
-    auto entries = arr->GetEntries();
 
     auto params_count = hfp->get_function_params_count();
     auto current_param = 0;
 
-    for (int i = 6; i < entries; i += step)
+    for (int i = token_id + 1; i < all_tokens; i += step)
     {
         if (current_param > params_count) { throw hf::format_error("To many parameters"); }
 
@@ -106,12 +117,19 @@ auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
     return hfp;
 }
 
-auto format_line_entry_v1(const hf::fit_entry* hist_fit) -> TString
+auto format_line_entry_v2(const hf::fit_entry* hist_fit) -> TString
 {
     auto out =
-        TString::Format("%c%s\t%s %s %d %.0f %.0f", hist_fit->get_flag_disabled() ? '@' : ' ',
-                        hist_fit->get_name().Data(), hist_fit->get_function(0), hist_fit->get_function(1),
-                        hist_fit->get_flag_rebin(), hist_fit->get_fit_range_min(), hist_fit->get_fit_range_max());
+        TString::Format("%c%s\t%g %g %d", hist_fit->get_flag_disabled() ? '@' : ' ', hist_fit->get_name().Data(),
+                        hist_fit->get_fit_range_min(), hist_fit->get_fit_range_max(), hist_fit->get_flag_rebin());
+    const auto function_count = hist_fit->get_functions_count();
+
+    for (auto function_counter = 0; function_counter < function_count; ++function_counter)
+    {
+        out += TString::Format(" %s", hist_fit->get_function(function_counter));
+    }
+
+    out += " |";
 
     auto max_params = hist_fit->get_function_params_count();
     for (auto param_counter = 0; param_counter < max_params; ++param_counter)

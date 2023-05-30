@@ -6,6 +6,7 @@ find_or_fetch_package(GTest https://github.com/google/googletest GIT_TAG main)
 set(tests_SRCS tests_param.cpp
                tests_fit_entry.cpp
                tests_parser_v1.cpp
+               tests_parser_v2.cpp
                tests_hellofitty.cpp
                tests_hellofitty_tools.cpp)
 

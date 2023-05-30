@@ -25,6 +25,7 @@ add_library(
     HelloFitty
     source/hellofitty.cpp
     source/parser_v1.cpp
+    source/parser_v2.cpp
 )
 add_library(HelloFitty::HelloFitty ALIAS HelloFitty)
 
