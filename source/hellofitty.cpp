@@ -533,10 +533,10 @@ auto fitter::set_replacement(const TString& src, const TString& dst) -> void
     m_d->rep_dst = dst;
 }
 
-auto fitter::set_name_decorator(const TString& decorator) -> void { m_d->name_decorator = decorator; }
+auto fitter::set_name_decorator(TString decorator) -> void { m_d->name_decorator = std::move(decorator); }
 auto fitter::clear_name_decorator() -> void { m_d->name_decorator = "*"; }
 
-auto fitter::set_function_decorator(const TString& decorator) -> void { m_d->function_decorator = decorator; }
+auto fitter::set_function_decorator(TString decorator) -> void { m_d->function_decorator = std::move(decorator); }
 
 auto fitter::set_draw_bits(bool sum, bool sig, bool bkg) -> void
 {

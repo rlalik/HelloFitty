@@ -264,10 +264,10 @@ public:
     auto insert_parameters(std::unique_ptr<fit_entry>&& hfp) -> void;
     auto insert_parameters(const TString& name, std::unique_ptr<fit_entry>&& hfp) -> void;
 
-    auto set_name_decorator(const TString& decorator) -> void;
+    auto set_name_decorator(TString decorator) -> void;
     auto clear_name_decorator() -> void;
 
-    auto set_function_decorator(const TString& decorator) -> void;
+    auto set_function_decorator(TString decorator) -> void;
 
     auto set_draw_bits(bool sum = true, bool sig = false, bool bkg = false) -> void;
 

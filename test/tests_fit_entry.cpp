@@ -9,7 +9,7 @@
 #include <string>    // for string
 #include <tuple>     // for get, tuple
 
-TEST(TestsFitEntry, Basic)
+TEST(TestsFitEntry, Functions)
 {
     hf::fit_entry hfp1("h1", 1, 10);
     ASSERT_STREQ(hfp1.get_name(), "h1");
@@ -32,6 +32,26 @@ TEST(TestsFitEntry, Basic)
 
     ASSERT_STREQ(hfp1.get_function(0), "gaus(0)");
     ASSERT_STREQ(hfp1.get_function(1), "expo(3)");
+}
+
+TEST(TestsFitEntry, Params)
+{
+    hf::fit_entry hfp1("h1", 1, 10);
+    ASSERT_EQ(hfp1.add_function("gaus(0)"), 0);
+
+    ASSERT_NO_THROW(hfp1.get_param(0));
+    ASSERT_THROW(hfp1.get_param(10), hf::index_error);
+
+    hfp1.set_param(0, 13, hf::param::fit_mode::free);
+
+    ASSERT_NO_THROW(hfp1.get_param("Constant"));
+    ASSERT_THROW(hfp1.get_param("Foo"), hf::index_error);
+
+    ASSERT_EQ(hfp1.get_param("Constant").value, 13);
+
+    const auto& hfp2 = hfp1;
+
+    ASSERT_EQ(hfp2.get_param("Constant").value, 13);
 }
 
 TEST(TestsFitEntry, Cloning)
