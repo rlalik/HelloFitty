@@ -34,34 +34,6 @@ TEST(TestsFitEntry, Basic)
     ASSERT_STREQ(hfp1.get_function(1), "expo(3)");
 }
 
-TEST(TestsFitEntry, ParsingLine)
-{
-    auto hfp0 = hf::tools::parse_line_entry("hist_1 gaus(0) 0  0  1 10  1  2 : 1 3  3 F 2 5", hf::format_version::v1);
-
-    ASSERT_TRUE(hfp0.get());
-
-    auto hfp1 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  0  1 10  1  2 : 1 3  3 F 2 5  4 f",
-                                            hf::format_version::v1);
-
-    auto export1 = hf::tools::format_line_entry(hfp1.get(), hf::format_version::v1);
-    ASSERT_STREQ(export1, " hist_1\tgaus(0) pol0(3) 0 1 10  1  2 : 1 3  3 F 2 5  4 f");
-
-    auto hfp2 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1 10  1  2 : 1 3  3 F 2 5  4 f",
-                                            hf::format_version::v1);
-
-    auto export2 = hf::tools::format_line_entry(hfp2.get(), hf::format_version::v1);
-    ASSERT_STREQ(export2, " hist_1\tgaus(0) pol0(3) 0 1 10  1  2 : 1 3  3 F 2 5  4 f");
-
-    auto hfp3 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1 10", hf::format_version::v1);
-
-    auto export3 = hf::tools::format_line_entry(hfp3.get(), hf::format_version::v1);
-    ASSERT_STREQ(export3, " hist_1\tgaus(0) pol0(3) 0 1 10  0  0  0  0");
-
-    auto hfp4 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1", hf::format_version::v1);
-
-    ASSERT_FALSE(hfp4.get());
-}
-
 TEST(TestsFitEntry, Cloning)
 {
     hf::fit_entry hfp1("h1", 1, 10);

@@ -59,7 +59,6 @@ TEST(TestsParserV1, ParsingLine)
     ASSERT_EQ(hfp1->get_param(3).mode, hf::param::fit_mode::fixed);
     ASSERT_EQ(hfp1->get_param(3).has_limits, false);
 
-    hfp1->init();
     hfp1->print();
 
     auto export1 = hf::tools::format_line_entry(hfp1.get(), hf::format_version::v1);
@@ -104,10 +103,9 @@ TEST(TestsParserV1, ParsingLine)
     ASSERT_EQ(hfp2->get_param(3).mode, hf::param::fit_mode::fixed);
     ASSERT_EQ(hfp2->get_param(3).has_limits, false);
 
-    hfp2->init();
     hfp2->print();
 
-    auto export2 = hf::parser::format_line_entry_v1(hfp2.get());
+    auto export2 = hf::parser::v1::format_line_entry(hfp2.get());
     ASSERT_STREQ(export2, " hist_1\tgaus(0) pol0(3) 0 1 10  1  2 : 1 3  3 F 2 5  4 f");
 
     auto hfp3 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1 10", hf::format_version::v1);
@@ -148,15 +146,12 @@ TEST(TestsParserV1, ParsingLine)
     ASSERT_EQ(hfp3->get_param(3).mode, hf::param::fit_mode::free);
     ASSERT_EQ(hfp3->get_param(3).has_limits, false);
 
-    hfp3->init();
     hfp3->print();
 
-    auto export3 = hf::parser::format_line_entry_v1(hfp3.get());
+    auto export3 = hf::parser::v1::format_line_entry(hfp3.get());
     ASSERT_STREQ(export3, " hist_1\tgaus(0) pol0(3) 0 1 10  0  0  0  0");
 
-    auto hfp4 = hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1", hf::format_version::v1);
-
-    ASSERT_FALSE(hfp4.get());
+    ASSERT_THROW(hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1", hf::format_version::v1), hf::format_error);
 }
 
 TEST(TestsParserV1, Parsing2Functions)

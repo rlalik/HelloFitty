@@ -12,17 +12,13 @@
 
 namespace hf::parser
 {
-auto parse_line_entry_v2(const TString& line) -> std::unique_ptr<fit_entry>
+auto v2::parse_line_entry(const TString& line) -> std::unique_ptr<fit_entry>
 {
     TString line_ = line;
     line_.ReplaceAll("\t", " ");
     auto arr = std::unique_ptr<TObjArray>(line_.Tokenize(" "));
 
-    if (arr->GetEntries() < 6)
-    {
-        // std::cerr << "Error parsing line:\n " << line << "\n";
-        return nullptr;
-    };
+    if (arr->GetEntries() < 5) { throw hf::format_error("Not enough parameters"); };
 
     // auto hfp = make_unique<fit_entry>(dynamic_cast<TObjString*>(arr->At(0))->String(),        // hist name
     //                                   dynamic_cast<TObjString*>(arr->At(1))->String(),        // func val
@@ -34,7 +30,7 @@ auto parse_line_entry_v2(const TString& line) -> std::unique_ptr<fit_entry>
                                       dynamic_cast<TObjString*>(arr->At(1))->String().Atof(), // low range
                                       dynamic_cast<TObjString*>(arr->At(2))->String().Atof());
 
-    auto rebin_value = dynamic_cast<TObjString*>(arr->At(3))->String().Atoi();
+    // auto rebin_value = dynamic_cast<TObjString*>(arr->At(3))->String().Atoi(); TODO
     // hfp->set_rebin_flag(rebin_value); // TODO implement this
 
     const auto all_tokens = arr->GetEntries();
@@ -47,8 +43,9 @@ auto parse_line_entry_v2(const TString& line) -> std::unique_ptr<fit_entry>
 
         if (token == ":" or token == "f" or token == "F") { throw hf::format_error("Param signature detected"); }
 
-        hfp->add_function(token);
+        hfp->m_d->add_function_lazy(token);
     }
+    hfp->m_d->compile();
 
     Int_t step = 0;
 
@@ -106,7 +103,7 @@ auto parse_line_entry_v2(const TString& line) -> std::unique_ptr<fit_entry>
             if (has_limits_) { hfp->set_param(current_param, par_, l_, u_, flag_); }
             else { hfp->set_param(current_param, par_, flag_); }
         }
-        catch (std::out_of_range)
+        catch (const std::out_of_range&)
         {
             throw hf::format_error("To many parameters");
         }
@@ -117,7 +114,7 @@ auto parse_line_entry_v2(const TString& line) -> std::unique_ptr<fit_entry>
     return hfp;
 }
 
-auto format_line_entry_v2(const hf::fit_entry* hist_fit) -> TString
+auto v2::format_line_entry(const hf::fit_entry* hist_fit) -> TString
 {
     auto out =
         TString::Format("%c%s\t%g %g %d", hist_fit->get_flag_disabled() ? '@' : ' ', hist_fit->get_name().Data(),
@@ -166,5 +163,4 @@ auto format_line_entry_v2(const hf::fit_entry* hist_fit) -> TString
 
     return out;
 }
-
 } // namespace hf::parser

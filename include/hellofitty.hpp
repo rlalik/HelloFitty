@@ -111,6 +111,14 @@ struct param final
     auto print() const -> void;
 };
 
+class fitter;
+
+namespace parser
+{
+struct v1;
+struct v2;
+} // namespace parser
+
 /// Stores full description of a single fit entry - signal and background functions, and parameters.
 class HELLOFITTY_EXPORT fit_entry final
 {
@@ -140,18 +148,18 @@ public:
     /// @throw std::out_of_range if fun_id incorrect
     auto get_function(int fun_id) const -> const char*;
 
-    auto set_param(int par_id, param value) -> void;
-    auto set_param(int par_id, Double_t val, param::fit_mode mode) -> void;
-    auto set_param(int par_id, Double_t val, Double_t min, Double_t max, param::fit_mode mode) -> void;
-    auto update_param(int par_id, Double_t val) -> void;
+    auto set_param(int par_id, param par) -> void;
+    auto set_param(int par_id, Double_t value, param::fit_mode mode) -> void;
+    auto set_param(int par_id, Double_t value, Double_t min, Double_t max, param::fit_mode mode) -> void;
+    auto update_param(int par_id, Double_t value) -> void;
 
     auto get_name() const -> TString;
 
     auto get_param(int par_id) -> param&;
-    auto get_param(int par_id) const -> param;
+    auto get_param(int par_id) const -> const param&;
 
     auto get_param(const char* name) -> param&;
-    auto get_param(const char* name) const -> param;
+    auto get_param(const char* name) const -> const param&;
 
     auto get_fit_range_min() const -> Double_t;
     auto get_fit_range_max() const -> Double_t;
@@ -196,6 +204,10 @@ public:
     auto drop() -> void;
 
     auto print(bool detailed = false) const -> void;
+
+    friend hf::fitter;
+    friend hf::parser::v1;
+    friend hf::parser::v2;
 
 private:
     std::unique_ptr<detail::fit_entry_impl> m_d;
@@ -342,12 +354,10 @@ auto HELLOFITTY_EXPORT format_line_entry(const hf::fit_entry* entry, format_vers
 #ifdef FMT_RANGES_H_
 template <> struct fmt::formatter<hf::param>
 {
-    char presentation = 'g';
     CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         // Parse the presentation format and store it in the formatter:
         auto it = ctx.begin(), end = ctx.end();
-        // if (it != end && (*it == 'f' || *it == 'e' || *it == 'g')) presentation = *it++;
         if (it != end && *it != '}') FMT_THROW(format_error("invalid format"));
 
         // Check if reached the end of the range:

@@ -12,17 +12,13 @@
 
 namespace hf::parser
 {
-auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
+auto v1::parse_line_entry(const TString& line) -> std::unique_ptr<fit_entry>
 {
     TString line_ = line;
     line_.ReplaceAll("\t", " ");
     auto arr = std::unique_ptr<TObjArray>(line_.Tokenize(" "));
 
-    if (arr->GetEntries() < 6)
-    {
-        // std::cerr << "Error parsing line:\n " << line << "\n";
-        return nullptr;
-    };
+    if (arr->GetEntries() < 6) { throw hf::format_error("Not enough parameters"); };
 
     // auto hfp = make_unique<fit_entry>(dynamic_cast<TObjString*>(arr->At(0))->String(),        // hist name
     //                                   dynamic_cast<TObjString*>(arr->At(1))->String(),        // func val
@@ -34,8 +30,9 @@ auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
                                       dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
                                       dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
 
-    hfp->add_function(dynamic_cast<TObjString*>(arr->At(1))->String());
-    hfp->add_function(dynamic_cast<TObjString*>(arr->At(2))->String());
+    hfp->m_d->add_function_lazy(dynamic_cast<TObjString*>(arr->At(1))->String());
+    hfp->m_d->add_function_lazy(dynamic_cast<TObjString*>(arr->At(2))->String());
+    hfp->m_d->compile();
 
     Int_t step = 0;
 
@@ -95,7 +92,7 @@ auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
             if (has_limits_) { hfp->set_param(current_param, par_, l_, u_, flag_); }
             else { hfp->set_param(current_param, par_, flag_); }
         }
-        catch (std::out_of_range)
+        catch (const std::out_of_range&)
         {
             throw hf::format_error("To many parameters");
         }
@@ -106,7 +103,7 @@ auto parse_line_entry_v1(const TString& line) -> std::unique_ptr<fit_entry>
     return hfp;
 }
 
-auto format_line_entry_v1(const hf::fit_entry* hist_fit) -> TString
+auto v1::format_line_entry(const hf::fit_entry* hist_fit) -> TString
 {
     auto out =
         TString::Format("%c%s\t%s %s %d %.0f %.0f", hist_fit->get_flag_disabled() ? '@' : ' ',
