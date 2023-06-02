@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <hellofitty.hpp>
-#include <parser.hpp>
+#include "hellofitty.hpp"
+#include "parser.hpp"
 
 TEST(TestsParserV2, ParsingInvalid)
 {

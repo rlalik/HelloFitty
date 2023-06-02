@@ -1,7 +1,7 @@
 include(../cmake/find_or_fetch_package.cmake)
 
 set(INSTALL_GTEST OFF)
-find_or_fetch_package(GTest https://github.com/google/googletest GIT_TAG main)
+find_or_fetch_package(GTest https://github.com/google/googletest GIT_TAG release-1.11.0)
 
 set(tests_SRCS tests_param.cpp
                tests_fit_entry.cpp

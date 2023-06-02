@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include <hellofitty.hpp>
-#include <hellofitty_config.h>
+#include "hellofitty.hpp"
+#include "hellofitty_config.h"
 
 TEST(TestsTools, SourceSelect)
 {

@@ -8,6 +8,16 @@
 #include <fmt/ranges.h>
 
 #include <numeric>
+#include <unordered_map>
+
+#if __cplusplus < 201402L
+template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)
+{
+    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
+#else
+using std::make_unique;
+#endif
 
 namespace
 {
@@ -23,6 +33,21 @@ constexpr auto int2size_t(int val) -> size_t { return (val < 0) ? __SIZE_MAX__ :
 
 namespace hf::detail
 {
+    
+struct draw_opts_impl final
+{
+#if __cplusplus >= 201703L
+    std::optional<Int_t> visible;
+    std::optional<Color_t> line_color;
+    std::optional<Width_t> line_width;
+    std::optional<Style_t> line_style;
+#else
+    Int_t visible{-1};
+    Color_t line_color{-1};
+    Width_t line_width{-1};
+    Style_t line_style{-1};
+#endif
+};
 
 /// Structure stores a set of values for a single function parameters like the the mean value,
 /// lwoer or upper boundaries, free or fixed fitting mode.
@@ -59,11 +84,13 @@ struct fit_entry_impl
     bool fit_disabled{false};
 
     std::vector<function_impl> funcs;
-    TString total_function_body;
-    TF1 total_function_object;
+    TString complete_function_body;
+    TF1 complete_function_object;
 
     std::vector<param> pars;
     std::vector<Double_t> parameters_backup; // backup for parameters
+
+    std::unordered_map<int, draw_opts> partial_functions_styles;
 
     fit_entry_impl() : pars(10), parameters_backup(10) {}
     /// Does not recompile the total function. Use compile() after adding last function.
@@ -77,30 +104,30 @@ struct fit_entry_impl
     auto compile() -> void
     {
         if (funcs.size() == 0) { return; }
-        total_function_body =
+        complete_function_body =
             std::accumulate(std::next(funcs.begin()), funcs.end(), funcs[0].body_string,
                             [](TString a, hf::detail::function_impl b) { return std::move(a) + "+" + b.body_string; });
 
-        total_function_object = TF1("", total_function_body, range_min, range_max, TF1::EAddToList::kNo);
+        complete_function_object = TF1("", complete_function_body, range_min, range_max, TF1::EAddToList::kNo);
 
-        auto npars = int2size_t(total_function_object.GetNpar());
+        auto npars = int2size_t(complete_function_object.GetNpar());
         pars.resize(npars);
         parameters_backup.resize(npars);
     }
 
     auto prepare() -> void
     {
-        auto params_number = int2size_t(total_function_object.GetNpar());
+        auto params_number = int2size_t(complete_function_object.GetNpar());
         for (size_t i = 0; i < params_number; ++i)
         {
             if (pars[i].mode == hf::param::fit_mode::fixed)
             {
-                total_function_object.FixParameter(size_t2int(i), pars[i].value);
+                complete_function_object.FixParameter(size_t2int(i), pars[i].value);
             }
             else
             {
-                total_function_object.SetParameter(size_t2int(i), pars[i].value);
-                if (pars[i].has_limits) { total_function_object.SetParLimits(size_t2int(i), pars[i].min, pars[i].max); }
+                complete_function_object.SetParameter(size_t2int(i), pars[i].value);
+                if (pars[i].has_limits) { complete_function_object.SetParLimits(size_t2int(i), pars[i].min, pars[i].max); }
             }
         }
     }
@@ -143,13 +170,7 @@ struct fitter_impl
     TString name_decorator{"*"};
     TString function_decorator{"f_*"};
 
-    TString rep_src;
-    TString rep_dst;
-
-    bool draw_sum{true};
-    bool draw_sig{false};
-    bool draw_bkg{false};
-    tools::draw_properties prop_sum, prop_sig, prop_bkg;
+    std::unordered_map<int, draw_opts> partial_functions_styles;
 };
 
 } // namespace hf::detail

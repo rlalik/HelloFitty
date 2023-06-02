@@ -10,17 +10,9 @@
 
 class TString;
 
-#if __cplusplus < 201402L
-template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)
-{
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-#else
-using std::make_unique;
-#endif
-
 namespace hf::parser
 {
+
 /// Initial format with fixed two functions:
 ///  hist_name signal_func background_func rebin_flag range_min range_max param0 [... params]
 /// @{

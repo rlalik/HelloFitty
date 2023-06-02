@@ -28,7 +28,7 @@ auto create_input_file(const TString& filename) -> void
         }
     }
     else { fmt::print("Good, parameter file {} exists.\n", filename.Data()); }
-};
+}
 
 auto create_root_file(const TString& filename) -> TH1I*
 {
@@ -151,9 +151,9 @@ auto create_root_file(const TString& filename) -> TH1I*
 
 auto main() -> int
 {
-    auto root_file_name = TString(examples_bin_path) + "test_hist.root";
+    auto root_file_name = TString(examples_bin_path) + "test_hist_input.root";
     auto hist = create_root_file(root_file_name);
-    auto root_outout_name = TString(examples_bin_path) + "test_output.root";
+    auto root_outout_name = TString(examples_bin_path) + "test_hist_output.root";
 
     auto input_name = TString(examples_bin_path) + "test_input.txt";
     create_input_file(input_name);
@@ -163,15 +163,18 @@ auto main() -> int
     auto output3_name = TString(examples_bin_path) + "test_output3.txt";
 
     hf::fitter ff;
-    ff.set_draw_bits(true, true, true);
-    ff.prop_bkg().set_line_color(1).set_line_width(2).set_line_style(9);
-    ff.prop_sig().set_line_color(1).set_line_width(1).set_line_style(2);
+    ff.set_verbose(true);
+
+    ff.set_function_style(0).set_line_color(1).set_line_width(1).set_line_style(2).set_visible(false).print();
+    ff.set_function_style(1).set_line_color(1).set_line_width(2).set_line_style(9).print();
+    ff.set_function_style().set_visible(true).print();
 
     /** First usage using HFP object **/
     fmt::print("{}", "\n ---- FIRST USAGE ---\n\n");
     ff.init_fitter_from_file(input_name, output1_name);
 
     auto hfp = ff.find_fit("test_hist");
+    hfp->set_function_style(0).set_visible(true);
     if (hfp)
     {
         fmt::print("{}", "\nBefore fitting:\n");

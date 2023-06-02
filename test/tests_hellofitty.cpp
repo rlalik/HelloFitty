@@ -1,21 +1,14 @@
 #include <gtest/gtest.h>
 
-#include <hellofitty.hpp>
+#include "hellofitty.hpp"
+
+#include "details.hpp"
 
 #include <TH1.h>
 
 #include <memory>
 #include <string>
 #include <utility>
-
-#if __cplusplus < 201402L
-template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)
-{
-    return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
-}
-#else
-using std::make_unique;
-#endif
 
 TEST(TestsFitter, PrefixSuffixTest)
 {
@@ -42,7 +35,7 @@ TEST(TestsFitter, InsertParameters)
     auto hf1 = make_unique<hf::fit_entry>("name1", 0, 1);
     hf1->add_function("1");
     hf1->add_function("0");
-    fitter.insert_parameters(std::move(hf1));
+    fitter.insert_parameter(std::move(hf1));
 
     const auto fit2 = fitter.find_fit("name1");
     ASSERT_NE(fit2, nullptr);
@@ -92,10 +85,10 @@ TEST(TestsFitter, NameDecorator)
 {
     hf::fitter fitter;
 
-    auto hfp_foo = std::make_unique<hf::fit_entry>("h_foo", 1, 10);
+    auto hfp_foo = make_unique<hf::fit_entry>("h_foo", 1, 10);
     ASSERT_EQ(hfp_foo->add_function("gaus(0)"), 0);
 
-    fitter.insert_parameters(std::move(hfp_foo));
+    fitter.insert_parameter(std::move(hfp_foo));
 
     fitter.set_name_decorator("*_foo");
 

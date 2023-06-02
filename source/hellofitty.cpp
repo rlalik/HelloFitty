@@ -99,6 +99,69 @@ template <> struct fmt::formatter<hf::fit_entry>
 namespace hf
 {
 
+draw_opts::draw_opts() : m_d{make_unique<detail::draw_opts_impl>()} {}
+
+auto draw_opts::set_visible(bool vis) -> draw_opts&
+{
+    m_d->visible = vis;
+    return *this;
+}
+
+auto draw_opts::set_line_color(Color_t color) -> draw_opts&
+{
+    m_d->line_color = color;
+    return *this;
+}
+
+auto draw_opts::set_line_width(Width_t width) -> draw_opts&
+{
+    m_d->line_width = width;
+    return *this;
+}
+
+auto draw_opts::set_line_style(Style_t style) -> draw_opts&
+{
+    m_d->line_style = style;
+    return *this;
+}
+
+auto draw_opts::apply(TF1* function) const -> void
+{
+#if __cplusplus >= 201703L
+    if (m_d->visible)
+    {
+        if (m_d->visible == 0) { function->SetBit(TF1::kNotDraw); }
+        else { function->ResetBit(TF1::kNotDraw); }
+    }
+    else { function->ResetBit(TF1::kNotDraw); }
+    if (m_d->line_color) { function->SetLineColor(*m_d->line_color); }
+    if (m_d->line_width) { function->SetLineWidth(*m_d->line_width); }
+    if (m_d->line_style) { function->SetLineStyle(*m_d->line_style); }
+#else
+    if (m_d->visible != -1)
+    {
+        if (m_d->visible == 0) { function->SetBit(TF1::kNotDraw); }
+        else { function->ResetBit(TF1::kNotDraw); }
+    }
+    else { function->ResetBit(TF1::kNotDraw); }
+    if (m_d->line_color != -1) { function->SetLineColor(m_d->line_color); }
+    if (m_d->line_width != -1) { function->SetLineWidth(m_d->line_width); }
+    if (m_d->line_style != -1) { function->SetLineStyle(m_d->line_style); }
+#endif
+}
+
+auto draw_opts::print() const -> void
+{
+    fmt::print(" STYLE INFO: Visible: {}  Color: {}  Width: {}  Style: {}\n",
+#if __cplusplus >= 201703L
+               m_d->visible.value_or(-999), m_d->line_color.value_or(-999), m_d->line_width.value_or(-999),
+               m_d->line_style.value_or(-999)
+#else
+               m_d->visible, m_d->line_color, m_d->line_width, m_d->line_style
+#endif
+    );
+}
+
 auto param::print() const -> void
 {
     fmt::print("{:10g}   Mode: {:>5}   Limits: ", value, mode == fit_mode::free ? "free" : "fixed");
@@ -140,9 +203,9 @@ auto fit_entry::add_function(TString formula) -> int
     return current_function_idx;
 }
 
-auto fit_entry::get_function(int fun_id) const -> const char*
+auto fit_entry::get_function(int function_index) const -> const char*
 {
-    return m_d->funcs.at(int2size_t(fun_id)).body_string.Data();
+    return m_d->funcs.at(int2size_t(function_index)).body_string.Data();
 }
 
 auto fit_entry::set_param(int par_id, param par) -> void
@@ -196,12 +259,12 @@ auto get_param_name_index(TF1* fun, const char* name) -> Int_t
 
 auto fit_entry::get_param(const char* name) -> param&
 {
-    return get_param(get_param_name_index(&m_d->total_function_object, name));
+    return get_param(get_param_name_index(&m_d->complete_function_object, name));
 }
 
 auto fit_entry::get_param(const char* name) const -> const param&
 {
-    return get_param(get_param_name_index(&m_d->total_function_object, name));
+    return get_param(get_param_name_index(&m_d->complete_function_object, name));
 }
 
 auto fit_entry::get_name() const -> TString { return m_d->hist_name; }
@@ -212,20 +275,20 @@ auto fit_entry::get_fit_range_max() const -> Double_t { return m_d->range_max; }
 
 auto fit_entry::get_functions_count() const -> int { return size_t2int(m_d->funcs.size()); }
 
-auto fit_entry::get_function_object(int fun_id) const -> const TF1&
+auto fit_entry::get_function_object(int function_index) const -> const TF1&
 {
-    return m_d->funcs.at(int2size_t(fun_id)).function_obj;
+    return m_d->funcs.at(int2size_t(function_index)).function_obj;
 }
 
-auto fit_entry::get_function_object(int fun_id) -> TF1&
+auto fit_entry::get_function_object(int function_index) -> TF1&
 {
-    return const_cast<TF1&>(const_cast<const fit_entry*>(this)->get_function_object(fun_id));
+    return const_cast<TF1&>(const_cast<const fit_entry*>(this)->get_function_object(function_index));
 }
 
 auto fit_entry::get_function_object() const -> const TF1&
 {
-    if (!m_d->total_function_object.IsValid()) { m_d->compile(); }
-    return m_d->total_function_object;
+    if (!m_d->complete_function_object.IsValid()) { m_d->compile(); }
+    return m_d->complete_function_object;
 }
 
 auto fit_entry::get_function_object() -> TF1&
@@ -280,6 +343,16 @@ auto fit_entry::backup() -> void { m_d->backup(); }
 auto fit_entry::restore() -> void { m_d->restore(); }
 
 auto fit_entry::drop() -> void { m_d->parameters_backup.clear(); }
+
+auto fit_entry::set_function_style(int function_index) -> draw_opts&
+{
+    auto res = m_d->partial_functions_styles.insert({function_index, draw_opts()});
+    if (res.second == true) return res.first->second;
+
+    throw std::runtime_error("Function style already exists.");
+}
+
+auto fit_entry::set_function_style() -> draw_opts& { return set_function_style(-1); }
 
 auto fitter::set_verbose(bool verbose) -> void { detail::fitter_impl::verbose_flag = verbose; }
 
@@ -339,12 +412,12 @@ auto fitter::init_fitter_from_file(const char* filename, const char* auxname) ->
 
 auto fitter::export_fitter_to_file() -> bool { return export_parameters(m_d->par_aux.Data()); }
 
-auto fitter::insert_parameters(std::unique_ptr<fit_entry>&& hfp) -> void
+auto fitter::insert_parameter(std::unique_ptr<fit_entry>&& hfp) -> void
 {
-    insert_parameters(hfp->get_name(), std::move(hfp));
+    insert_parameter(hfp->get_name(), std::move(hfp));
 }
 
-auto fitter::insert_parameters(const TString& name, std::unique_ptr<fit_entry>&& hfp) -> void
+auto fitter::insert_parameter(const TString& name, std::unique_ptr<fit_entry>&& hfp) -> void
 {
     m_d->hfpmap.insert({name, std::move(hfp)});
 }
@@ -363,7 +436,7 @@ auto fitter::import_parameters(const std::string& filename) -> bool
     std::string line;
     while (std::getline(fparfile, line))
     {
-        insert_parameters(tools::parse_line_entry(line, m_d->input_format_version));
+        insert_parameter(tools::parse_line_entry(line, m_d->input_format_version));
     }
 
     return true;
@@ -406,7 +479,7 @@ auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> bool
 
         auto tmp = m_d->defpars->clone(tools::format_name(hist->GetName(), m_d->name_decorator));
         hfp = tmp.get();
-        insert_parameters(std::move(tmp));
+        insert_parameter(std::move(tmp));
     }
 
     hfp->backup();
@@ -416,6 +489,21 @@ auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> bool
 
     return status;
 }
+
+namespace
+{
+
+auto apply_style(TF1* function, std::unordered_map<int, hf::draw_opts>& styles, int index) -> bool
+{
+    const auto style = styles.find(index);
+    if (style != styles.cend())
+    {
+        style->second.apply(function);
+        return true;
+    }
+    return false;
+}
+} // namespace
 
 auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars) -> bool
 {
@@ -433,15 +521,10 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
     if (hist->Integral(bin_l, bin_u) == 0) return false;
 
     TF1* tfSum = &hfp->get_function_object();
-
     tfSum->SetName(tools::format_name(hfp->get_name(), m_d->function_decorator));
 
     hist->GetListOfFunctions()->Clear();
     hist->GetListOfFunctions()->SetOwner(kTRUE);
-
-    if (m_d->draw_sum) { prop_sum().apply_style(tfSum); }
-    else { tfSum->SetBit(TF1::kNotDraw); }
-    // tfSum->SetBit(TF1::kNotGlobal);
 
     const auto par_num = tfSum->GetNpar();
 
@@ -489,19 +572,6 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
 
     const auto functions_count = hfp->get_functions_count();
 
-    for (auto i = 0; i < functions_count; ++i)
-    {
-        auto& partial_function = hfp->get_function_object(i);
-        partial_function.SetName(tools::format_name(hfp->get_name(), m_d->function_decorator + "_function_" + i));
-
-        // if (m_d->draw_sig) { prop_sig().apply_style(tfSig); } FIXME
-        // else { tfSig->SetBit(TF1::kNotDraw); }
-        // tfSig->SetBit(TF1::kNotGlobal);
-
-        hist->GetListOfFunctions()->Add(
-            partial_function.Clone(tools::format_name(hfp->get_name(), m_d->function_decorator + "_function_" + i)));
-    }
-
     for (auto i = 0; i < par_num; ++i)
     {
         double par = tfSum->GetParameter(i);
@@ -520,6 +590,32 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
         hfp->update_param(i, par);
     }
 
+    auto complete_function = dynamic_cast<TF1*>(hist->GetListOfFunctions()->At(0));
+    if (!apply_style(complete_function, hfp->m_d->partial_functions_styles, -1))
+    {
+        if (!apply_style(complete_function, m_d->partial_functions_styles, -1))
+        {
+            complete_function->ResetBit(TF1::kNotDraw);
+        }
+    }
+
+    for (auto i = 0; i < functions_count; ++i)
+    {
+        auto& partial_function = hfp->get_function_object(i);
+        // partial_function.SetName(tools::format_name(hfp->get_name(), m_d->function_decorator + "_function_" + i));
+
+        auto cloned = dynamic_cast<TF1*>(
+            partial_function.Clone(tools::format_name(hfp->get_name(), m_d->function_decorator + "_function_" + i)));
+        if (!apply_style(cloned, hfp->m_d->partial_functions_styles, i))
+        {
+            if (!apply_style(cloned, m_d->partial_functions_styles, i)) { cloned->ResetBit(TF1::kNotDraw); }
+        }
+
+        // tfSig->SetBit(TF1::kNotGlobal); TODO do I need it?
+
+        hist->GetListOfFunctions()->Add(cloned);
+    }
+
     return true;
 }
 
@@ -527,27 +623,20 @@ auto fitter::set_flags(priority_mode new_mode) -> void { m_d->mode = new_mode; }
 
 auto fitter::set_default_parameters(fit_entry* defs) -> void { m_d->defpars = defs; }
 
-auto fitter::set_replacement(const TString& src, const TString& dst) -> void
-{
-    m_d->rep_src = src;
-    m_d->rep_dst = dst;
-}
-
 auto fitter::set_name_decorator(TString decorator) -> void { m_d->name_decorator = std::move(decorator); }
 auto fitter::clear_name_decorator() -> void { m_d->name_decorator = "*"; }
 
 auto fitter::set_function_decorator(TString decorator) -> void { m_d->function_decorator = std::move(decorator); }
 
-auto fitter::set_draw_bits(bool sum, bool sig, bool bkg) -> void
+auto fitter::set_function_style(int function_index) -> draw_opts&
 {
-    m_d->draw_sum = sum;
-    m_d->draw_sig = sig;
-    m_d->draw_bkg = bkg;
+    auto res = m_d->partial_functions_styles.insert({function_index, draw_opts()});
+    if (res.second == true) return res.first->second;
+
+    throw std::runtime_error("Function style already exists.");
 }
 
-auto fitter::prop_sum() -> tools::draw_properties& { return m_d->prop_sum; }
-auto fitter::prop_sig() -> tools::draw_properties& { return m_d->prop_sig; }
-auto fitter::prop_bkg() -> tools::draw_properties& { return m_d->prop_bkg; }
+auto fitter::set_function_style() -> draw_opts& { return set_function_style(-1); }
 
 auto fitter::print() const -> void
 {
@@ -589,19 +678,6 @@ auto select_source(const char* filename, const char* auxname) -> source
 #endif
 
     return mod_aux > mod_ref ? source::auxiliary : source::reference;
-}
-
-auto draw_properties::apply_style(TF1* function) -> void
-{
-#if __cplusplus >= 201703L
-    if (line_color) { function->SetLineColor(*line_color); }
-    if (line_width) { function->SetLineWidth(*line_width); }
-    if (line_style) { function->SetLineStyle(*line_style); }
-#else
-    if (line_color != -1) { function->SetLineColor(line_color); }
-    if (line_width != -1) { function->SetLineWidth(line_width); }
-    if (line_style != -1) { function->SetLineStyle(line_style); }
-#endif
 }
 
 auto format_name(const TString& name, const TString& decorator) -> TString

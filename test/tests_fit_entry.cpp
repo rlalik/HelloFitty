@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <hellofitty.hpp>
+#include "hellofitty.hpp"
 
 #include <TString.h> // for TString
 

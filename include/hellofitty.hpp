@@ -64,14 +64,41 @@ public:
 
 namespace detail
 {
+struct draw_opts_impl;
 struct fit_entry_impl;
 struct fitter_impl;
 } // namespace detail
 
-namespace tools
+class draw_opts final
 {
-struct draw_properties;
-} // namespace tools
+public:
+    draw_opts();
+
+    /// Make function visible
+    /// @param vis visibility
+    /// @return reference to itself
+    auto set_visible(bool vis) -> draw_opts&;
+    /// Line color
+    /// @param color color
+    /// @return reference to itself
+    auto set_line_color(Color_t color) -> draw_opts&;
+    /// Line width
+    /// @param width line width
+    /// @return reference to itself
+    auto set_line_width(Width_t width) -> draw_opts&;
+    /// Line style
+    /// @param style line style
+    /// @return reference to itself
+    auto set_line_style(Style_t style) -> draw_opts&;
+    /// Apply style to function
+    /// @param function function
+    auto apply(TF1* function) const -> void;
+    /// Print style info
+    auto print() const -> void;
+
+private:
+    std::unique_ptr<detail::draw_opts_impl> m_d;
+};
 
 /// Structure stores a set of values for a single function parameters like the the mean value,
 /// lwoer or upper boundaries, free or fixed fitting mode.
@@ -145,8 +172,8 @@ public:
 
     /// Get function body string
     /// @return function body as string
-    /// @throw std::out_of_range if fun_id incorrect
-    auto get_function(int fun_id) const -> const char*;
+    /// @throw std::out_of_range if function_index incorrect
+    auto get_function(int function_index) const -> const char*;
 
     auto set_param(int par_id, param par) -> void;
     auto set_param(int par_id, Double_t value, param::fit_mode mode) -> void;
@@ -169,14 +196,14 @@ public:
     auto get_functions_count() const -> int;
 
     /// Return reference to given function
-    /// @param fun_id function id
+    /// @param function_index function id
     /// @return function reference
     /// @throw std::out_of_range
-    auto get_function_object(int fun_id) const -> const TF1&;
+    auto get_function_object(int function_index) const -> const TF1&;
 
     /// Return reference to signal function
     /// @return function reference
-    auto get_function_object(int fun_id) -> TF1&;
+    auto get_function_object(int function_index) -> TF1&;
 
     /// Return reference to total function
     /// @return function reference
@@ -202,6 +229,9 @@ public:
     auto restore() -> void;
     /// Clear backup storage
     auto drop() -> void;
+
+    auto set_function_style(int function_index) -> draw_opts&;
+    auto set_function_style() -> draw_opts&;
 
     auto print(bool detailed = false) const -> void;
 
@@ -259,21 +289,19 @@ public:
 
     static auto set_verbose(bool verbose) -> void;
 
-    auto set_replacement(const TString& src, const TString& dst) -> void;
-
-    auto insert_parameters(std::unique_ptr<fit_entry>&& hfp) -> void;
-    auto insert_parameters(const TString& name, std::unique_ptr<fit_entry>&& hfp) -> void;
+    auto insert_parameter(std::unique_ptr<fit_entry>&& hfp) -> void;
+    auto insert_parameter(const TString& name, std::unique_ptr<fit_entry>&& hfp) -> void;
 
     auto set_name_decorator(TString decorator) -> void;
     auto clear_name_decorator() -> void;
 
     auto set_function_decorator(TString decorator) -> void;
 
-    auto set_draw_bits(bool sum = true, bool sig = false, bool bkg = false) -> void;
+    auto set_function_style(int function_index) -> draw_opts&;
+    auto set_function_style() -> draw_opts&;
 
-    auto prop_sum() -> tools::draw_properties&;
-    auto prop_sig() -> tools::draw_properties&;
-    auto prop_bkg() -> tools::draw_properties&;
+    auto get_function_style(int function_index) -> draw_opts&;
+    auto get_function_style() -> draw_opts&;
 
 private:
     auto import_parameters(const std::string& filename) -> bool;
@@ -293,37 +321,6 @@ enum class source
 };
 
 auto HELLOFITTY_EXPORT select_source(const char* filename, const char* auxname = nullptr) -> source;
-
-struct draw_properties final
-{
-#if __cplusplus >= 201703L
-    std::optional<Color_t> line_color;
-    std::optional<Width_t> line_width;
-    std::optional<Style_t> line_style;
-#else
-    Color_t line_color{-1};
-    Width_t line_width{-1};
-    Style_t line_style{-1};
-#endif
-
-    auto set_line_color(Int_t color) -> draw_properties&
-    {
-        line_color = color;
-        return *this;
-    }
-    auto set_line_width(Int_t width) -> draw_properties&
-    {
-        line_width = width;
-        return *this;
-    }
-    auto set_line_style(Int_t style) -> draw_properties&
-    {
-        line_style = style;
-        return *this;
-    }
-
-    auto apply_style(TF1* function) -> void;
-};
 
 auto HELLOFITTY_EXPORT format_name(const TString& name, const TString& decorator) -> TString;
 

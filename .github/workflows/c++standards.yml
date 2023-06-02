@@ -74,6 +74,7 @@ jobs:
           mkdir build
           cd build
           cmake .. \
+            -DCMAKE_CXX_STANDARD=${{ matrix.root-version.std }} \
             -DHelloFitty_DEVELOPER_MODE=ON \
             -DBUILD_TESTING=ON \
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \

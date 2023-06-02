@@ -74,8 +74,8 @@ jobs:
         run: |
           build/example/example1   # first try
           build/example/example1   # second try
-          build/example/example2 build/example/test_hist.root build/example/test_input.txt build/example/results2.root
-          build/example/example2 build/example/test_hist.root build/example/test_input.txt build/example/results2.root
+          build/example/example2 build/example/test_hist_input.root build/example/test_input.txt build/example/results2.root
+          build/example/example2 build/example/test_hist_input.root build/example/test_input.txt build/example/results2.root
 
       - name: lcov-action
         uses: danielealbano/lcov-action@v3
