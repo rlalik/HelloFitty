@@ -30,3 +30,5 @@ CREATE_SUBDIRS = NO
 # Include all directories, files and namespaces in the documentation
 # Disable to include only explicitly documented objects
 M_SHOW_UNDOCUMENTED = YES
+
+SORT_MEMBER_DOCS = YES
