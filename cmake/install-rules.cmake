@@ -13,8 +13,8 @@ set(package HelloFitty)
 
 install(
     DIRECTORY
-    include/
-    "${PROJECT_BINARY_DIR}/export/"
+        include/
+        "${PROJECT_BINARY_DIR}/export/"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
     COMPONENT HelloFitty_Development
 )

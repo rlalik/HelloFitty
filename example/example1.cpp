@@ -171,7 +171,7 @@ auto main() -> int
 
     /** First usage using HFP object **/
     fmt::print("{}", "\n ---- FIRST USAGE ---\n\n");
-    ff.init_fitter_from_file(input_name, output1_name);
+    ff.init_from_file(input_name, output1_name);
 
     auto hfp = ff.find_fit("test_hist");
     hfp->set_function_style(0).set_visible(true);
@@ -189,7 +189,7 @@ auto main() -> int
         fmt::print("{}", "\n");
     }
     else { fmt::print(stderr, "{}\n", "No function found"); }
-    ff.export_fitter_to_file();
+    ff.export_to_file();
 
     TFile* fp = TFile::Open(root_outout_name, "RECREATE");
     if (fp) { hist->Write(); }
@@ -203,7 +203,7 @@ auto main() -> int
 
     /** Second usage using histogram object **/
     fmt::print("{}", "\n ---- SECOND USAGE ---\n\n");
-    ff.init_fitter_from_file(input_name, output2_name);
+    ff.init_from_file(input_name, output2_name);
 
     fmt::print("{}", "\nBefore fitting:\n");
     ff.print();
@@ -213,13 +213,13 @@ auto main() -> int
     fmt::print("{}", "\nAfter fitting:\n");
     ff.print();
 
-    ff.export_fitter_to_file();
+    ff.export_to_file();
 
-    hf::fitter ff2(hf::fitter::priority_mode::reference);
+    auto ff2 = hf::fitter();
 
     /** Third usage using histogram object **/
     fmt::print("{}", "\n ---- THIRD USAGE ---\n\n");
-    ff.init_fitter_from_file(input_name, output3_name);
+    ff.init_from_file(input_name, output3_name, hf::fitter::priority_mode::reference);
 
     fmt::print("{}", "\nBefore fitting:\n");
     ff.print();
@@ -229,7 +229,7 @@ auto main() -> int
     fmt::print("{}", "\nAfter fitting:\n");
     ff.print();
 
-    ff.export_fitter_to_file();
+    ff.export_to_file();
 
     return 0;
 }

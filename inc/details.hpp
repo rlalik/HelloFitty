@@ -164,7 +164,7 @@ struct fitter_impl
     TString par_ref;
     TString par_aux;
 
-    fit_entry* defpars{nullptr};
+    fit_entry* generic_parameters{nullptr};
     std::map<TString, std::unique_ptr<fit_entry>> hfpmap;
 
     TString name_decorator{"*"};

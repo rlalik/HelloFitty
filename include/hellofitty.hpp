@@ -69,7 +69,7 @@ struct fit_entry_impl;
 struct fitter_impl;
 } // namespace detail
 
-class draw_opts final
+class HELLOFITTY_EXPORT draw_opts final
 {
 public:
     draw_opts();
@@ -213,6 +213,17 @@ public:
     /// @return function reference
     auto get_function_object() -> TF1&;
 
+    /// Clone function with new name. Function passes ownership of the clone.
+    /// @param function_index function id
+    /// @param new_name name for cloned function
+    /// @return unique pointer to cloned function
+    auto clone_function(int function_index, const char* new_name = nullptr) -> std::unique_ptr<TF1>;
+
+    /// Clone total function with new name. Function passes ownership of the clone.
+    /// @param new_name name for cloned function
+    /// @return unique pointer to cloned function
+    auto clone_function(const char* new_name = nullptr) -> std::unique_ptr<TF1>;
+
     /// Return numbers of params in total function.
     auto get_function_params_count() const -> int;
 
@@ -261,7 +272,7 @@ public:
         newer
     };
 
-    explicit fitter(priority_mode mode = priority_mode::newer);
+    fitter();
 
     explicit fitter(const fitter&) = delete;
     auto operator=(const fitter&) -> fitter& = delete;
@@ -273,11 +284,24 @@ public:
 
     auto clear() -> void;
 
-    auto set_flags(priority_mode new_mode) -> void;
-    auto set_default_parameters(fit_entry* defs) -> void;
+    /// For histograms which have no record in the entries collection, you can set a generic
+    /// function and aparameters to be fit. It will not be used for disabled histograms.
+    /// @param generic a generic histogram function object
+    auto set_generic_entry(fit_entry* generic) -> void;
 
-    auto init_fitter_from_file(const char* filename, const char* auxname = nullptr) -> bool;
-    auto export_fitter_to_file() -> bool;
+    /// Load parameters from the reference input.
+    /// @param input_file the input parameters
+    /// @return the file was properly imported
+    auto init_from_file(TString input_file) -> bool;
+    /// Load parameters from the reference input or the auxiliary input, depend on mode.
+    /// @param input_file the input file for parameters
+    /// @param aux_file the output file for parameters
+    /// @param mode source selection mode
+    /// @return the file was properly imported
+    auto init_from_file(TString input_file, TString aux_file, priority_mode mode = priority_mode::newer) -> bool;
+    /// Force file exporting. If the output file was not set, the function does nothing.
+    /// @return true if the file was written
+    auto export_to_file(bool update_reference = false) -> bool;
 
     auto find_fit(TH1* hist) const -> fit_entry*;
     auto find_fit(const char* name) const -> fit_entry*;
@@ -304,23 +328,13 @@ public:
     auto get_function_style() -> draw_opts&;
 
 private:
-    auto import_parameters(const std::string& filename) -> bool;
-    auto export_parameters(const std::string& filename) -> bool;
+    auto import_parameters(const TString& filename) -> bool;
+    auto export_parameters(const TString& filename) -> bool;
     std::unique_ptr<detail::fitter_impl> m_d;
 };
 
 namespace tools
 {
-enum class source
-{
-    none,
-    only_reference,
-    only_auxiliary,
-    reference,
-    auxiliary
-};
-
-auto HELLOFITTY_EXPORT select_source(const char* filename, const char* auxname = nullptr) -> source;
 
 auto HELLOFITTY_EXPORT format_name(const TString& name, const TString& decorator) -> TString;
 

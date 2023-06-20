@@ -53,7 +53,7 @@ TEST(TestsFitter, FitFinding)
 
     hf::fit_entry hfp_defaults("h1", 1, 10);
     ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
-    fitter.set_default_parameters(&hfp_defaults);
+    fitter.set_generic_entry(&hfp_defaults);
 
     const auto fit2 = fitter.find_fit(h_foo);
     ASSERT_EQ(fit2, nullptr);
@@ -72,7 +72,7 @@ TEST(TestsFitter, Fitting)
 
     hf::fit_entry hfp_defaults("h_foo", 1, 10);
     ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
-    fitter.set_default_parameters(&hfp_defaults);
+    fitter.set_generic_entry(&hfp_defaults);
 
     const auto fit2 = fitter.fit(h_foo, "", "");
     ASSERT_EQ(fit2, false);

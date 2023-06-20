@@ -35,7 +35,7 @@ auto main(int argc, char* argv[]) -> int
 
     // create fitting factory
     hf::fitter ff;
-    ff.init_fitter_from_file(argv[2], opf.c_str());
+    ff.init_from_file(argv[2], opf.c_str());
 
     // uncomment this to print all entries
     // ff.print();
@@ -69,7 +69,7 @@ auto main(int argc, char* argv[]) -> int
         }
     }
 
-    ff.export_fitter_to_file();
+    ff.export_to_file();
 
     file->Close();
 

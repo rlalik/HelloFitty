@@ -44,6 +44,8 @@ macro(find_or_fetch_package name url)
   set(args_mult "")
   cmake_parse_arguments(ARG "${options}" "${args}" "${args_mult}" ${ARGN})
 
+  set(${name}_FETCHED 0)
+
   string(TOUPPER ${name} ucName)
   string(TOLOWER ${name} lcName)
 
@@ -112,6 +114,7 @@ macro(find_or_fetch_package name url)
       FetchContent_MakeAvailable(${name})
     endif()
 
+    set(${name}_FETCHED 1)
   else()
     message(STATUS "Uses system-provided ${name} ${ARG_VERSION}")
   endif()

@@ -1,6 +1,8 @@
 #ifndef HELLOFITTY_PARSER_H
 #define HELLOFITTY_PARSER_H
 
+#include "HelloFitty/hellofitty_export.hpp"
+
 #include "hellofitty.hpp"
 #include "hellofitty_config.h"
 
@@ -18,8 +20,8 @@ namespace hf::parser
 /// @{
 struct v1
 {
-    static auto parse_line_entry(const TString& line) -> std::unique_ptr<hf::fit_entry>;
-    static auto format_line_entry(const hf::fit_entry* hist_fit) -> TString;
+    static auto HELLOFITTY_EXPORT parse_line_entry(const TString& line) -> std::unique_ptr<hf::fit_entry>;
+    static auto HELLOFITTY_EXPORT format_line_entry(const hf::fit_entry* hist_fit) -> TString;
 };
 /// @}
 
@@ -29,8 +31,8 @@ struct v1
 /// @{
 struct v2
 {
-    static auto parse_line_entry(const TString& line) -> std::unique_ptr<hf::fit_entry>;
-    static auto format_line_entry(const hf::fit_entry* hist_fit) -> TString;
+    static auto HELLOFITTY_EXPORT parse_line_entry(const TString& line) -> std::unique_ptr<hf::fit_entry>;
+    static auto HELLOFITTY_EXPORT format_line_entry(const hf::fit_entry* hist_fit) -> TString;
 };
 /// @}
 

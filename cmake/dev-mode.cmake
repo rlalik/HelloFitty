@@ -17,5 +17,6 @@ endif()
 
 include(cmake/lint-targets.cmake)
 include(cmake/spell-targets.cmake)
+include(cmake/abi-dump-targets.cmake)
 
 add_folders(Project)

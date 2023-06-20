@@ -29,7 +29,13 @@ add_library(
 )
 add_library(HelloFitty::HelloFitty ALIAS HelloFitty)
 
-target_link_libraries(HelloFitty PUBLIC ROOT::Core ROOT::Hist PRIVATE fmt::fmt)
+target_link_libraries(HelloFitty PUBLIC ROOT::Core ROOT::Hist)
+if (fmt_FETCHED)
+  set(FMT_TARGET fmt::fmt-header-only)
+else()
+  set(FMT_TARGET fmt::fmt)
+endif()
+target_link_libraries(HelloFitty PRIVATE ${FMT_TARGET})
 
 configure_file(config.h.in hellofitty_config.h)
 
@@ -110,7 +116,7 @@ include(cmake/dev-mode.cmake)
 
 # Export the package for use from the build-tree (this registers the build-tree
 # with a global CMake-registry)
-export(PACKAGE ${PROJECT_NAME})
+export(PACKAGE HelloFitty)
 
 # messages
 message(

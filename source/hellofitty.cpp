@@ -45,6 +45,46 @@ struct params_vector
     std::vector<double> pars;
     params_vector(size_t n) : pars(n) {}
 };
+
+enum class source
+{
+    none,
+    only_reference,
+    only_auxiliary,
+    reference,
+    auxiliary
+};
+
+auto select_source(const char* filename, const char* auxname = nullptr) -> source
+{
+#if __cplusplus >= 201703L
+    const auto s_ref = std::filesystem::exists(filename);
+    const auto s_aux = std::filesystem::exists(auxname);
+
+    if (!s_ref and !s_aux) return source::none;
+    if (s_ref and !s_aux) return source::only_reference;
+    if (!s_ref and s_aux) return source::only_auxiliary;
+
+    const std::filesystem::file_time_type mod_ref = std::filesystem::last_write_time(filename);
+    const std::filesystem::file_time_type mod_aux = std::filesystem::last_write_time(auxname);
+#else
+    struct stat st_ref;
+    struct stat st_aux;
+
+    const auto s_ref = stat(filename, &st_ref) == 0;
+    const auto s_aux = stat(auxname, &st_aux) == 0;
+
+    if (!s_ref and !s_aux) { return source::none; }
+    if (s_ref and !s_aux) { return source::only_reference; }
+    if (!s_ref and s_aux) { return source::only_auxiliary; }
+
+    const auto mod_ref = (long long)st_ref.st_mtim.tv_sec;
+    const auto mod_aux = (long long)st_aux.st_mtim.tv_sec;
+#endif
+
+    return mod_aux > mod_ref ? source::auxiliary : source::reference;
+}
+
 } // namespace
 
 // see https://fmt.dev/latest/api.html#formatting-user-defined-types
@@ -296,6 +336,16 @@ auto fit_entry::get_function_object() -> TF1&
     return const_cast<TF1&>(const_cast<const fit_entry*>(this)->get_function_object());
 }
 
+auto fit_entry::clone_function(int function_index, const char* new_name) -> std::unique_ptr<TF1>
+{
+    return std::unique_ptr<TF1>(dynamic_cast<TF1*>(get_function_object(function_index).Clone(new_name)));
+}
+
+auto fit_entry::clone_function(const char* new_name) -> std::unique_ptr<TF1>
+{
+    return std::unique_ptr<TF1>(dynamic_cast<TF1*>(get_function_object().Clone(new_name)));
+}
+
 auto fit_entry::get_function_params_count() const -> int { return get_function_object().GetNpar(); }
 
 auto fit_entry::get_flag_rebin() const -> int { return m_d->rebin; }
@@ -356,61 +406,72 @@ auto fit_entry::set_function_style() -> draw_opts& { return set_function_style(-
 
 auto fitter::set_verbose(bool verbose) -> void { detail::fitter_impl::verbose_flag = verbose; }
 
-fitter::fitter(priority_mode mode) : m_d{make_unique<detail::fitter_impl>()}
+fitter::fitter() : m_d{make_unique<detail::fitter_impl>()}
 {
-    m_d->mode = mode;
-    m_d->defpars = nullptr;
+    m_d->mode = priority_mode::newer;
+    m_d->generic_parameters = nullptr;
 }
 
 fitter::~fitter() = default;
 
-auto fitter::init_fitter_from_file(const char* filename, const char* auxname) -> bool
+auto fitter::init_from_file(TString filename) -> bool
 {
-    m_d->par_ref = filename;
-    m_d->par_aux = auxname;
+    m_d->par_ref = std::move(filename);
 
-    if (!filename) { fmt::print(stderr, "No reference input file given\n"); }
-    if (!auxname) { fmt::print(stderr, "No output file given\n"); }
+    if (!m_d->par_ref) { fmt::print(stderr, "No reference input file given\n"); }
+    if (!m_d->par_aux) { fmt::print(stderr, "No output file given\n"); }
 
-    auto selected = tools::select_source(filename, auxname);
+    auto selected = select_source(m_d->par_ref, m_d->par_aux);
 
-    if (selected == tools::source::none) return false;
+    if (selected == source::none) return false;
 
     fmt::print("Available source: [{:c}] REF  [{:c}] AUX\n",
-               selected != tools::source::only_auxiliary and selected != tools::source::none ? 'x' : ' ',
-               selected != tools::source::only_reference and selected != tools::source::none ? 'x' : ' ');
-    fmt::print("Selected source : [{:c}] REF  [{:c}] AUX\n", selected == tools::source::reference ? 'x' : ' ',
-               selected == tools::source::auxiliary ? 'x' : ' ');
+               selected != source::only_auxiliary and selected != source::none ? 'x' : ' ',
+               selected != source::only_reference and selected != source::none ? 'x' : ' ');
+    fmt::print("Selected source : [{:c}] REF  [{:c}] AUX\n", selected == source::reference ? 'x' : ' ',
+               selected == source::auxiliary ? 'x' : ' ');
 
-    auto mode = m_d->mode;
-    if (mode == priority_mode::reference)
+    if (m_d->mode == priority_mode::reference)
     {
-        if (selected == tools::source::only_auxiliary)
+        if (selected == source::only_auxiliary)
             return false;
         else
-            return import_parameters(filename);
+            return import_parameters(m_d->par_ref);
     }
 
-    if (mode == priority_mode::auxiliary)
+    if (m_d->mode == priority_mode::auxiliary)
     {
-        if (selected == tools::source::only_reference)
+        if (selected == source::only_reference)
             return false;
         else
-            return import_parameters(auxname);
+            return import_parameters(m_d->par_aux);
     }
 
-    if (mode == priority_mode::newer)
+    if (m_d->mode == priority_mode::newer)
     {
-        if (selected == tools::source::auxiliary or selected == tools::source::only_auxiliary)
-            return import_parameters(auxname);
-        else if (selected == tools::source::reference or selected == tools::source::only_reference)
-            return import_parameters(filename);
+        if (selected == source::auxiliary or selected == source::only_auxiliary)
+            return import_parameters(m_d->par_aux);
+        else if (selected == source::reference or selected == source::only_reference)
+            return import_parameters(m_d->par_ref);
     }
 
     return false;
 }
 
-auto fitter::export_fitter_to_file() -> bool { return export_parameters(m_d->par_aux.Data()); }
+auto fitter::init_from_file(TString filename, TString auxname, priority_mode mode) -> bool
+{
+    m_d->mode = mode;
+    m_d->par_aux = std::move(auxname);
+    return init_from_file(std::move(filename));
+}
+
+auto fitter::export_to_file(bool update_reference) -> bool
+{
+    if (!update_reference)
+        return export_parameters(m_d->par_aux.Data());
+    else
+        return export_parameters(m_d->par_ref.Data());
+}
 
 auto fitter::insert_parameter(std::unique_ptr<fit_entry>&& hfp) -> void
 {
@@ -422,12 +483,12 @@ auto fitter::insert_parameter(const TString& name, std::unique_ptr<fit_entry>&& 
     m_d->hfpmap.insert({name, std::move(hfp)});
 }
 
-auto fitter::import_parameters(const std::string& filename) -> bool
+auto fitter::import_parameters(const TString& filename) -> bool
 {
-    std::ifstream fparfile(filename);
+    std::ifstream fparfile(filename.Data());
     if (!fparfile.is_open())
     {
-        fmt::print(stderr, "No file {} to open.\n", filename);
+        fmt::print(stderr, "No file {} to open.\n", filename.Data());
         return false;
     }
 
@@ -442,19 +503,22 @@ auto fitter::import_parameters(const std::string& filename) -> bool
     return true;
 }
 
-auto fitter::export_parameters(const std::string& filename) -> bool
+auto fitter::export_parameters(const TString& filename) -> bool
 {
     std::ofstream fparfile(filename);
-    if (!fparfile.is_open()) { fmt::print(stderr, "Can't create AUX file {}. Skipping...\n", filename); }
+    if (!fparfile.is_open())
+    {
+        fmt::print(stderr, "Can't create AUX file {}. Skipping...\n", filename.Data());
+        return false;
+    }
     else
     {
-        fmt::print("AUX file {} opened...  Exporting {} entries.\n", filename, m_d->hfpmap.size());
+        fmt::print("AUX file {} opened...  Exporting {} entries.\n", filename.Data(), m_d->hfpmap.size());
         for (auto it = m_d->hfpmap.begin(); it != m_d->hfpmap.end(); ++it)
         {
             fparfile << tools::format_line_entry(it->second.get(), m_d->output_format_version) << std::endl;
         }
     }
-    fparfile.close();
     return true;
 }
 
@@ -475,9 +539,9 @@ auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> bool
     {
         fmt::print("HFP for histogram {:s} not found, trying from defaults.\n", hist->GetName());
 
-        if (!m_d->defpars) return false;
+        if (!m_d->generic_parameters) return false;
 
-        auto tmp = m_d->defpars->clone(tools::format_name(hist->GetName(), m_d->name_decorator));
+        auto tmp = m_d->generic_parameters->clone(tools::format_name(hist->GetName(), m_d->name_decorator));
         hfp = tmp.get();
         insert_parameter(std::move(tmp));
     }
@@ -619,9 +683,7 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
     return true;
 }
 
-auto fitter::set_flags(priority_mode new_mode) -> void { m_d->mode = new_mode; }
-
-auto fitter::set_default_parameters(fit_entry* defs) -> void { m_d->defpars = defs; }
+auto fitter::set_generic_entry(fit_entry* generic) -> void { m_d->generic_parameters = generic; }
 
 auto fitter::set_name_decorator(TString decorator) -> void { m_d->name_decorator = std::move(decorator); }
 auto fitter::clear_name_decorator() -> void { m_d->name_decorator = "*"; }
@@ -650,35 +712,6 @@ auto fitter::clear() -> void { m_d->hfpmap.clear(); }
 
 namespace tools
 {
-auto select_source(const char* filename, const char* auxname) -> source
-{
-#if __cplusplus >= 201703L
-    const auto s_ref = std::filesystem::exists(filename);
-    const auto s_aux = std::filesystem::exists(auxname);
-
-    if (!s_ref and !s_aux) return source::none;
-    if (s_ref and !s_aux) return source::only_reference;
-    if (!s_ref and s_aux) return source::only_auxiliary;
-
-    const std::filesystem::file_time_type mod_ref = std::filesystem::last_write_time(filename);
-    const std::filesystem::file_time_type mod_aux = std::filesystem::last_write_time(auxname);
-#else
-    struct stat st_ref;
-    struct stat st_aux;
-
-    const auto s_ref = stat(filename, &st_ref) == 0;
-    const auto s_aux = stat(auxname, &st_aux) == 0;
-
-    if (!s_ref and !s_aux) { return source::none; }
-    if (s_ref and !s_aux) { return source::only_reference; }
-    if (!s_ref and s_aux) { return source::only_auxiliary; }
-
-    const auto mod_ref = (long long)st_ref.st_mtim.tv_sec;
-    const auto mod_aux = (long long)st_aux.st_mtim.tv_sec;
-#endif
-
-    return mod_aux > mod_ref ? source::auxiliary : source::reference;
-}
 
 auto format_name(const TString& name, const TString& decorator) -> TString
 {
