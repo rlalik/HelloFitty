@@ -414,6 +414,10 @@ fitter::fitter() : m_d{make_unique<detail::fitter_impl>()}
 
 fitter::~fitter() = default;
 
+fitter::fitter(fitter&&) = default;
+
+auto fitter::operator=(fitter&&) -> fitter& = default;
+
 auto fitter::init_from_file(TString filename) -> bool
 {
     m_d->par_ref = std::move(filename);

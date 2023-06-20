@@ -277,8 +277,8 @@ public:
     explicit fitter(const fitter&) = delete;
     auto operator=(const fitter&) -> fitter& = delete;
 
-    fitter(fitter&&) = default;
-    auto operator=(fitter&&) -> fitter& = default;
+    fitter(fitter&&);
+    auto operator=(fitter&&) -> fitter&;
 
     ~fitter();
 
