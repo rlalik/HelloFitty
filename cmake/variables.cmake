@@ -15,9 +15,9 @@ endif()
 set(pragma_suppress_c4251 "
 /* This needs to suppress only for MSVC */
 #if defined(_MSC_VER) && !defined(__ICL)
-#  define HELLOKITTY_SUPPRESS_C4251 _Pragma(\"warning(suppress:4251)\")
+#  define HELLOFITTY_SUPPRESS_C4251 _Pragma(\"warning(suppress:4251)\")
 #else
-#  define HELLOKITTY_SUPPRESS_C4251
+#  define HELLOFITTY_SUPPRESS_C4251
 #endif
 ")
 
