@@ -40,7 +40,7 @@ auto HELLOFITTY_EXPORT detect_format(const TString& line) -> format_version
     return hf::format_version::v2;
 }
 
-auto parse_line_entry(const TString& line, format_version version) -> std::unique_ptr<fit_entry>
+auto parse_line_entry(const TString& line, format_version version) -> std::pair<TString, fit_entry>
 {
     if (version == hf::format_version::detect) { version = tools::detect_format(line); }
 
@@ -58,15 +58,16 @@ auto parse_line_entry(const TString& line, format_version version) -> std::uniqu
     }
 }
 
-auto HELLOFITTY_EXPORT format_line_entry(const hf::fit_entry* entry, format_version version) -> TString
+auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::fit_entry* entry, format_version version)
+    -> TString
 {
     switch (version)
     {
         case format_version::v1:
-            return parser::v1::format_line_entry(entry);
+            return parser::v1::format_line_entry(name, entry);
             break;
         case format_version::v2:
-            return parser::v2::format_line_entry(entry);
+            return parser::v2::format_line_entry(name, entry);
             break;
         default:
             throw std::runtime_error("Parser not implemented");

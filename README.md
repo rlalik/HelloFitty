@@ -10,7 +10,7 @@
 HelloFitty allows for massive fitting of the histograms. It is a tool designed for use with CERN's ROOT framework.
 
 # Concept
-Assume you have hundreds of historams to be fitted. The fit may fail, they may require to be iteratively fitted. Hardcoding fit params in the macro will require to update them each time you want to refit.
+Assume you have hundreds of histograms to be fitted. The fit may fail, they may require to be iteratively fitted. Hard coding fit params in the macro will require to update them each time you want to refit.
 
 Instead, create a text file with:
 * histogram name
@@ -49,7 +49,7 @@ In the data file each line corresponds to a single histogram. The line is identi
 
 ## Functions
 Each function is an independent entity, and can be a combinations of various generic functions. Any form of function accepted by `TFormula` is allowed, e.g.: `cos(x)+sin(x)`, `gaus(0)+exp(3)`, `[0]*x+[2]`, etc.
-For all the functions belonging to a single histogram, a sum of functions is created and the sum is fit. For example, to fit a gaussian signal and a polynomial background, one could define two functions: `gaus(0) pol3(3)`. From the fitting point of view it does not matter whether you define two partial functions `gaus(0) pol3(3)` or one larger `gaus(0)+pol3(3)`, however HelloFitty offers ways to access each partial function separately, which would not be possible with one grand function.
+For all the functions belonging to a single histogram, a sum of functions is created and the sum is fit. For example, to fit a gausian signal and a polynomial background, one could define two functions: `gaus(0) pol3(3)`. From the fitting point of view it does not matter whether you define two partial functions `gaus(0) pol3(3)` or one larger `gaus(0)+pol3(3)`, however HelloFitty offers ways to access each partial function separately, which would not be possible with one grand function.
 
 ## Parameters
 After the `|` separator which marks end of function definitions, the parameters definitions start. There should be as many parameters defined as expected by the functions, and more or less parameters will result in throw of `hf::invalid_format`.
@@ -76,7 +76,7 @@ Parameters can be free, fixed, or constrained by fitting limits. If `X` is a par
   * third marker shows parameter #3 with fixed value `1` and preserved limits `0`--`2`
   * parameters #4 and #5 are free without limits
 
-The entry can be prepended with `@` which tells fitter that this function is found but the fitting is explicitly disabled:
+The entry can be prep-ended with `@` which tells fitter that this function is found but the fitting is explicitly disabled:
 ```text
  test_hist  -10  10  2  gaus(0) expo(3) | 10 : 0 20 1 f 1 F 0 2 1 -1
 @some_hist  -10  10  2  gaus(0) expo(3) | 10 : 0 20 1 f 1 F 0 2 1 -1
@@ -84,7 +84,7 @@ The entry can be prepended with `@` which tells fitter that this function is fou
 The fitter allows to set default function which will be used for histograms not found in the data file. If the histogram is disabled, it won't be fit. If one would comment out the line, the default function could be used.
 
 # Features
-HelloFitty offers following structures:
+HelloFitty provides following structures:
 * `hf::fitter` -- the main fitting manager responsible to read/write data from files and fit histograms
 * `hf::fit_entry` -- a structure holding full info about functions and parameters for a given histogram
 * `hf::param` -- a single parameter info: values and boundaries
@@ -108,7 +108,7 @@ class hf::fitter {
 2. Read Auxiliary (aux)
 3. Read newer of them both (default behavior)
 
-With the third option, you can repeat fitting multiple time, each time improving result of the previous fit as the input will be taken from auxiliary, not reference file, until the reference itself has not ben updatyed (e.g. you need better function body to converge fit and start over).
+With the third option, you can repeat fitting multiple time, each time improving result of the previous fit as the input will be taken from auxiliary, not reference file, until the reference itself has not been updated (e.g. you need better function body to converge fit and start over).
 
 If you decided to store fit results to data file, use:
 ```c++
@@ -128,12 +128,12 @@ auto fit(fit_entry* hfp, TH1* hist, const char* pars = "BQ", const char* gpars =
 ```
 In addition to importing from file, you can add additional fit entries to the fitter:
 ```c++
-auto insert_parameter(std::unique_ptr<fit_entry>&& hfp) -> void;
-auto insert_parameter(const TString& name, std::unique_ptr<fit_entry>&& hfp) -> void;
+auto insert_parameter(std::pair<TString, fit_entry> hfp) -> void;
+auto insert_parameter(const TString& name, std::unique_ptr<fit_entry> hfp) -> void;
 ```
 To set default fitting function for histograms not present in the histogram entries collection, use
 ```c++
-auto set_generic_entry(fit_entry* generic) -> void;
+auto set_generic_entry(fit_entry generic) -> void;
 ```
 Use of generic function will create an entry in the auxiliary file, e.g.:
 ```c++
@@ -172,11 +172,11 @@ The decorator could have form of text string with a character `*`, which will be
 ## `hf::fit_entry`
 The fit entry can be created by parsing the input file or created by user and provided to the fitter:
 ```c++
-explicit fit_entry(TString hist_name, Double_t range_lower, Double_t range_upper);
+explicit fit_entry(Double_t range_lower, Double_t range_upper);
 ```
 The fit entry can be read from file (as shown above) or created from the code level:
 ```c++
-hf::fit_entry hfp("h1", 0, 10);
+hf::fit_entry hfp(0, 10);
 auto fid1 = hfp.add_function("gaus(0)");                    // function id = 0
 auto fid2 = hfp.add_function("expo(3)");                    // function id = 1
 hfp.set_param(0, 10, 0, 20, hf::param::fit_mode::free);     // gaus(0) par [0]
@@ -189,11 +189,6 @@ is the same like
 ```text
  h1 0 10 0 gaus(0) expo(3) | 10 : 0 20  1 f  1 F 0 2  1  -1
 ```
-To duplicate fit entry, create clone of an existing functions and parameters (to avoid duplication of histogram names, copying is forbidden).
-```c++
-hf::fit_entry hfp("h1", 0, 10);
-auto hfp2 = hfp.clone("h2");
-```
 Each fit entry has own backup storage. You can copy and restore parameters from storage, and clear storage.
 ```c++
 auto backup() -> void;
@@ -202,7 +197,7 @@ auto drop() -> void;
 ```
 You can use this before fit and fit result is of worse quality then one can restore original parameters.
 ```c++
-auto hfp = hf::fit_entry("h1", 0, 10);
+auto hfp = hf::fit_entry(0, 10);
 hfp.add_function(...);
 // and more...
 

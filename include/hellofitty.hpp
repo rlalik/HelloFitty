@@ -73,6 +73,7 @@ class HELLOFITTY_EXPORT draw_opts final
 {
 public:
     draw_opts();
+    draw_opts(const draw_opts& other);
 
     /// Make function visible
     /// @param vis visibility
@@ -150,18 +151,16 @@ struct v2;
 class HELLOFITTY_EXPORT fit_entry final
 {
 public:
-    constexpr fit_entry() = delete;
-    explicit fit_entry(TString hist_name, Double_t range_lower, Double_t range_upper);
+    fit_entry();
+    explicit fit_entry(Double_t range_lower, Double_t range_upper);
 
-    explicit fit_entry(const fit_entry&) = delete;
-    auto operator=(const fit_entry&) -> fit_entry& = delete;
+    fit_entry(const fit_entry& other);
+    auto operator=(const fit_entry&) -> fit_entry&;
 
-    fit_entry(fit_entry&&) = default;
+    explicit fit_entry(fit_entry&&) = default;
     auto operator=(fit_entry&&) -> fit_entry& = default;
 
     ~fit_entry() noexcept;
-
-    auto clone(TString new_name) const -> std::unique_ptr<fit_entry>;
 
     auto init() -> void;
 
@@ -179,8 +178,6 @@ public:
     auto set_param(int par_id, Double_t value, param::fit_mode mode) -> void;
     auto set_param(int par_id, Double_t value, Double_t min, Double_t max, param::fit_mode mode) -> void;
     auto update_param(int par_id, Double_t value) -> void;
-
-    auto get_name() const -> TString;
 
     auto get_param(int par_id) -> param&;
     auto get_param(int par_id) const -> const param&;
@@ -244,7 +241,7 @@ public:
     auto set_function_style(int function_index) -> draw_opts&;
     auto set_function_style() -> draw_opts&;
 
-    auto print(bool detailed = false) const -> void;
+    auto print(const TString& name, bool detailed = false) const -> void;
 
     friend hf::fitter;
     friend hf::parser::v1;
@@ -287,7 +284,7 @@ public:
     /// For histograms which have no record in the entries collection, you can set a generic
     /// function and aparameters to be fit. It will not be used for disabled histograms.
     /// @param generic a generic histogram function object
-    auto set_generic_entry(fit_entry* generic) -> void;
+    auto set_generic_entry(fit_entry generic) -> void;
 
     /// Load parameters from the reference input.
     /// @param input_file the input parameters
@@ -313,8 +310,8 @@ public:
 
     static auto set_verbose(bool verbose) -> void;
 
-    auto insert_parameter(std::unique_ptr<fit_entry>&& hfp) -> void;
-    auto insert_parameter(const TString& name, std::unique_ptr<fit_entry>&& hfp) -> void;
+    auto insert_parameter(TString name, fit_entry hfp) -> void;
+    auto insert_parameter(std::pair<TString, fit_entry> hfp) -> void;
 
     auto set_name_decorator(TString decorator) -> void;
     auto clear_name_decorator() -> void;
@@ -349,14 +346,14 @@ auto HELLOFITTY_EXPORT detect_format(const TString& line) -> format_version;
 /// @param version entry version
 /// @return ownership of the parsed entry
 auto HELLOFITTY_EXPORT parse_line_entry(const TString& line, format_version version = hf::format_version::detect)
-    -> std::unique_ptr<fit_entry>;
+    -> std::pair<TString, fit_entry>;
 
 /// Export the entry to the text line using given format. By default the newest v2 is used.
 /// @param entry fit entry
 /// @param version entry version
 /// @return the entry string
-auto HELLOFITTY_EXPORT format_line_entry(const hf::fit_entry* entry, format_version version = hf::format_version::v2)
-    -> TString;
+auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::fit_entry* entry,
+                                         format_version version = hf::format_version::v2) -> TString;
 
 } // namespace tools
 

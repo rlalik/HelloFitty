@@ -141,11 +141,7 @@ namespace hf
 
 auto fitter::set_verbose(bool verbose) -> void { detail::fitter_impl::verbose_flag = verbose; }
 
-fitter::fitter() : m_d{make_unique<detail::fitter_impl>()}
-{
-    m_d->mode = priority_mode::newer;
-    m_d->generic_parameters = nullptr;
-}
+fitter::fitter() : m_d{make_unique<detail::fitter_impl>()} { m_d->mode = priority_mode::newer; }
 
 fitter::fitter(fitter&&) = default;
 
@@ -212,14 +208,11 @@ auto fitter::export_to_file(bool update_reference) -> bool
         return export_parameters(m_d->par_ref.Data());
 }
 
-auto fitter::insert_parameter(std::unique_ptr<fit_entry>&& hfp) -> void
-{
-    insert_parameter(hfp->get_name(), std::move(hfp));
-}
+auto fitter::insert_parameter(std::pair<TString, fit_entry> hfp) -> void { m_d->hfpmap.emplace(std::move(hfp)); }
 
-auto fitter::insert_parameter(const TString& name, std::unique_ptr<fit_entry>&& hfp) -> void
+auto fitter::insert_parameter(TString name, fit_entry hfp) -> void
 {
-    m_d->hfpmap.insert({name, std::move(hfp)});
+    m_d->hfpmap.emplace(std::make_pair(std::move(name), std::move(hfp)));
 }
 
 auto fitter::import_parameters(const TString& filename) -> bool
@@ -255,7 +248,7 @@ auto fitter::export_parameters(const TString& filename) -> bool
         fmt::print("AUX file {} opened...  Exporting {} entries.\n", filename.Data(), m_d->hfpmap.size());
         for (auto it = m_d->hfpmap.begin(); it != m_d->hfpmap.end(); ++it)
         {
-            fparfile << tools::format_line_entry(it->second.get(), m_d->output_format_version) << std::endl;
+            fparfile << tools::format_line_entry(it->first, &it->second, m_d->output_format_version) << std::endl;
         }
     }
     return true;
@@ -266,7 +259,7 @@ auto fitter::find_fit(TH1* hist) const -> fit_entry* { return find_fit(hist->Get
 auto fitter::find_fit(const char* name) const -> fit_entry*
 {
     auto it = m_d->hfpmap.find(tools::format_name(name, m_d->name_decorator));
-    if (it != m_d->hfpmap.end()) return it->second.get();
+    if (it != m_d->hfpmap.end()) return &it->second;
 
     return nullptr;
 }
@@ -278,12 +271,13 @@ auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> bool
     {
         fmt::print("HFP for histogram {:s} not found, trying from defaults.\n", hist->GetName());
 
-        if (!m_d->generic_parameters) return false;
+        if (!m_d->generic_parameters.get_functions_count()) return false;
 
-        auto tmp = m_d->generic_parameters->clone(tools::format_name(hist->GetName(), m_d->name_decorator));
-        hfp = tmp.get();
-        insert_parameter(std::move(tmp));
+        insert_parameter(TString(hist->GetName()), m_d->generic_parameters); // FIXME should return pointer
+        hfp = find_fit(hist->GetName());
     }
+
+    if (!hfp) return false;
 
     hfp->backup();
     bool status = fit(hfp, hist, pars, gpars);
@@ -324,7 +318,7 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
     if (hist->Integral(bin_l, bin_u) == 0) return false;
 
     TF1* tfSum = &hfp->get_function_object();
-    tfSum->SetName(tools::format_name(hfp->get_name(), m_d->function_decorator));
+    tfSum->SetName(tools::format_name(hist->GetName(), m_d->function_decorator));
 
     hist->GetListOfFunctions()->Clear();
     hist->GetListOfFunctions()->SetOwner(kTRUE);
@@ -408,7 +402,7 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
         // partial_function.SetName(tools::format_name(hfp->get_name(), m_d->function_decorator + "_function_" + i));
 
         auto cloned = dynamic_cast<TF1*>(
-            partial_function.Clone(tools::format_name(hfp->get_name(), m_d->function_decorator + "_function_" + i)));
+            partial_function.Clone(tools::format_name(hist->GetName(), m_d->function_decorator + "_function_" + i)));
         if (!apply_style(cloned, hfp->m_d->partial_functions_styles, i))
         {
             if (!apply_style(cloned, m_d->partial_functions_styles, i)) { cloned->ResetBit(TF1::kNotDraw); }
@@ -422,7 +416,7 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
     return true;
 }
 
-auto fitter::set_generic_entry(fit_entry* generic) -> void { m_d->generic_parameters = generic; }
+auto fitter::set_generic_entry(fit_entry generic) -> void { m_d->generic_parameters = generic; }
 
 auto fitter::set_name_decorator(TString decorator) -> void { m_d->name_decorator = std::move(decorator); }
 auto fitter::clear_name_decorator() -> void { m_d->name_decorator = "*"; }
@@ -443,63 +437,10 @@ auto fitter::print() const -> void
 {
     for (auto it = m_d->hfpmap.begin(); it != m_d->hfpmap.end(); ++it)
     {
-        it->second->print();
+        it->second.print(it->first);
     }
 }
 
 auto fitter::clear() -> void { m_d->hfpmap.clear(); }
-
-namespace tools
-{
-
-auto format_name(const TString& name, const TString& decorator) -> TString
-{
-    TString str = decorator;
-    str.ReplaceAll("*", name);
-    return str;
-}
-
-auto HELLOFITTY_EXPORT detect_format(const TString& line) -> format_version
-{
-    if (line.First('|') == -1) { return hf::format_version::v1; }
-
-    return hf::format_version::v2;
-}
-
-auto parse_line_entry(const TString& line, format_version version) -> std::unique_ptr<fit_entry>
-{
-    if (version == hf::format_version::detect) { version = tools::detect_format(line); }
-
-    switch (version)
-    {
-        case format_version::v1:
-            return parser::v1::parse_line_entry(line);
-            break;
-        case format_version::v2:
-            return parser::v2::parse_line_entry(line);
-            break;
-        default:
-            throw std::runtime_error("Parser not implemented");
-            break;
-    }
-}
-
-auto HELLOFITTY_EXPORT format_line_entry(const hf::fit_entry* entry, format_version version) -> TString
-{
-    switch (version)
-    {
-        case format_version::v1:
-            return parser::v1::format_line_entry(entry);
-            break;
-        case format_version::v2:
-            return parser::v2::format_line_entry(entry);
-            break;
-        default:
-            throw std::runtime_error("Parser not implemented");
-            break;
-    }
-}
-
-} // namespace tools
 
 } // namespace hf

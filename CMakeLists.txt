@@ -35,7 +35,7 @@ add_library(HelloFitty::HelloFitty ALIAS HelloFitty)
 
 target_link_libraries(HelloFitty PUBLIC ROOT::Core ROOT::Hist)
 if (fmt_FETCHED)
-  set(FMT_TARGET fmt::fmt-header-only)
+  set(FMT_TARGET $<BUILD_INTERFACE:fmt::fmt-header-only>)
 else()
   set(FMT_TARGET fmt::fmt)
 endif()

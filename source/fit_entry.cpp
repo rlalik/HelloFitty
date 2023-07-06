@@ -47,28 +47,23 @@ template <> struct fmt::formatter<hf::fit_entry>
 namespace hf
 {
 
-fit_entry::fit_entry(TString hist_name, Double_t range_min, Double_t range_max)
-    : m_d{make_unique<detail::fit_entry_impl>()}
+fit_entry::fit_entry() : m_d{make_unique<detail::fit_entry_impl>()} {}
+
+fit_entry::fit_entry(Double_t range_lower, Double_t range_upper) : m_d{make_unique<detail::fit_entry_impl>()}
 {
-    m_d->range_min = range_min;
-    m_d->range_max = range_max;
+    m_d->range_min = range_lower;
+    m_d->range_max = range_upper;
+}
 
-    m_d->hist_name = std::move(hist_name);
+fit_entry::fit_entry(const fit_entry& other) { m_d = make_unique<detail::fit_entry_impl>(*other.m_d); }
 
-    if (m_d->hist_name[0] == '@') { m_d->fit_disabled = true; }
+auto fit_entry::operator=(const fit_entry& other) -> fit_entry&
+{
+    m_d = make_unique<detail::fit_entry_impl>(*other.m_d);
+    return *this;
 }
 
 fit_entry::~fit_entry() noexcept = default;
-
-auto fit_entry::clone(TString new_name) const -> std::unique_ptr<fit_entry>
-{
-    auto cloned = make_unique<fit_entry>(std::move(new_name), m_d->range_min, m_d->range_max);
-    for (const auto& func : m_d->funcs)
-    {
-        cloned->add_function(func.body_string);
-    }
-    return cloned;
-}
 
 auto fit_entry::clear() -> void { drop(); }
 
@@ -143,8 +138,6 @@ auto fit_entry::get_param(const char* name) const -> const param&
     return get_param(get_param_name_index(&m_d->complete_function_object, name));
 }
 
-auto fit_entry::get_name() const -> TString { return m_d->hist_name; }
-
 auto fit_entry::get_fit_range_min() const -> Double_t { return m_d->range_min; }
 
 auto fit_entry::get_fit_range_max() const -> Double_t { return m_d->range_max; }
@@ -188,10 +181,10 @@ auto fit_entry::get_flag_rebin() const -> int { return m_d->rebin; }
 
 auto fit_entry::get_flag_disabled() const -> bool { return m_d->fit_disabled; }
 
-auto fit_entry::print(bool detailed) const -> void
+auto fit_entry::print(const TString& name, bool detailed) const -> void
 {
-    fmt::print("## name: {:s}    rebin: {:d}   range: {:g} -- {:g}  param num: {:d}\n", m_d->hist_name.Data(),
-               m_d->rebin, m_d->range_min, m_d->range_min, get_function_params_count());
+    fmt::print("## name: {:s}    rebin: {:d}   range: {:g} -- {:g}  param num: {:d}\n", name.Data(), m_d->rebin,
+               m_d->range_min, m_d->range_min, get_function_params_count());
 
     for (const auto& func : m_d->funcs)
     {

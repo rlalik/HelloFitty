@@ -75,8 +75,6 @@ struct function_impl final
 
 struct fit_entry_impl
 {
-    TString hist_name; // histogram name
-
     Double_t range_min; // function range
     Double_t range_max; // function range
 
@@ -164,8 +162,8 @@ struct fitter_impl
     TString par_ref;
     TString par_aux;
 
-    fit_entry* generic_parameters{nullptr};
-    std::map<TString, std::unique_ptr<fit_entry>> hfpmap;
+    fit_entry generic_parameters;
+    std::map<TString, fit_entry> hfpmap;
 
     TString name_decorator{"*"};
     TString function_decorator{"f_*"};

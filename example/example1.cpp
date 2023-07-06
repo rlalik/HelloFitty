@@ -178,14 +178,14 @@ auto main() -> int
     if (hfp)
     {
         fmt::print("{}", "\nBefore fitting:\n");
-        hfp->print();
+        hfp->print("test_hist");
         fmt::print("{}", "\n");
 
         hfp->backup();
         if (!ff.fit(hfp, hist, "BQ0")) hfp->restore();
 
         fmt::print("{}", "\nAfter fitting:\n");
-        hfp->print(true);
+        hfp->print("test_hist", true);
         fmt::print("{}", "\n");
     }
     else { fmt::print(stderr, "{}\n", "No function found"); }

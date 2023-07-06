@@ -7,7 +7,7 @@ set(tests_SRCS tests_param.cpp
                tests_fit_entry.cpp
                tests_parser_v1.cpp
                tests_parser_v2.cpp
-               tests_hellofitty.cpp
+               tests_fitter.cpp
                tests_hellofitty_tools.cpp)
 
 add_executable(gtests ${tests_SRCS})

@@ -12,7 +12,7 @@
 
 namespace hf::parser
 {
-auto v1::parse_line_entry(const TString& line) -> std::unique_ptr<fit_entry>
+auto v1::parse_line_entry(const TString& line) -> std::pair<TString, fit_entry>
 {
     TString line_ = line;
     line_.ReplaceAll("\t", " ");
@@ -26,19 +26,20 @@ auto v1::parse_line_entry(const TString& line) -> std::unique_ptr<fit_entry>
     //                                   dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
     //                                   dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
 
-    auto hfp = make_unique<fit_entry>(dynamic_cast<TObjString*>(arr->At(0))->String(),        // hist name
-                                      dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
-                                      dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
+    auto name = dynamic_cast<TObjString*>(arr->At(0))->String();                 // hist name
+    auto hfp = fit_entry(dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
+                         dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
+    if (name[0] == '@') { hfp.m_d->fit_disabled = true; }
 
-    hfp->m_d->add_function_lazy(dynamic_cast<TObjString*>(arr->At(1))->String());
-    hfp->m_d->add_function_lazy(dynamic_cast<TObjString*>(arr->At(2))->String());
-    hfp->m_d->compile();
+    hfp.m_d->add_function_lazy(dynamic_cast<TObjString*>(arr->At(1))->String());
+    hfp.m_d->add_function_lazy(dynamic_cast<TObjString*>(arr->At(2))->String());
+    hfp.m_d->compile();
 
     Int_t step = 0;
 
     auto entries = arr->GetEntries();
 
-    auto params_count = hfp->get_function_params_count();
+    auto params_count = hfp.get_function_params_count();
     auto current_param = 0;
 
     for (int i = 6; i < entries; i += step)
@@ -89,8 +90,8 @@ auto v1::parse_line_entry(const TString& line) -> std::unique_ptr<fit_entry>
 
         try
         {
-            if (has_limits_) { hfp->set_param(current_param, par_, l_, u_, flag_); }
-            else { hfp->set_param(current_param, par_, flag_); }
+            if (has_limits_) { hfp.set_param(current_param, par_, l_, u_, flag_); }
+            else { hfp.set_param(current_param, par_, flag_); }
         }
         catch (const std::out_of_range&)
         {
@@ -100,15 +101,14 @@ auto v1::parse_line_entry(const TString& line) -> std::unique_ptr<fit_entry>
         current_param++;
     }
 
-    return hfp;
+    return std::make_pair(std::move(name), std::move(hfp));
 }
 
-auto v1::format_line_entry(const hf::fit_entry* hist_fit) -> TString
+auto v1::format_line_entry(const TString& name, const hf::fit_entry* hist_fit) -> TString
 {
-    auto out =
-        TString::Format("%c%s\t%s %s %d %.0f %.0f", hist_fit->get_flag_disabled() ? '@' : ' ',
-                        hist_fit->get_name().Data(), hist_fit->get_function(0), hist_fit->get_function(1),
-                        hist_fit->get_flag_rebin(), hist_fit->get_fit_range_min(), hist_fit->get_fit_range_max());
+    auto out = TString::Format("%c%s\t%s %s %d %.0f %.0f", hist_fit->get_flag_disabled() ? '@' : ' ', name.Data(),
+                               hist_fit->get_function(0), hist_fit->get_function(1), hist_fit->get_flag_rebin(),
+                               hist_fit->get_fit_range_min(), hist_fit->get_fit_range_max());
 
     auto max_params = hist_fit->get_function_params_count();
     for (auto param_counter = 0; param_counter < max_params; ++param_counter)

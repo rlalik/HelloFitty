@@ -11,8 +11,7 @@
 
 TEST(TestsFitEntry, Functions)
 {
-    hf::fit_entry hfp1("h1", 1, 10);
-    ASSERT_STREQ(hfp1.get_name(), "h1");
+    hf::fit_entry hfp1(1, 10);
     ASSERT_EQ(hfp1.get_fit_range_min(), 1);
     ASSERT_EQ(hfp1.get_fit_range_max(), 10);
 
@@ -36,7 +35,7 @@ TEST(TestsFitEntry, Functions)
 
 TEST(TestsFitEntry, Params)
 {
-    hf::fit_entry hfp1("h1", 1, 10);
+    hf::fit_entry hfp1(1, 10);
     ASSERT_EQ(hfp1.add_function("gaus(0)"), 0);
 
     ASSERT_NO_THROW(hfp1.get_param(0));
@@ -56,23 +55,22 @@ TEST(TestsFitEntry, Params)
 
 TEST(TestsFitEntry, Cloning)
 {
-    hf::fit_entry hfp1("h1", 1, 10);
+    hf::fit_entry hfp1(1, 10);
     ASSERT_EQ(hfp1.add_function("gaus(0)"), 0);
     ASSERT_EQ(hfp1.add_function("expo(3)"), 1);
 
-    auto hfp2 = hfp1.clone("h2");
+    auto hfp2 = hfp1;
 
-    ASSERT_STRNE(hfp1.get_name(), hfp2->get_name());
-    ASSERT_STREQ(hfp2->get_name(), "h2");
+    // ASSERT_EQ(hfp1, hfp2); FIXME implement == operator
 
     for (int i = 0; i < hfp1.get_functions_count(); ++i)
-        ASSERT_STREQ(hfp1.get_function(i), hfp2->get_function(i));
+        ASSERT_STREQ(hfp1.get_function(i), hfp2.get_function(i));
 
-    ASSERT_EQ(hfp1.get_fit_range_min(), hfp2->get_fit_range_min());
-    ASSERT_EQ(hfp1.get_fit_range_max(), hfp2->get_fit_range_max());
+    ASSERT_EQ(hfp1.get_fit_range_min(), hfp2.get_fit_range_min());
+    ASSERT_EQ(hfp1.get_fit_range_max(), hfp2.get_fit_range_max());
 
-    ASSERT_EQ(hfp1.get_flag_rebin(), hfp2->get_flag_rebin());
-    ASSERT_EQ(hfp1.get_flag_disabled(), hfp2->get_flag_disabled());
+    ASSERT_EQ(hfp1.get_flag_rebin(), hfp2.get_flag_rebin());
+    ASSERT_EQ(hfp1.get_flag_disabled(), hfp2.get_flag_disabled());
 
     hfp1.backup();
     hfp1.clear();
@@ -80,7 +78,7 @@ TEST(TestsFitEntry, Cloning)
 
 TEST(TestsFitEntry, Backups)
 {
-    hf::fit_entry hfp1("h1", 1, 10);
+    hf::fit_entry hfp1(1, 10);
     ASSERT_EQ(hfp1.add_function("gaus(0)"), 0);
     ASSERT_EQ(hfp1.add_function("expo(3)"), 1);
 

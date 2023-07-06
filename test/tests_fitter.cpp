@@ -32,10 +32,10 @@ TEST(TestsFitter, InsertParameters)
     const auto fit1 = fitter.find_fit("name1");
     ASSERT_EQ(fit1, nullptr);
 
-    auto hf1 = make_unique<hf::fit_entry>("name1", 0, 1);
-    hf1->add_function("1");
-    hf1->add_function("0");
-    fitter.insert_parameter(std::move(hf1));
+    auto hf1 = hf::fit_entry(0, 1);
+    hf1.add_function("1");
+    hf1.add_function("0");
+    fitter.insert_parameter("name1", hf1);
 
     const auto fit2 = fitter.find_fit("name1");
     ASSERT_NE(fit2, nullptr);
@@ -51,9 +51,9 @@ TEST(TestsFitter, FitFinding)
     const auto fit1 = fitter.find_fit(h_foo);
     ASSERT_EQ(fit1, nullptr);
 
-    hf::fit_entry hfp_defaults("h1", 1, 10);
+    hf::fit_entry hfp_defaults(1, 10);
     ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
-    fitter.set_generic_entry(&hfp_defaults);
+    fitter.set_generic_entry(hfp_defaults);
 
     const auto fit2 = fitter.find_fit(h_foo);
     ASSERT_EQ(fit2, nullptr);
@@ -70,9 +70,9 @@ TEST(TestsFitter, Fitting)
     const auto fit1 = fitter.fit(h_foo, "", "");
     ASSERT_EQ(fit1, false);
 
-    hf::fit_entry hfp_defaults("h_foo", 1, 10);
+    hf::fit_entry hfp_defaults(1, 10);
     ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
-    fitter.set_generic_entry(&hfp_defaults);
+    fitter.set_generic_entry(hfp_defaults);
 
     const auto fit2 = fitter.fit(h_foo, "", "");
     ASSERT_EQ(fit2, false);
@@ -85,10 +85,10 @@ TEST(TestsFitter, NameDecorator)
 {
     hf::fitter fitter;
 
-    auto hfp_foo = make_unique<hf::fit_entry>("h_foo", 1, 10);
-    ASSERT_EQ(hfp_foo->add_function("gaus(0)"), 0);
+    auto hfp_foo = hf::fit_entry(1, 10);
+    ASSERT_EQ(hfp_foo.add_function("gaus(0)"), 0);
 
-    fitter.insert_parameter(std::move(hfp_foo));
+    fitter.insert_parameter("h_foo", hfp_foo);
 
     fitter.set_name_decorator("*_foo");
 

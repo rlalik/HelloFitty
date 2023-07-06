@@ -22,12 +22,12 @@
 
 #include "details.hpp"
 
-
-
 namespace hf
 {
 
 draw_opts::draw_opts() : m_d{make_unique<detail::draw_opts_impl>()} {}
+
+draw_opts::draw_opts(const draw_opts& other) : m_d{make_unique<detail::draw_opts_impl>(*other.m_d)} {}
 
 auto draw_opts::set_visible(bool vis) -> draw_opts&
 {
