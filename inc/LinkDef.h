@@ -1,6 +1,6 @@
 #ifdef __CINT__
 
-// clang-format off
+// clang-format: off
 #pragma link off all globals;
 #pragma link off all classes;
 #pragma link off all functions;
@@ -11,6 +11,6 @@
 #pragma link C++ class hf::fit_entry;
 #pragma link C++ class hf::fitter;
 #pragma link C++ namespace hf;
-// clang-format on
+// clang-format: on
 
 #endif

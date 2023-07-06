@@ -24,6 +24,10 @@ find_or_fetch_package(fmt https://github.com/fmtlib/fmt GIT_TAG 10.0.0 VERSION 1
 add_library(
     HelloFitty
     source/hellofitty.cpp
+    source/draw_opts.cpp
+    source/param.cpp
+    source/fit_entry.cpp
+    source/fitter.cpp
     source/parser_v1.cpp
     source/parser_v2.cpp
 )
@@ -78,7 +82,7 @@ target_include_directories(
 option(BUILD_DICTIONARY "Build ROOT dictionary." OFF)
 if (BUILD_DICTIONARY)
   # cmake-format: off
-  root_generate_dictionary(G__${PROJECT_NAME}_cc hellofitty.hpp
+  root_generate_dictionary(G__HelloFitty_cc hellofitty.hpp
     MODULE HelloFitty
     LINKDEF inc/LinkDef.h)
   # cmake-format: on
