@@ -303,15 +303,36 @@ public:
     auto find_fit(TH1* hist) const -> fit_entry*;
     auto find_fit(const char* name) const -> fit_entry*;
 
+    /// Fit the histogram using fit_entry either located in the collection or using generic entry if provided.
+    /// @param hist histogram to be fitted
+    /// @param pars histogram fitting pars
+    /// @param gpars histogram fit drawing pars
+    /// @return true if fit was successful
     auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
+    /// Fit the histogram using provided fit_entry. The fit entry is not automatically stored in the collection and must
+    /// be add using @see hf::fitter::insert_parameter.
+    /// @param hfp histogram fit_entry to be used
+    /// @param hist histogram to be fitted
+    /// @param pars histogram fitting pars
+    /// @param gpars histogram fit drawing pars
+    /// @return true if fit was successful
     auto fit(fit_entry* hfp, TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
 
     auto print() const -> void;
 
     static auto set_verbose(bool verbose) -> void;
 
-    auto insert_parameter(TString name, fit_entry hfp) -> void;
-    auto insert_parameter(std::pair<TString, fit_entry> hfp) -> void;
+    /// Insert new pair of name,fit_entry. If the entry for given name exists, update it with the
+    /// new value.
+    /// @param name histogram name
+    /// @param hfp histogram fit entry
+    /// @return pointer to the registered entry
+    auto insert_parameter(TString name, fit_entry hfp) -> fit_entry*;
+    /// Insert new pair of name,fit_entry. If the entry for given name exists, update it with the
+    /// new value.
+    /// @param hfp pair of histogram name and histogram fit entry
+    /// @return pointer to the registered entry
+    auto insert_parameter(std::pair<TString, fit_entry> hfp) -> fit_entry*;
 
     auto set_name_decorator(TString decorator) -> void;
     auto clear_name_decorator() -> void;
@@ -349,6 +370,7 @@ auto HELLOFITTY_EXPORT parse_line_entry(const TString& line, format_version vers
     -> std::pair<TString, fit_entry>;
 
 /// Export the entry to the text line using given format. By default the newest v2 is used.
+/// @param name the entry (histogram) name
 /// @param entry fit entry
 /// @param version entry version
 /// @return the entry string

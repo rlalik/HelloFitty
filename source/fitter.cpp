@@ -85,6 +85,17 @@ auto select_source(const char* filename, const char* auxname = nullptr) -> sourc
     return mod_aux > mod_ref ? source::auxiliary : source::reference;
 }
 
+auto apply_style(TF1* function, std::unordered_map<int, hf::draw_opts>& styles, int index) -> bool
+{
+    const auto style = styles.find(index);
+    if (style != styles.cend())
+    {
+        style->second.apply(function);
+        return true;
+    }
+    return false;
+}
+
 } // namespace
 
 // see https://fmt.dev/latest/api.html#formatting-user-defined-types
@@ -208,11 +219,18 @@ auto fitter::export_to_file(bool update_reference) -> bool
         return export_parameters(m_d->par_ref.Data());
 }
 
-auto fitter::insert_parameter(std::pair<TString, fit_entry> hfp) -> void { m_d->hfpmap.emplace(std::move(hfp)); }
-
-auto fitter::insert_parameter(TString name, fit_entry hfp) -> void
+auto fitter::insert_parameter(std::pair<TString, fit_entry> hfp) -> fit_entry*
 {
-    m_d->hfpmap.emplace(std::make_pair(std::move(name), std::move(hfp)));
+    auto res = m_d->hfpmap.emplace(std::move(hfp));
+    if (res.second) return &res.first->second;
+
+    res.first->second = hfp.second;
+    return &res.first->second;
+}
+
+auto fitter::insert_parameter(TString name, fit_entry hfp) -> fit_entry*
+{
+    return insert_parameter(std::make_pair(std::move(name), std::move(hfp)));
 }
 
 auto fitter::import_parameters(const TString& filename) -> bool
@@ -273,8 +291,7 @@ auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> bool
 
         if (!m_d->generic_parameters.get_functions_count()) return false;
 
-        insert_parameter(TString(hist->GetName()), m_d->generic_parameters); // FIXME should return pointer
-        hfp = find_fit(hist->GetName());
+        hfp = insert_parameter(TString(hist->GetName()), m_d->generic_parameters);
     }
 
     if (!hfp) return false;
@@ -286,21 +303,6 @@ auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> bool
 
     return status;
 }
-
-namespace
-{
-
-auto apply_style(TF1* function, std::unordered_map<int, hf::draw_opts>& styles, int index) -> bool
-{
-    const auto style = styles.find(index);
-    if (style != styles.cend())
-    {
-        style->second.apply(function);
-        return true;
-    }
-    return false;
-}
-} // namespace
 
 auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars) -> bool
 {
