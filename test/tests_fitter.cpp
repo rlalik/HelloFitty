@@ -68,14 +68,14 @@ TEST(TestsFitter, Fitting)
 
     TH1I* h_foo = new TH1I("h_foo", "foo", 10, 0, 10);
     const auto fit1 = fitter.fit(h_foo, "", "");
-    ASSERT_EQ(fit1, false);
+    ASSERT_EQ(fit1.first, false);
 
     hf::fit_entry hfp_defaults(1, 10);
     ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
     fitter.set_generic_entry(hfp_defaults);
 
     const auto fit2 = fitter.fit(h_foo, "", "");
-    ASSERT_EQ(fit2, false);
+    ASSERT_EQ(fit2.first, false);
 
     fitter.clear();
     delete h_foo;

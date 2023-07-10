@@ -208,7 +208,7 @@ auto main() -> int
     fmt::print("{}", "\nBefore fitting:\n");
     ff.print();
 
-    if (!ff.fit(hist, "BQ0")) { fmt::print(stderr, "{}\n", "No function found"); }
+    if (!ff.fit(hist, "BQ0").first) { fmt::print(stderr, "{}\n", "No function found"); }
 
     fmt::print("{}", "\nAfter fitting:\n");
     ff.print();
@@ -224,7 +224,7 @@ auto main() -> int
     fmt::print("{}", "\nBefore fitting:\n");
     ff.print();
 
-    if (!ff.fit(hist, "BQ0")) { fmt::print(stderr, "{}\n", "No function found"); }
+    if (!ff.fit(hist, "BQ0").first) { fmt::print(stderr, "{}\n", "No function found"); }
 
     fmt::print("{}", "\nAfter fitting:\n");
     ff.print();

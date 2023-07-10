@@ -314,8 +314,8 @@ public:
     /// @param hist histogram to be fitted
     /// @param pars histogram fitting pars
     /// @param gpars histogram fit drawing pars
-    /// @return true if fit was successful
-    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
+    /// @return pair of bool (true if fit successfull) and used fit_entry
+    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, fit_entry*>;
     /// Fit the histogram using provided fit_entry. The fit entry is not automatically stored in the collection and must
     /// be add using @see hf::fitter::insert_parameter.
     /// @param hfp histogram fit_entry to be used

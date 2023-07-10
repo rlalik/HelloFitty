@@ -283,26 +283,26 @@ auto fitter::find_fit(const char* name) const -> fit_entry*
     return nullptr;
 }
 
-auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> bool
+auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> std::pair<bool, fit_entry*>
 {
     fit_entry* hfp = find_fit(hist->GetName());
     if (!hfp)
     {
         fmt::print("HFP for histogram {:s} not found, trying from defaults.\n", hist->GetName());
 
-        if (!m_d->generic_parameters.get_functions_count()) return false;
+        if (!m_d->generic_parameters.get_functions_count()) return {false, hfp};
 
         hfp = insert_parameter(TString(hist->GetName()), m_d->generic_parameters);
     }
 
-    if (!hfp) return false;
+    if (!hfp) return {false, hfp};
 
     hfp->backup();
     bool status = fit(hfp, hist, pars, gpars);
 
     if (!status) hfp->restore();
 
-    return status;
+    return {status, hfp};
 }
 
 auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars) -> bool
