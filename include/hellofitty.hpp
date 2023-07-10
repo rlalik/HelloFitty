@@ -175,8 +175,9 @@ public:
     auto get_function(int function_index) const -> const char*;
 
     auto set_param(int par_id, param par) -> void;
-    auto set_param(int par_id, Double_t value, param::fit_mode mode) -> void;
-    auto set_param(int par_id, Double_t value, Double_t min, Double_t max, param::fit_mode mode) -> void;
+    auto set_param(int par_id, Double_t value, param::fit_mode mode = param::fit_mode::free) -> void;
+    auto set_param(int par_id, Double_t value, Double_t min, Double_t max, param::fit_mode mode = param::fit_mode::free)
+        -> void;
     auto update_param(int par_id, Double_t value) -> void;
 
     auto get_param(int par_id) -> param&;
@@ -226,6 +227,8 @@ public:
 
     auto get_flag_rebin() const -> Int_t;
     auto get_flag_disabled() const -> bool;
+
+    auto is_valid() const -> bool;
 
     auto clear() -> void;
 
@@ -283,8 +286,12 @@ public:
 
     /// For histograms which have no record in the entries collection, you can set a generic
     /// function and aparameters to be fit. It will not be used for disabled histograms.
+    /// Pass an emtpy object to clear the generic entry.
     /// @param generic a generic histogram function object
     auto set_generic_entry(fit_entry generic) -> void;
+    /// Check if the generic entry is set.
+    /// @return true if the generic entry exists.
+    auto has_generic_entry() -> bool;
 
     /// Load parameters from the reference input.
     /// @param input_file the input parameters

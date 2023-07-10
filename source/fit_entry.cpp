@@ -65,6 +65,8 @@ auto fit_entry::operator=(const fit_entry& other) -> fit_entry&
 
 fit_entry::~fit_entry() noexcept = default;
 
+auto fit_entry::is_valid() const -> bool { return m_d->range_max > m_d->range_min; }
+
 auto fit_entry::clear() -> void { drop(); }
 
 auto fit_entry::add_function(TString formula) -> int
@@ -183,8 +185,8 @@ auto fit_entry::get_flag_disabled() const -> bool { return m_d->fit_disabled; }
 
 auto fit_entry::print(const TString& name, bool detailed) const -> void
 {
-    fmt::print("## name: {:s}    rebin: {:d}   range: {:g} -- {:g}  param num: {:d}\n", name.Data(), m_d->rebin,
-               m_d->range_min, m_d->range_min, get_function_params_count());
+    fmt::print("## name: {:s}    rebin: {:d}   range: {:g} -- {:g}  param num: {:d}  {:s}\n", name.Data(), m_d->rebin,
+               m_d->range_min, m_d->range_min, get_function_params_count(), get_flag_disabled() ? "DISABLED" : "");
 
     for (const auto& func : m_d->funcs)
     {

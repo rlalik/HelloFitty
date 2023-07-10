@@ -169,13 +169,14 @@ auto fitter::init_from_file(TString filename) -> bool
 
     auto selected = select_source(m_d->par_ref, m_d->par_aux);
 
-    if (selected == source::none) return false;
-
     fmt::print("Available source: [{:c}] REF  [{:c}] AUX\n",
                selected != source::only_auxiliary and selected != source::none ? 'x' : ' ',
                selected != source::only_reference and selected != source::none ? 'x' : ' ');
-    fmt::print("Selected source : [{:c}] REF  [{:c}] AUX\n", selected == source::reference ? 'x' : ' ',
-               selected == source::auxiliary ? 'x' : ' ');
+    fmt::print("Selected source : [{:c}] REF  [{:c}] AUX\n",
+               (selected == source::reference or selected == source::only_reference) ? 'x' : ' ',
+               (selected == source::auxiliary or selected == source::only_auxiliary) ? 'x' : ' ');
+
+    if (selected == source::none) return false;
 
     if (m_d->mode == priority_mode::reference)
     {
@@ -332,7 +333,10 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
     tfSum->GetParameters(backup_old.pars.data());
     double chi2_backup_old = hist->Chisquare(tfSum, "R");
 
-    if (m_d->verbose_flag) { fmt::print("* old: {} --> chi2:  {:f} -- *\n", backup_old, chi2_backup_old); }
+    if (m_d->verbose_flag)
+    {
+        fmt::print("* old {} : {} --> chi2:  {:f} -- *\n", hist->GetName(), backup_old, chi2_backup_old);
+    }
 
     hist->Fit(tfSum, pars, gpars, hfp->get_fit_range_min(), hfp->get_fit_range_max());
 
@@ -349,7 +353,10 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
     tfSum->GetParameters(backup_new.pars.data());
     double chi2_backup_new = hist->Chisquare(tfSum, "R");
 
-    if (m_d->verbose_flag) { fmt::print("* new: {} --> chi2:  {:f} -- *", backup_new, chi2_backup_new); }
+    if (m_d->verbose_flag)
+    {
+        fmt::print("* new {} : {} --> chi2:  {:f} -- *", hist->GetName(), backup_new, chi2_backup_new);
+    }
 
     if (chi2_backup_new > chi2_backup_old)
     {
@@ -419,6 +426,8 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
 }
 
 auto fitter::set_generic_entry(fit_entry generic) -> void { m_d->generic_parameters = generic; }
+
+auto fitter::has_generic_entry() -> bool { return m_d->generic_parameters.is_valid(); }
 
 auto fitter::set_name_decorator(TString decorator) -> void { m_d->name_decorator = std::move(decorator); }
 auto fitter::clear_name_decorator() -> void { m_d->name_decorator = "*"; }

@@ -29,7 +29,12 @@ auto v1::parse_line_entry(const TString& line) -> std::pair<TString, fit_entry>
     auto name = dynamic_cast<TObjString*>(arr->At(0))->String();                 // hist name
     auto hfp = fit_entry(dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
                          dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
-    if (name[0] == '@') { hfp.m_d->fit_disabled = true; }
+    if (name[0] == '@')
+    {
+        hfp.m_d->fit_disabled = true;
+        auto tmpname = TString(name.Data() + 1);
+        name = std::move(tmpname);
+    }
 
     hfp.m_d->add_function_lazy(dynamic_cast<TObjString*>(arr->At(1))->String());
     hfp.m_d->add_function_lazy(dynamic_cast<TObjString*>(arr->At(2))->String());

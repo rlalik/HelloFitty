@@ -29,7 +29,12 @@ auto v2::parse_line_entry(const TString& line) -> std::pair<TString, fit_entry>
     auto name = dynamic_cast<TObjString*>(arr->At(0))->String();                 // hist name
     auto hfp = fit_entry(dynamic_cast<TObjString*>(arr->At(1))->String().Atof(), // low range
                          dynamic_cast<TObjString*>(arr->At(2))->String().Atof());
-    if (name[0] == '@') { hfp.m_d->fit_disabled = true; }
+    if (name[0] == '@')
+    {
+        hfp.m_d->fit_disabled = true;
+        auto tmpname = TString(name.Data() + 1);
+        name = std::move(tmpname);
+    }
 
     // auto rebin_value = dynamic_cast<TObjString*>(arr->At(3))->String().Atoi(); TODO
     // hfp.set_rebin_flag(rebin_value); // TODO implement this
