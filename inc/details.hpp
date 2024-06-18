@@ -33,7 +33,7 @@ constexpr auto int2size_t(int val) -> size_t { return (val < 0) ? __SIZE_MAX__ :
 
 namespace hf::detail
 {
-    
+
 struct draw_opts_impl final
 {
 #if __cplusplus >= 201703L
@@ -125,7 +125,10 @@ struct fit_entry_impl
             else
             {
                 complete_function_object.SetParameter(size_t2int(i), pars[i].value);
-                if (pars[i].has_limits) { complete_function_object.SetParLimits(size_t2int(i), pars[i].min, pars[i].max); }
+                if (pars[i].has_limits)
+                {
+                    complete_function_object.SetParLimits(size_t2int(i), pars[i].min, pars[i].max);
+                }
             }
         }
     }

@@ -67,15 +67,14 @@ TEST(TestsFitter, Fitting)
     hf::fitter fitter;
 
     TH1I* h_foo = new TH1I("h_foo", "foo", 10, 0, 10);
-    const auto fit1 = fitter.fit(h_foo, "", "");
-    ASSERT_EQ(fit1.first, false);
+    EXPECT_THROW(fitter.fit(h_foo, "", ""), std::logic_error);
 
     hf::fit_entry hfp_defaults(1, 10);
     ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
     fitter.set_generic_entry(hfp_defaults);
 
     const auto fit2 = fitter.fit(h_foo, "", "");
-    ASSERT_EQ(fit2.first, false);
+    ASSERT_FALSE(fit2.first);
 
     fitter.clear();
     delete h_foo;

@@ -223,9 +223,8 @@ auto fitter::export_to_file(bool update_reference) -> bool
 auto fitter::insert_parameter(std::pair<TString, fit_entry> hfp) -> fit_entry*
 {
     auto res = m_d->hfpmap.emplace(std::move(hfp));
-    if (res.second) return &res.first->second;
+    if (!res.second) res.first->second = hfp.second;
 
-    res.first->second = hfp.second;
     return &res.first->second;
 }
 
@@ -259,12 +258,12 @@ auto fitter::export_parameters(const TString& filename) -> bool
     std::ofstream fparfile(filename);
     if (!fparfile.is_open())
     {
-        fmt::print(stderr, "Can't create AUX file {}. Skipping...\n", filename.Data());
+        fmt::print(stderr, "Can't create output file {}. Skipping...\n", filename.Data());
         return false;
     }
     else
     {
-        fmt::print("AUX file {} opened...  Exporting {} entries.\n", filename.Data(), m_d->hfpmap.size());
+        fmt::print("Output file {} opened...  Exporting {} entries.\n", filename.Data(), m_d->hfpmap.size());
         for (auto it = m_d->hfpmap.begin(); it != m_d->hfpmap.end(); ++it)
         {
             fparfile << tools::format_line_entry(it->first, &it->second, m_d->output_format_version) << std::endl;
@@ -290,9 +289,11 @@ auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> std::pair<bo
     {
         fmt::print("HFP for histogram {:s} not found, trying from defaults.\n", hist->GetName());
 
-        if (!m_d->generic_parameters.get_functions_count()) return {false, hfp};
+        if (!m_d->generic_parameters.get_functions_count())
+            throw std::logic_error("Generic Fit Entry has no functions.");
 
         hfp = insert_parameter(TString(hist->GetName()), m_d->generic_parameters);
+        if (!m_d->generic_parameters.get_functions_count()) throw std::logic_error("Could not insert new parameter.");
     }
 
     if (!hfp) return {false, hfp};

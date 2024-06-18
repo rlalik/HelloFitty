@@ -18,7 +18,7 @@ include(cmake/find_or_fetch_package.cmake)
 #list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)
 
-find_or_fetch_package(fmt https://github.com/fmtlib/fmt GIT_TAG 10.0.0 VERSION 10.0.0)
+find_or_fetch_package(fmt https://github.com/fmtlib/fmt GIT_TAG 10.2.1 VERSION 10.2.1)
 
 # ---- Declare library ----
 add_library(

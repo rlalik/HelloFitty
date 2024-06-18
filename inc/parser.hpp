@@ -36,6 +36,6 @@ struct v2
 };
 /// @}
 
-} // namespace hf
+} // namespace hf::parser
 
 #endif /* HELLOFITTY_PARSER_H */
