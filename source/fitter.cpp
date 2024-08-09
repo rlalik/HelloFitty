@@ -25,6 +25,7 @@
 #include "parser.hpp"
 
 #include <TF1.h>
+#include <TGraph.h>
 #include <TH1.h>
 #include <TList.h>
 
@@ -421,6 +422,133 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
         // tfSig->SetBit(TF1::kNotGlobal); TODO do I need it?
 
         hist->GetListOfFunctions()->Add(cloned);
+    }
+
+    return true;
+}
+
+auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* gpars) -> std::pair<bool, fit_entry*>
+{
+    fit_entry* hfp = find_fit(name);
+    if (!hfp)
+    {
+        fmt::print("HFP for graphs {:s} not found, trying from defaults.\n", name);
+
+        if (!m_d->generic_parameters.get_functions_count())
+            throw std::logic_error("Generic Fit Entry has no functions.");
+
+        hfp = insert_parameter(TString(name), m_d->generic_parameters);
+        if (!m_d->generic_parameters.get_functions_count()) throw std::logic_error("Could not insert new parameter.");
+    }
+
+    if (!hfp) return {false, hfp};
+
+    hfp->backup();
+    bool status = fit(hfp, name, graph, pars, gpars);
+
+    if (!status) hfp->restore();
+
+    return {status, hfp};
+}
+
+auto fitter::fit(fit_entry* hfp, const char* name, TGraph* graph, const char* pars, const char* gpars) -> bool
+{
+    hfp->m_d->prepare();
+
+    TF1* tfSum = &hfp->get_function_object();
+    tfSum->SetName(tools::format_name(name, m_d->function_decorator));
+
+    graph->GetListOfFunctions()->Clear();
+    graph->GetListOfFunctions()->SetOwner(kTRUE);
+
+    const auto par_num = tfSum->GetNpar();
+
+    // backup old parameters
+    params_vector backup_old(int2size_t(par_num));
+    tfSum->GetParameters(backup_old.pars.data());
+    double chi2_backup_old = graph->Chisquare(tfSum, "R");
+
+    if (m_d->verbose_flag) { fmt::print("* old {} : {} --> chi2:  {:f} -- *\n", name, backup_old, chi2_backup_old); }
+
+    graph->Fit(tfSum, pars, gpars, hfp->get_fit_range_min(), hfp->get_fit_range_max());
+
+    TF1* new_sig_func = dynamic_cast<TF1*>(graph->GetListOfFunctions()->At(0));
+
+    // TVirtualFitter * fitter = TVirtualFitter::GetFitter();
+    // TMatrixDSym cov;
+    // fitter->GetCovarianceMatrix()
+    // cov.Use(fitter->GetNumberTotalParameters(), fitter->GetCovarianceMatrix());
+    // cov.Print();
+
+    // backup new parameters
+    params_vector backup_new(int2size_t(par_num));
+    tfSum->GetParameters(backup_new.pars.data());
+    double chi2_backup_new = graph->Chisquare(tfSum, "R");
+
+    if (m_d->verbose_flag) { fmt::print("* new {} : {} --> chi2:  {:f} -- *", name, backup_new, chi2_backup_new); }
+
+    if (chi2_backup_new > chi2_backup_old)
+    {
+        tfSum->SetParameters(backup_old.pars.data());
+        new_sig_func->SetParameters(backup_old.pars.data());
+        fmt::print("{}\n", "\t [ FAILED - restoring old params ]");
+    }
+    else
+    {
+        // fmt::print("\n\tIS-OK: {:g} vs. {:g} -> {:f}", tfSum->GetMaximum(), hist->GetMaximum(),
+        //        hist->Chisquare(tfSum, "R"));
+
+        if (m_d->verbose_flag) fmt::print("{}\n", "\t [ OK ]");
+    }
+
+    tfSum->SetChisquare(graph->Chisquare(tfSum, "R"));
+
+    new_sig_func->SetChisquare(graph->Chisquare(tfSum, "R"));
+
+    const auto functions_count = hfp->get_functions_count();
+
+    for (auto i = 0; i < par_num; ++i)
+    {
+        double par = tfSum->GetParameter(i);
+        double err = tfSum->GetParError(i);
+
+        for (auto function = 0; function < functions_count; ++function)
+        {
+            auto& partial_function = hfp->get_function_object(function);
+            if (i < partial_function.GetNpar())
+            {
+                partial_function.SetParameter(i, par);
+                partial_function.SetParError(i, err);
+            }
+        }
+
+        hfp->update_param(i, par);
+    }
+
+    auto complete_function = dynamic_cast<TF1*>(graph->GetListOfFunctions()->At(0));
+    if (!apply_style(complete_function, hfp->m_d->partial_functions_styles, -1))
+    {
+        if (!apply_style(complete_function, m_d->partial_functions_styles, -1))
+        {
+            complete_function->ResetBit(TF1::kNotDraw);
+        }
+    }
+
+    for (auto i = 0; i < functions_count; ++i)
+    {
+        auto& partial_function = hfp->get_function_object(i);
+        // partial_function.SetName(tools::format_name(hfp->get_name(), m_d->function_decorator + "_function_" + i));
+
+        auto cloned = dynamic_cast<TF1*>(
+            partial_function.Clone(tools::format_name(name, m_d->function_decorator + "_function_" + i)));
+        if (!apply_style(cloned, hfp->m_d->partial_functions_styles, i))
+        {
+            if (!apply_style(cloned, m_d->partial_functions_styles, i)) { cloned->ResetBit(TF1::kNotDraw); }
+        }
+
+        // tfSig->SetBit(TF1::kNotGlobal); TODO do I need it?
+
+        graph->GetListOfFunctions()->Add(cloned);
     }
 
     return true;

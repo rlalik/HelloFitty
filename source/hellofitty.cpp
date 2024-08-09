@@ -58,8 +58,8 @@ auto parse_line_entry(const TString& line, format_version version) -> std::pair<
     }
 }
 
-auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::fit_entry* entry, format_version version)
-    -> TString
+auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::fit_entry* entry,
+                                         format_version version) -> TString
 {
     switch (version)
     {

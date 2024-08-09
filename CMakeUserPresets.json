@@ -17,7 +17,7 @@
     {
       "name": "dev-qa",
       "binaryDir": "${sourceDir}/build/qa",
-      "inherits": ["dev-mode", "clang-tidy", "cppcheck", "iwyu"],
+      "inherits": ["dev-common", "clang-tidy", "cppcheck", "iwyu"],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
@@ -25,6 +25,7 @@
     },
     {
       "name": "dev-linux",
+      "binaryDir": "${sourceDir}/build/dev-linux",
       "inherits": ["dev-common", "ci-linux"],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
@@ -33,14 +34,12 @@
     },
     {
       "name": "dev-darwin",
-      "inherits": ["dev-common", "ci-darwin"],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-      }
+      "binaryDir": "${sourceDir}/build/dev-darwin",
+      "inherits": ["dev-common", "ci-darwin"]
     },
     {
       "name": "dev-win64",
+      "binaryDir": "${sourceDir}/build/dev-win64",
       "inherits": ["dev-common", "ci-win64"],
       "environment": {
         "UseMultiToolTask": "true",
@@ -54,6 +53,7 @@
     },
     {
       "name": "dev-coverage",
+      "binaryDir": "${sourceDir}/build/coverage",
       "inherits": ["dev-mode", "coverage-linux"]
     },
     {

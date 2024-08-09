@@ -62,27 +62,28 @@
       }
     },
     {
-      "name": "flags-linux",
+      "name": "flags-gcc-clang",
+      "description": "These flags are supported by both GCC and Clang",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-fstack-protector-strong -fcf-protection=full -fstack-clash-protection -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wcast-qual -Wformat=2 -Wundef -Wshadow -Wcast-align -Wunused -Wnull-dereference -Wdouble-promotion -Wimplicit-fallthrough -Wextra-semi -Woverloaded-virtual -Wnon-virtual-dtor -Wold-style-cast",
-        "CMAKE_EXE_LINKER_FLAGS": "-Wl,--allow-shlib-undefined,--as-needed,-z,noexecstack,-z,relro,-z,now",
-        "CMAKE_SHARED_LINKER_FLAGS": "-Wl,--allow-shlib-undefined,--as-needed,-z,noexecstack,-z,relro,-z,now"
+        "CMAKE_CXX_FLAGS": "-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -D_GLIBCXX_ASSERTIONS=1 -fstack-protector-strong -fcf-protection=full -fstack-clash-protection -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wcast-qual -Wformat=2 -Wundef -Wshadow -Wcast-align -Wunused -Wnull-dereference -Wdouble-promotion -Wimplicit-fallthrough -Wextra-semi -Woverloaded-virtual -Wnon-virtual-dtor -Wold-style-cast",
+        "CMAKE_EXE_LINKER_FLAGS": "-Wl,--allow-shlib-undefined,--as-needed,-z,noexecstack,-z,relro,-z,now,-z,nodlopen",
+        "CMAKE_SHARED_LINKER_FLAGS": "-Wl,--allow-shlib-undefined,--as-needed,-z,noexecstack,-z,relro,-z,now,-z,nodlopen"
       }
     },
     {
-      "name": "flags-darwin",
+      "name": "flags-appleclang",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "-fstack-protector-strong -fcf-protection=full -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wcast-qual -Wformat=2 -Wundef -Wshadow -Wcast-align -Wunused -Wnull-dereference -Wdouble-promotion -Wimplicit-fallthrough -Wextra-semi -Woverloaded-virtual -Wnon-virtual-dtor -Wold-style-cast"
+        "CMAKE_CXX_FLAGS": "-fstack-protector-strong -Wall -Wextra -Wpedantic -Wconversion -Wsign-conversion -Wcast-qual -Wformat=2 -Wundef -Wshadow -Wcast-align -Wunused -Wnull-dereference -Wdouble-promotion -Wimplicit-fallthrough -Wextra-semi -Woverloaded-virtual -Wnon-virtual-dtor -Wold-style-cast"
       }
     },
     {
-      "name": "flags-windows",
+      "name": "flags-msvc",
       "description": "Note that all the flags after /W4 are required for MSVC to conform to the language standard",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/sdl /analyze /analyze:external- /guard:cf /utf-8 /diagnostics:caret /w14165 /w44242 /w44254 /w44263 /w34265 /w34287 /w44296 /w44365 /w44388 /w44464 /w14545 /w14546 /w14547 /w14549 /w14555 /w34619 /w34640 /w24826 /w14905 /w14906 /w14928 /w45038 /W4 /permissive- /volatile:iso /Zc:inline /Zc:preprocessor /Zc:lambda /Zc:__cplusplus /Zc:externConstexpr /Zc:throwingNew /EHsc",
+        "CMAKE_CXX_FLAGS": "/sdl /guard:cf /utf-8 /diagnostics:caret /w14165 /w44242 /w44254 /w44263 /w34265 /w34287 /w44296 /w44365 /w44388 /w44464 /w14545 /w14546 /w14547 /w14549 /w14555 /w34619 /w34640 /w24826 /w14905 /w14906 /w14928 /w45038 /W4 /permissive- /volatile:iso /Zc:inline /Zc:preprocessor /Zc:enumTypes /Zc:lambda /Zc:__cplusplus /Zc:externConstexpr /Zc:throwingNew /EHsc",
         "CMAKE_EXE_LINKER_FLAGS": "/machine:x64 /guard:cf",
         "CMAKE_SHARED_LINKER_FLAGS": "/machine:x64 /guard:cf"
       }
@@ -108,31 +109,29 @@
     },
     {
       "name": "ci-linux",
+      "inherits": ["flags-gcc-clang", "ci-std"],
       "generator": "Unix Makefiles",
       "hidden": true,
-      "inherits": ["flags-linux", "ci-std"],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
       "name": "ci-darwin",
-      "generator": "Unix Makefiles",
-      "hidden": true,
-      "inherits": ["flags-darwin", "ci-std"],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+      "inherits": ["flags-appleclang", "ci-std"],
+      "generator": "Xcode",
+      "hidden": true
     },
     {
       "name": "ci-win64",
-      "inherits": ["flags-windows", "ci-std"],
+      "inherits": ["flags-msvc", "ci-std"],
       "generator": "Visual Studio 17 2022",
       "architecture": "x64",
       "hidden": true
     },
     {
       "name": "coverage-linux",
+      "binaryDir": "${sourceDir}/build/coverage",
       "inherits": "ci-linux",
       "hidden": true,
       "cacheVariables": {
@@ -152,19 +151,29 @@
     },
     {
       "name": "ci-sanitize",
-      "inherits": ["ci-linux", "dev-mode", "conf-debug"],
+      "binaryDir": "${sourceDir}/build/sanitize",
+      "inherits": ["ci-linux", "dev-mode"],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Sanitize",
-        "CMAKE_CXX_FLAGS_SANITIZE": "-O2 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-common"
+        "CMAKE_CXX_FLAGS_SANITIZE": "-U_FORTIFY_SOURCE -O2 -g -fsanitize=address,undefined -fno-omit-frame-pointer -fno-common"
       }
     },
     {
       "name": "ci-build",
+      "binaryDir": "${sourceDir}/build",
       "hidden": true
     },
     {
+      "name": "ci-multi-config",
+      "description": "Speed up multi-config generators by generating only one configuration instead of the defaults",
+      "hidden": true,
+      "cacheVariables": {
+        "CMAKE_CONFIGURATION_TYPES": "Release"
+      }
+    },
+    {
       "name": "ci-macos",
-      "inherits": ["ci-build", "ci-darwin", "dev-mode"]
+      "inherits": ["ci-build", "ci-darwin", "dev-mode", "ci-multi-config"]
     },
     {
       "name": "ci-ubuntu",
@@ -172,7 +181,7 @@
     },
     {
       "name": "ci-windows",
-      "inherits": ["ci-build", "ci-win64", "dev-mode"]
+      "inherits": ["ci-build", "ci-win64", "dev-mode", "ci-multi-config"]
     }
   ]
 }

@@ -36,6 +36,7 @@
 #endif
 
 class TF1;
+class TGraph;
 class TH1;
 
 namespace hf
@@ -176,8 +177,8 @@ public:
 
     auto set_param(int par_id, param par) -> void;
     auto set_param(int par_id, Double_t value, param::fit_mode mode = param::fit_mode::free) -> void;
-    auto set_param(int par_id, Double_t value, Double_t min, Double_t max, param::fit_mode mode = param::fit_mode::free)
-        -> void;
+    auto set_param(int par_id, Double_t value, Double_t min, Double_t max,
+                   param::fit_mode mode = param::fit_mode::free) -> void;
     auto update_param(int par_id, Double_t value) -> void;
 
     auto get_param(int par_id) -> param&;
@@ -324,6 +325,25 @@ public:
     /// @param gpars histogram fit drawing pars
     /// @return true if fit was successful
     auto fit(fit_entry* hfp, TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
+
+    /// Fit the graph using fit_entry either located in the collection or using generic entry if provided.
+    /// @param name entry name (graphs are not named object)
+    /// @param graph graph to be fitted
+    /// @param pars graph fitting pars
+    /// @param gpars graph fit drawing pars
+    /// @return pair of bool (true if fit successfull) and used fit_entry
+    auto fit(const char* name, TGraph* graph, const char* pars = "BQ",
+             const char* gpars = "") -> std::pair<bool, fit_entry*>;
+    /// Fit the graph using provided fit_entry. The fit entry is not automatically stored in the collection and must
+    /// be add using @see hf::fitter::insert_parameter.
+    /// @param hfp graph fit_entry to be used
+    /// @param name entry name (graphs are not named object)
+    /// @param graph graph to be fitted
+    /// @param hist graph to be fitted
+    /// @param pars graph fitting pars
+    /// @param gpars graph fit drawing pars
+    /// @return true if fit was successful
+    auto fit(fit_entry* hfp, const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "") -> bool;
 
     auto print() const -> void;
 

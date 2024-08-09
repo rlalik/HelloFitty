@@ -4,7 +4,7 @@ include(cmake/prelude.cmake)
 
 project(
     HelloFitty
-    VERSION 0.9.6
+    VERSION 0.10.0
     DESCRIPTION "Hello Fitty - a versatile histogram fitting tool for ROOT-based projects."
     HOMEPAGE_URL "https://github.com/rlalik/HelloFitty"
     LANGUAGES CXX
@@ -18,7 +18,7 @@ include(cmake/find_or_fetch_package.cmake)
 #list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)
 
-find_or_fetch_package(fmt https://github.com/fmtlib/fmt GIT_TAG 10.2.1 VERSION 10.2.1)
+find_or_fetch_package(fmt https://github.com/fmtlib/fmt GIT_TAG 11.0.2 VERSION 11.0.2)
 
 # ---- Declare library ----
 add_library(
