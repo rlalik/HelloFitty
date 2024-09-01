@@ -283,6 +283,25 @@ auto fitter::find_fit(const char* name) const -> fit_entry*
     return nullptr;
 }
 
+auto fitter::find_or_make(TH1* hist) -> fit_entry* { return find_or_make(hist->GetName()); }
+
+auto fitter::find_or_make(const char* name) -> fit_entry*
+{
+    fit_entry* hfp = find_fit(name);
+    if (!hfp)
+    {
+        // fmt::print("HFP for histogram {:s} not found, trying from defaults.\n", name);
+
+        if (!m_d->generic_parameters.get_functions_count())
+            throw std::logic_error("Generic Fit Entry has no functions.");
+
+        hfp = insert_parameter(TString(name), m_d->generic_parameters);
+        if (!m_d->generic_parameters.get_functions_count()) throw std::logic_error("Could not insert new parameter.");
+    }
+
+    return hfp;
+}
+
 auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> std::pair<bool, fit_entry*>
 {
     fit_entry* hfp = find_fit(hist->GetName());

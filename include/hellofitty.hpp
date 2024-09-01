@@ -187,6 +187,7 @@ public:
     auto get_param(const char* name) -> param&;
     auto get_param(const char* name) const -> const param&;
 
+    auto set_fit_range(Double_t range_lower, Double_t range_upper) -> void;
     auto get_fit_range_min() const -> Double_t;
     auto get_fit_range_max() const -> Double_t;
 
@@ -310,6 +311,9 @@ public:
 
     auto find_fit(TH1* hist) const -> fit_entry*;
     auto find_fit(const char* name) const -> fit_entry*;
+
+    auto find_or_make(TH1* hist) -> fit_entry*;
+    auto find_or_make(const char* name) -> fit_entry*;
 
     /// Fit the histogram using fit_entry either located in the collection or using generic entry if provided.
     /// @param hist histogram to be fitted

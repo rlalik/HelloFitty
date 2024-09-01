@@ -4,7 +4,7 @@ include(cmake/prelude.cmake)
 
 project(
     HelloFitty
-    VERSION 0.10.0
+    VERSION 0.11.0
     DESCRIPTION "Hello Fitty - a versatile histogram fitting tool for ROOT-based projects."
     HOMEPAGE_URL "https://github.com/rlalik/HelloFitty"
     LANGUAGES CXX

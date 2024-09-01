@@ -140,6 +140,12 @@ auto fit_entry::get_param(const char* name) const -> const param&
     return get_param(get_param_name_index(&m_d->complete_function_object, name));
 }
 
+auto fit_entry::set_fit_range(Double_t range_lower, Double_t range_upper) -> void
+{
+    m_d->range_min = range_lower;
+    m_d->range_max = range_upper;
+}
+
 auto fit_entry::get_fit_range_min() const -> Double_t { return m_d->range_min; }
 
 auto fit_entry::get_fit_range_max() const -> Double_t { return m_d->range_max; }
