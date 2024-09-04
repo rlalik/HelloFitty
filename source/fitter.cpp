@@ -117,14 +117,14 @@ auto fitter::operator=(fitter&&) -> fitter& = default;
 
 fitter::~fitter() = default;
 
-auto fitter::init_from_file(TString filename) -> bool
+auto fitter::init_from_file(std::string filename) -> bool
 {
     m_d->par_ref = std::move(filename);
 
-    if (!m_d->par_ref) { fmt::print(stderr, "No reference input file given\n"); }
-    if (!m_d->par_aux) { fmt::print(stderr, "No output file given\n"); }
+    if (!m_d->par_ref.c_str()) { fmt::print(stderr, "No reference input file given\n"); }
+    if (!m_d->par_aux.c_str()) { fmt::print(stderr, "No output file given\n"); }
 
-    auto selected = select_source(m_d->par_ref, m_d->par_aux);
+    auto selected = select_source(m_d->par_ref.c_str(), m_d->par_aux.c_str());
 
     fmt::print("Available source: [{:c}] REF  [{:c}] AUX\n",
                selected != source::only_auxiliary and selected != source::none ? 'x' : ' ',
@@ -162,7 +162,7 @@ auto fitter::init_from_file(TString filename) -> bool
     return false;
 }
 
-auto fitter::init_from_file(TString filename, TString auxname, priority_mode mode) -> bool
+auto fitter::init_from_file(std::string filename, std::string auxname, priority_mode mode) -> bool
 {
     m_d->mode = mode;
     m_d->par_aux = std::move(auxname);
@@ -172,12 +172,12 @@ auto fitter::init_from_file(TString filename, TString auxname, priority_mode mod
 auto fitter::export_to_file(bool update_reference) -> bool
 {
     if (!update_reference)
-        return export_parameters(m_d->par_aux.Data());
+        return export_parameters(m_d->par_aux);
     else
-        return export_parameters(m_d->par_ref.Data());
+        return export_parameters(m_d->par_ref);
 }
 
-auto fitter::insert_parameter(std::pair<TString, entry> hfp) -> entry*
+auto fitter::insert_parameter(std::pair<std::string, entry> hfp) -> entry*
 {
     auto res = m_d->hfpmap.emplace(std::move(hfp));
     if (!res.second) res.first->second = hfp.second;
@@ -185,17 +185,17 @@ auto fitter::insert_parameter(std::pair<TString, entry> hfp) -> entry*
     return &res.first->second;
 }
 
-auto fitter::insert_parameter(TString name, entry hfp) -> entry*
+auto fitter::insert_parameter(std::string name, entry hfp) -> entry*
 {
     return insert_parameter(std::make_pair(std::move(name), std::move(hfp)));
 }
 
-auto fitter::import_parameters(const TString& filename) -> bool
+auto fitter::import_parameters(const std::string& filename) -> bool
 {
-    std::ifstream fparfile(filename.Data());
+    std::ifstream fparfile(filename.c_str());
     if (!fparfile.is_open())
     {
-        fmt::print(stderr, "No file {} to open.\n", filename.Data());
+        fmt::print(stderr, "No file {:s} to open.\n", filename);
         return false;
     }
 
@@ -210,17 +210,17 @@ auto fitter::import_parameters(const TString& filename) -> bool
     return true;
 }
 
-auto fitter::export_parameters(const TString& filename) -> bool
+auto fitter::export_parameters(const std::string& filename) -> bool
 {
     std::ofstream fparfile(filename);
     if (!fparfile.is_open())
     {
-        fmt::print(stderr, "Can't create output file {}. Skipping...\n", filename.Data());
+        fmt::print(stderr, "Can't create output file {:s}. Skipping...\n", filename);
         return false;
     }
     else
     {
-        fmt::print("Output file {} opened...  Exporting {} entries.\n", filename.Data(), m_d->hfpmap.size());
+        fmt::print("Output file {:s} opened...  Exporting {:d} entries.\n", filename, m_d->hfpmap.size());
         for (auto it = m_d->hfpmap.begin(); it != m_d->hfpmap.end(); ++it)
         {
             fparfile << tools::format_line_entry(it->first, &it->second, m_d->output_format_version) << std::endl;
@@ -251,7 +251,7 @@ auto fitter::find_or_make(const char* name) -> entry*
         if (!m_d->generic_parameters.get_functions_count())
             throw std::logic_error("Generic Fit Entry has no functions.");
 
-        hfp = insert_parameter(TString(name), m_d->generic_parameters);
+        hfp = insert_parameter(std::string(name), m_d->generic_parameters);
         if (!m_d->generic_parameters.get_functions_count()) throw std::logic_error("Could not insert new parameter.");
     }
 
@@ -268,7 +268,7 @@ auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> std::pair<bo
         if (!m_d->generic_parameters.get_functions_count())
             throw std::logic_error("Generic Fit Entry has no functions.");
 
-        hfp = insert_parameter(TString(hist->GetName()), m_d->generic_parameters);
+        hfp = insert_parameter(std::string(hist->GetName()), m_d->generic_parameters);
         if (!m_d->generic_parameters.get_functions_count()) throw std::logic_error("Could not insert new parameter.");
     }
 
@@ -304,7 +304,7 @@ auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* 
         if (!m_d->generic_parameters.get_functions_count())
             throw std::logic_error("Generic Fit Entry has no functions.");
 
-        hfp = insert_parameter(TString(name), m_d->generic_parameters);
+        hfp = insert_parameter(std::string(name), m_d->generic_parameters);
         if (!m_d->generic_parameters.get_functions_count()) throw std::logic_error("Could not insert new parameter.");
     }
 
@@ -327,10 +327,10 @@ auto fitter::set_generic_entry(entry generic) -> void { m_d->generic_parameters 
 
 auto fitter::has_generic_entry() -> bool { return m_d->generic_parameters.is_valid(); }
 
-auto fitter::set_name_decorator(TString decorator) -> void { m_d->name_decorator = std::move(decorator); }
+auto fitter::set_name_decorator(std::string decorator) -> void { m_d->name_decorator = std::move(decorator); }
 auto fitter::clear_name_decorator() -> void { m_d->name_decorator = "*"; }
 
-auto fitter::set_function_decorator(TString decorator) -> void { m_d->function_decorator = std::move(decorator); }
+auto fitter::set_function_decorator(std::string decorator) -> void { m_d->function_decorator = std::move(decorator); }
 
 auto fitter::set_function_style(int function_index) -> draw_opts&
 {

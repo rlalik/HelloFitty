@@ -18,11 +18,11 @@ TEST(TestsFitter, PrefixSuffixTest)
     const std::string tn1 = "test_name";
     const std::string tn2 = "replaced";
 
-    ASSERT_STREQ("pref1_test_name", hf::tools::format_name(tn1, pat1));
-    ASSERT_STREQ("pref1_replaced", hf::tools::format_name(tn2, pat1));
+    ASSERT_STREQ("pref1_test_name", hf::tools::format_name(tn1, pat1).c_str());
+    ASSERT_STREQ("pref1_replaced", hf::tools::format_name(tn2, pat1).c_str());
 
-    ASSERT_STREQ("p_test_name_suff1", hf::tools::format_name(tn1, pat2));
-    ASSERT_STREQ("p_replaced_suff1", hf::tools::format_name(tn2, pat2));
+    ASSERT_STREQ("p_test_name_suff1", hf::tools::format_name(tn1, pat2).c_str());
+    ASSERT_STREQ("p_replaced_suff1", hf::tools::format_name(tn2, pat2).c_str());
 }
 
 TEST(TestsFitter, InsertParameters)

@@ -23,7 +23,6 @@
 
 #include <RtypesCore.h>
 #include <TFitResultPtr.h>
-#include <TString.h>
 
 #include <functional>
 #include <memory>
@@ -172,7 +171,7 @@ public:
     /// Add function of given body to functions collection
     /// @param formula the function body
     /// @return function id
-    auto add_function(TString formula) -> int;
+    auto add_function(std::string formula) -> int;
 
     /// Get function body string
     /// @return function body as string
@@ -241,7 +240,7 @@ public:
 
     auto clear() -> void;
 
-    auto export_entry() const -> TString;
+    auto export_entry() const -> std::string;
 
     /// Store current parameter in backup storage
     auto backup() -> void;
@@ -253,7 +252,7 @@ public:
     auto set_function_style(int function_index) -> draw_opts&;
     auto set_function_style() -> draw_opts&;
 
-    auto print(const TString& name, bool detailed = false) const -> void;
+    auto print(const std::string& name, bool detailed = false) const -> void;
 
     friend hf::fitter;
     friend hf::parser::v1;
@@ -320,13 +319,14 @@ public:
     /// Load parameters from the reference input.
     /// @param input_file the input parameters
     /// @return the file was properly imported
-    auto init_from_file(TString input_file) -> bool;
+    auto init_from_file(std::string input_file) -> bool;
     /// Load parameters from the reference input or the auxiliary input, depend on mode.
     /// @param input_file the input file for parameters
     /// @param aux_file the output file for parameters
     /// @param mode source selection mode
     /// @return the file was properly imported
-    auto init_from_file(TString input_file, TString aux_file, priority_mode mode = priority_mode::newer) -> bool;
+    auto init_from_file(std::string input_file, std::string aux_file,
+                        priority_mode mode = priority_mode::newer) -> bool;
     /// Force file exporting. If the output file was not set, the function does nothing.
     /// @return true if the file was written
     auto export_to_file(bool update_reference = false) -> bool;
@@ -380,17 +380,17 @@ public:
     /// @param name histogram name
     /// @param hfp histogram fit entry
     /// @return pointer to the registered entry
-    auto insert_parameter(TString name, entry hfp) -> entry*;
+    auto insert_parameter(std::string name, entry hfp) -> entry*;
     /// Insert new pair of name,entry. If the entry for given name exists, update it with the
     /// new value.
     /// @param hfp pair of histogram name and histogram fit entry
     /// @return pointer to the registered entry
-    auto insert_parameter(std::pair<TString, entry> hfp) -> entry*;
+    auto insert_parameter(std::pair<std::string, entry> hfp) -> entry*;
 
-    auto set_name_decorator(TString decorator) -> void;
+    auto set_name_decorator(std::string decorator) -> void;
     auto clear_name_decorator() -> void;
 
-    auto set_function_decorator(TString decorator) -> void;
+    auto set_function_decorator(std::string decorator) -> void;
 
     auto set_function_style(int function_index) -> draw_opts&;
     auto set_function_style() -> draw_opts&;
@@ -401,36 +401,36 @@ public:
     auto set_qa_checker(fit_qa_checker checker) -> void;
 
 private:
-    auto import_parameters(const TString& filename) -> bool;
-    auto export_parameters(const TString& filename) -> bool;
+    auto import_parameters(const std::string& filename) -> bool;
+    auto export_parameters(const std::string& filename) -> bool;
     std::unique_ptr<detail::fitter_impl> m_d;
 };
 
 namespace tools
 {
 
-auto HELLOFITTY_EXPORT format_name(const TString& name, const TString& decorator) -> TString;
+auto HELLOFITTY_EXPORT format_name(const std::string& name, const std::string& decorator) -> std::string;
 
 /// Detect format of the line. A simple check of the pattern characteristic is made. In case of ill-formed line it may
 /// result in false detection.
 /// @param line entry line to be tested
 /// @return format name
-auto HELLOFITTY_EXPORT detect_format(const TString& line) -> format_version;
+auto HELLOFITTY_EXPORT detect_format(const std::string& line) -> format_version;
 
 /// Parse the entry line according to given format, by default tries to detect the format.
 /// @param line entry line to be parsed
 /// @param version entry version
 /// @return ownership of the parsed entry
-auto HELLOFITTY_EXPORT parse_line_entry(const TString& line, format_version version = hf::format_version::detect)
-    -> std::pair<TString, entry>;
+auto HELLOFITTY_EXPORT parse_line_entry(const std::string& line, format_version version = hf::format_version::detect)
+    -> std::pair<std::string, entry>;
 
 /// Export the entry to the text line using given format. By default the newest v2 is used.
 /// @param name the entry (histogram) name
 /// @param entry fit entry
 /// @param version entry version
 /// @return the entry string
-auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::entry* entry,
-                                         format_version version = hf::format_version::v2) -> TString;
+auto HELLOFITTY_EXPORT format_line_entry(const std::string& name, const hf::entry* entry,
+                                         format_version version = hf::format_version::v2) -> std::string;
 
 } // namespace tools
 

@@ -151,16 +151,16 @@ auto create_root_file(const TString& filename) -> TH1I*
 
 auto main() -> int
 {
-    auto root_file_name = TString(examples_bin_path) + "test_hist_input.root";
+    auto root_file_name = std::string(examples_bin_path) + "test_hist_input.root";
     auto hist = create_root_file(root_file_name);
-    auto root_outout_name = TString(examples_bin_path) + "test_hist_output.root";
+    auto root_outout_name = std::string(examples_bin_path) + "test_hist_output.root";
 
-    auto input_name = TString(examples_bin_path) + "test_input.txt";
+    auto input_name = std::string(examples_bin_path) + "test_input.txt";
     create_input_file(input_name);
 
-    auto output1_name = TString(examples_bin_path) + "test_output1.txt";
-    auto output2_name = TString(examples_bin_path) + "test_output2.txt";
-    auto output3_name = TString(examples_bin_path) + "test_output3.txt";
+    auto output1_name = std::string(examples_bin_path) + "test_output1.txt";
+    auto output2_name = std::string(examples_bin_path) + "test_output2.txt";
+    auto output3_name = std::string(examples_bin_path) + "test_output3.txt";
 
     hf::fitter ff;
     ff.set_verbose(true);
@@ -191,11 +191,11 @@ auto main() -> int
     else { fmt::print(stderr, "{}\n", "No function found"); }
     ff.export_to_file();
 
-    TFile* fp = TFile::Open(root_outout_name, "RECREATE");
+    TFile* fp = TFile::Open(root_outout_name.c_str(), "RECREATE");
     if (fp) { hist->Write(); }
     else
     {
-        fmt::print(stderr, "File {} not open\n", root_outout_name.Data());
+        fmt::print(stderr, "File {:s} not open\n", root_outout_name);
         abort();
     }
     fp->Close();

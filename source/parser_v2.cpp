@@ -12,7 +12,7 @@
 
 namespace hf::parser
 {
-auto v2::parse_line_entry(const TString& line) -> std::pair<TString, entry>
+auto v2::parse_line_entry(const std::string& line) -> std::pair<std::string, entry>
 {
     TString line_ = line;
     line_.ReplaceAll("\t", " ");
@@ -26,13 +26,13 @@ auto v2::parse_line_entry(const TString& line) -> std::pair<TString, entry>
     //                                   dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
     //                                   dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
 
-    auto name = dynamic_cast<TObjString*>(arr->At(0))->String();             // hist name
-    auto hfp = entry(dynamic_cast<TObjString*>(arr->At(1))->String().Atof(), // low range
+    std::string name = dynamic_cast<TObjString*>(arr->At(0))->String().Data(); // hist name
+    auto hfp = entry(dynamic_cast<TObjString*>(arr->At(1))->String().Atof(),   // low range
                      dynamic_cast<TObjString*>(arr->At(2))->String().Atof());
     if (name[0] == '@')
     {
         hfp.m_d->fit_disabled = true;
-        auto tmpname = TString(name.Data() + 1);
+        auto tmpname = std::string(name.c_str() + 1);
         name = std::move(tmpname);
     }
 
@@ -44,12 +44,12 @@ auto v2::parse_line_entry(const TString& line) -> std::pair<TString, entry>
 
     for (; token_id < all_tokens; token_id++)
     {
-        const auto token = dynamic_cast<TObjString*>(arr->At(token_id))->String();
+        std::string token = dynamic_cast<TObjString*>(arr->At(token_id))->String().Data();
         if (token == "|") { break; }
 
         if (token == ":" or token == "f" or token == "F") { throw hf::format_error("Param signature detected"); }
 
-        hfp.m_d->add_function_lazy(token);
+        hfp.m_d->add_function_lazy(token.c_str());
     }
     hfp.m_d->compile();
 
@@ -120,9 +120,9 @@ auto v2::parse_line_entry(const TString& line) -> std::pair<TString, entry>
     return std::make_pair(std::move(name), std::move(hfp));
 }
 
-auto v2::format_line_entry(const TString& name, const hf::entry* hist_fit, int precision) -> TString
+auto v2::format_line_entry(const std::string& name, const hf::entry* hist_fit) -> std::string
 {
-    auto out = fmt::format("{:c}{:s}\t{:} {:} {:d}", hist_fit->get_flag_disabled() ? '@' : ' ', name.Data(),
+    auto out = fmt::format("{:c}{:s}\t{:} {:} {:d}", hist_fit->get_flag_disabled() ? '@' : ' ', name.c_str(),
                            hist_fit->get_fit_range_min(), hist_fit->get_fit_range_max(), hist_fit->get_flag_rebin());
     const auto function_count = hist_fit->get_functions_count();
 

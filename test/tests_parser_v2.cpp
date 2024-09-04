@@ -76,7 +76,7 @@ TEST(TestsParserV2, Formatting3Functions)
 
     auto out = hf::tools::format_line_entry(hfp.first, &hfp.second, hf::format_version::v2);
 
-    ASSERT_STREQ(out, " hist_1\t1 10 0 gaus(0) expo(3) pol1(5) |  1  2 : 1 3  3 F 2 5  4 f  5  6  0");
+    ASSERT_STREQ(out.c_str(), " hist_1\t1 10 0 gaus(0) expo(3) pol1(5) |  1  2 : 1 3  3 F 2 5  4 f  5  6  0");
 }
 
 TEST(TestsParserV2, ComplexLine)

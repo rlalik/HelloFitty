@@ -69,7 +69,7 @@ auto entry::is_valid() const -> bool { return m_d->range_max > m_d->range_min; }
 
 auto entry::clear() -> void { drop(); }
 
-auto entry::add_function(TString formula) -> int
+auto entry::add_function(std::string formula) -> int
 {
     auto current_function_idx = m_d->add_function_lazy(std::move(formula));
     m_d->compile();
@@ -78,7 +78,7 @@ auto entry::add_function(TString formula) -> int
 
 auto entry::get_function(int function_index) const -> const char*
 {
-    return m_d->funcs.at(int2size_t(function_index)).body_string.Data();
+    return m_d->funcs.at(int2size_t(function_index)).body_string.c_str();
 }
 
 auto entry::set_param(int par_id, hf::param par) -> void
@@ -196,9 +196,9 @@ auto entry::get_flag_rebin() const -> int { return m_d->rebin; }
 
 auto entry::get_flag_disabled() const -> bool { return m_d->fit_disabled; }
 
-auto entry::print(const TString& name, bool detailed) const -> void
+auto entry::print(const std::string& name, bool detailed) const -> void
 {
-    fmt::print("## name: {:s}    rebin: {:d}   range: {:g} -- {:g}  param num: {:d}  {:s}\n", name.Data(), m_d->rebin,
+    fmt::print("## name: {:s}    rebin: {:d}   range: {:g} -- {:g}  param num: {:d}  {:s}\n", name, m_d->rebin,
                m_d->range_min, m_d->range_min, get_function_params_count(), get_flag_disabled() ? "DISABLED" : "");
 
     for (const auto& func : m_d->funcs)

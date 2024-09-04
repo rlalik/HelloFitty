@@ -2,7 +2,6 @@
 #define HELLOFITTY_DETAILS_H
 
 #include <TF1.h>
-#include <TString.h>
 
 #include <fmt/color.h>
 #include <fmt/core.h>
@@ -65,21 +64,21 @@ struct draw_opts_impl final
 /// lwoer or upper boundaries, free or fixed fitting mode.
 struct function_impl final
 {
-    TString body_string;
+    std::string body_string;
     TF1 function_obj;
 
     /// Accept param value and fit mode
     /// @param par_value initial parameter value
     /// @param par_mode parameter fitting mode, see @ref fit_mode
-    explicit function_impl(TString body, Double_t range_min, Double_t range_max)
+    explicit function_impl(std::string body, Double_t range_min, Double_t range_max)
     {
-        function_obj = TF1("", body, range_min, range_max, TF1::EAddToList::kNo);
+        function_obj = TF1("", body.c_str(), range_min, range_max, TF1::EAddToList::kNo);
         body_string = std::move(body);
     }
 
     auto print(bool detailed) const -> void
     {
-        fmt::print("  Function: {}    params: {}\n", body_string.Data(), 0);
+        fmt::print("  Function: {:s}    params: {:d}\n", body_string, 0);
 
         if (detailed) { function_obj.Print("V"); }
     }
@@ -94,7 +93,7 @@ struct entry_impl
     bool fit_disabled{false};
 
     std::vector<function_impl> funcs;
-    TString complete_function_body;
+    std::string complete_function_body;
     TF1 complete_function_object;
 
     std::vector<param> pars;
@@ -104,7 +103,7 @@ struct entry_impl
 
     entry_impl() : pars(10), parameters_backup(10) {}
     /// Does not recompile the total function. Use compile() after adding last function.
-    auto add_function_lazy(TString formula) -> int
+    auto add_function_lazy(std::string formula) -> int
     {
         auto current_function_idx = funcs.size();
         funcs.emplace_back(std::move(formula), range_min, range_max);
@@ -114,11 +113,11 @@ struct entry_impl
     auto compile() -> void
     {
         if (funcs.size() == 0) { return; }
-        complete_function_body =
-            std::accumulate(std::next(funcs.begin()), funcs.end(), funcs[0].body_string,
-                            [](TString a, hf::detail::function_impl b) { return std::move(a) + "+" + b.body_string; });
+        complete_function_body = std::accumulate(std::next(funcs.begin()), funcs.end(), funcs[0].body_string,
+                                                 [](std::string a, hf::detail::function_impl b)
+                                                 { return std::move(a) + "+" + b.body_string; });
 
-        complete_function_object = TF1("", complete_function_body, range_min, range_max, TF1::EAddToList::kNo);
+        complete_function_object = TF1("", complete_function_body.c_str(), range_min, range_max, TF1::EAddToList::kNo);
 
         auto npars = int2size_t(complete_function_object.GetNpar());
         pars.resize(npars);
@@ -175,14 +174,14 @@ struct fitter_impl
     static bool verbose_flag;
     fit_qa_checker checker{hf::chi2checker()};
 
-    TString par_ref;
-    TString par_aux;
+    std::string par_ref;
+    std::string par_aux;
 
     entry generic_parameters;
-    std::map<TString, entry> hfpmap;
+    std::map<std::string, entry> hfpmap;
 
-    TString name_decorator{"*"};
-    TString function_decorator{"f_*"};
+    std::string name_decorator{"*"};
+    std::string function_decorator{"f_*"};
 
     std::unordered_map<int, draw_opts> partial_functions_styles;
 
@@ -193,7 +192,7 @@ struct fitter_impl
         hfp_m_d->prepare();
 
         TF1* tfSum = &hfp->get_function_object();
-        tfSum->SetName(tools::format_name(name, function_decorator));
+        tfSum->SetName(tools::format_name(name, function_decorator).c_str());
 
         dataobj->GetListOfFunctions()->Clear();
         dataobj->GetListOfFunctions()->SetOwner(kTRUE);
@@ -302,8 +301,8 @@ struct fitter_impl
             auto& partial_function = hfp->get_function_object(i);
             // partial_function.SetName(tools::format_name(hfp->get_name(), function_decorator + "_function_" + i));
 
-            auto cloned = dynamic_cast<TF1*>(
-                partial_function.Clone(tools::format_name(name, function_decorator + "_function_" + i)));
+            auto cloned = dynamic_cast<TF1*>(partial_function.Clone(
+                tools::format_name(name, function_decorator + "_function_" + std::to_string(i)).c_str()));
             if (!apply_style(cloned, hfp_m_d->partial_functions_styles, i))
             {
                 if (!apply_style(cloned, partial_functions_styles, i)) { cloned->ResetBit(TF1::kNotDraw); }

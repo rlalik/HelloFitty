@@ -60,7 +60,7 @@ TEST(TestsParserV1, ParsingLine)
     hfp1.second.print(hfp1.first);
 
     auto export1 = hf::tools::format_line_entry(hfp1.first, &hfp1.second, hf::format_version::v1);
-    ASSERT_STREQ(export1, " hist_1\tgaus(0) pol0(3) 0 1 10  1  2 : 1 3  3 F 2 5  4 f");
+    ASSERT_STREQ(export1.c_str(), " hist_1\tgaus(0) pol0(3) 0 1 10  1  2 : 1 3  3 F 2 5  4 f");
 
     auto hfp2 = hf::tools::parse_line_entry("hist_2 gaus(0) pol0(3)  1  1 10  1  2 : 1 3  3 F 2 5  4 f",
                                             hf::format_version::v1);
@@ -103,7 +103,7 @@ TEST(TestsParserV1, ParsingLine)
     hfp2.second.print(hfp2.first);
 
     auto export2 = hf::parser::v1::format_line_entry(hfp2.first, &hfp2.second);
-    ASSERT_STREQ(export2, " hist_2\tgaus(0) pol0(3) 0 1 10  1  2 : 1 3  3 F 2 5  4 f");
+    ASSERT_STREQ(export2.c_str(), " hist_2\tgaus(0) pol0(3) 0 1 10  1  2 : 1 3  3 F 2 5  4 f");
 
     auto hfp3 = hf::tools::parse_line_entry("hist_3 gaus(0) pol0(3)  1  1 10", hf::format_version::v1);
 
@@ -145,7 +145,7 @@ TEST(TestsParserV1, ParsingLine)
     hfp3.second.print(hfp3.first);
 
     auto export3 = hf::parser::v1::format_line_entry(hfp3.first, &hfp3.second);
-    ASSERT_STREQ(export3, " hist_3\tgaus(0) pol0(3) 0 1 10  0  0  0  0");
+    ASSERT_STREQ(export3.c_str(), " hist_3\tgaus(0) pol0(3) 0 1 10  0  0  0  0");
 
     ASSERT_THROW(hf::tools::parse_line_entry("hist_1 gaus(0) pol0(3)  1  1", hf::format_version::v1), hf::format_error);
 }

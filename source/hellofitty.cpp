@@ -26,21 +26,21 @@ namespace hf
 namespace tools
 {
 
-auto format_name(const TString& name, const TString& decorator) -> TString
+auto format_name(const std::string& name, const std::string& decorator) -> std::string
 {
     TString str = decorator;
     str.ReplaceAll("*", name);
-    return str;
+    return str.Data();
 }
 
-auto HELLOFITTY_EXPORT detect_format(const TString& line) -> format_version
+auto HELLOFITTY_EXPORT detect_format(const std::string& line) -> format_version
 {
-    if (line.First('|') == -1) { return hf::format_version::v1; }
+    if (line.find_first_of('|') == std::string::npos) { return hf::format_version::v1; }
 
     return hf::format_version::v2;
 }
 
-auto parse_line_entry(const TString& line, format_version version) -> std::pair<TString, entry>
+auto parse_line_entry(const std::string& line, format_version version) -> std::pair<std::string, entry>
 {
     if (version == hf::format_version::detect) { version = tools::detect_format(line); }
 
@@ -58,7 +58,8 @@ auto parse_line_entry(const TString& line, format_version version) -> std::pair<
     }
 }
 
-auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::entry* entry, format_version version) -> TString
+auto HELLOFITTY_EXPORT format_line_entry(const std::string& name, const hf::entry* entry,
+                                         format_version version) -> std::string
 {
     switch (version)
     {

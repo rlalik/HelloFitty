@@ -2,8 +2,6 @@
 
 #include "hellofitty.hpp"
 
-#include <TString.h> // for TString
-
 #include <memory>    // for unique_ptr, allocator
 #include <stdexcept> // for out_of_range
 #include <string>    // for string

@@ -95,8 +95,8 @@ Only default constructor available. You can add histogram fit functions definiti
 
 If you import data from file you can set auxiliary (output) file to store fitted data.
 ```c++
-auto init_from_file(TString input_file) -> bool;
-auto init_from_file(TString input_file, TString aux_file, priority_mode mode = priority_mode::newer) -> bool;
+auto init_from_file(std::string input_file) -> bool;
+auto init_from_file(std::string input_file, std::string aux_file, priority_mode mode = priority_mode::newer) -> bool;
 ```
 The first function is intended to read the data without intention to store the fitted results. The second sets also auxiliary file which is the default target for exporting the fit updates. The `priority_mode` specifies how the sources are prioritized:
 ```c++
@@ -128,8 +128,8 @@ auto fit(fit_entry* hfp, TH1* hist, const char* pars = "BQ", const char* gpars =
 ```
 In addition to importing from file, you can add additional fit entries to the fitter:
 ```c++
-auto insert_parameter(std::pair<TString, fit_entry> hfp) -> void;
-auto insert_parameter(const TString& name, std::unique_ptr<fit_entry> hfp) -> void;
+auto insert_parameter(std::pair<std::string, fit_entry> hfp) -> void;
+auto insert_parameter(const std::string& name, std::unique_ptr<fit_entry> hfp) -> void;
 ```
 To set default fitting function for histograms not present in the histogram entries collection, use
 ```c++
