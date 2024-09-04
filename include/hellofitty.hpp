@@ -187,6 +187,9 @@ public:
     auto param(int par_id) -> hf::param&;
     auto param(int par_id) const -> const hf::param&;
 
+    auto param(const char* name) -> hf::param&;
+    auto param(const char* name) const -> const hf::param&;
+
     auto set_fit_range(Double_t range_lower, Double_t range_upper) -> void;
     auto get_fit_range_min() const -> Double_t;
     auto get_fit_range_max() const -> Double_t;

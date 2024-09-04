@@ -38,19 +38,19 @@ TEST(TestsEntry, Params)
     hf::entry hfp1(1, 10);
     ASSERT_EQ(hfp1.add_function("gaus(0)"), 0);
 
-    ASSERT_NO_THROW(hfp1.get_param(0));
-    ASSERT_THROW(hfp1.get_param(10), hf::index_error);
+    ASSERT_NO_THROW(hfp1.param(0));
+    ASSERT_THROW(hfp1.param(10), hf::index_error);
 
     hfp1.set_param(0, 13, hf::param::fit_mode::free);
 
-    ASSERT_NO_THROW(hfp1.get_param("Constant"));
-    ASSERT_THROW(hfp1.get_param("Foo"), hf::index_error);
+    ASSERT_NO_THROW(hfp1.param("Constant"));
+    ASSERT_THROW(hfp1.param("Foo"), hf::index_error);
 
-    ASSERT_EQ(hfp1.get_param("Constant").value, 13);
+    ASSERT_EQ(hfp1.param("Constant").value, 13);
 
     const auto& hfp2 = hfp1;
 
-    ASSERT_EQ(hfp2.get_param("Constant").value, 13);
+    ASSERT_EQ(hfp2.param("Constant").value, 13);
 }
 
 TEST(TestsEntry, Cloning)
@@ -121,19 +121,13 @@ TEST(TestsEntry, Backups)
     hfp1.set_param(2, par2);
     hfp1.set_param(3, par3);
 
-    // try {
-    //     hfp1.set_param(5, p4);
-    // } catch (...) {
-    //     ASSERT_NE(hfp1.get_paramsNumber(), 5);
-    // }
-
     // backup test_values_1
     hfp1.backup();
 
     // should still contain test_values_1
     for (auto& test_data : test_values_1)
     {
-        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
+        ASSERT_EQ(hfp1.param(std::get<0>(test_data)).value, std::get<1>(test_data));
     }
 
     // set to test_values_2
@@ -145,7 +139,7 @@ TEST(TestsEntry, Backups)
     // should read test_values_2
     for (auto& test_data : test_values_2)
     {
-        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
+        ASSERT_EQ(hfp1.param(std::get<0>(test_data)).value, std::get<1>(test_data));
     }
 
     // should restore test_values_1
@@ -154,7 +148,7 @@ TEST(TestsEntry, Backups)
     // should read test_values_1
     for (auto& test_data : test_values_1)
     {
-        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
+        ASSERT_EQ(hfp1.param(std::get<0>(test_data)).value, std::get<1>(test_data));
     }
 
     // should set test_values_2
@@ -169,7 +163,7 @@ TEST(TestsEntry, Backups)
     // should read test_values_1
     for (auto& test_data : test_values_1)
     {
-        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
+        ASSERT_EQ(hfp1.param(std::get<0>(test_data)).value, std::get<1>(test_data));
     }
 
     for (auto& test_data : test_values_3)
@@ -186,7 +180,7 @@ TEST(TestsEntry, Backups)
     // still test_values_2
     for (auto& test_data : test_values_3)
     {
-        ASSERT_EQ(hfp1.get_param(std::get<0>(test_data)).value, std::get<1>(test_data));
+        ASSERT_EQ(hfp1.param(std::get<0>(test_data)).value, std::get<1>(test_data));
     }
 
     hfp1.drop();

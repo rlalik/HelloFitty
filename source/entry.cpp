@@ -137,6 +137,16 @@ auto entry::param(int par_id) -> hf::param&
     return const_cast<hf::param&>(const_cast<const entry*>(this)->param(par_id));
 }
 
+auto entry::param(const char* name) const -> const hf::param&
+{
+    return param(get_param_name_index(&m_d->complete_function_object, name));
+}
+
+auto entry::param(const char* name) -> hf::param&
+{
+    return const_cast<hf::param&>(const_cast<const entry*>(this)->param(name));
+}
+
 auto entry::set_fit_range(Double_t range_lower, Double_t range_upper) -> void
 {
     m_d->range_min = range_lower;
