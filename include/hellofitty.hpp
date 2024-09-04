@@ -120,6 +120,8 @@ struct param final
     Double_t max{0.0};             ///< upper limit
     fit_mode mode{fit_mode::free}; ///< Parameter fitting mode
     bool has_limits{false};        ///< Remembers whether hit limits were set
+    int print_precision{8};        ///< Screen print precision
+    int store_precision{8};        ///< File export precision
 
     constexpr param() = default;
 
@@ -269,7 +271,7 @@ enum class format_version
     v2,     ///< variable function number with params on the tail of line
 };
 
-using params_vector = std::vector<double>;
+using params_vector = std::vector<param>;
 using fit_qa_checker =
     std::function<int(const params_vector&, double, const params_vector&, double, const TFitResultPtr&)>;
 

@@ -202,7 +202,9 @@ struct fitter_impl
 
         // backup old parameters
         params_vector backup_old(int2size_t(par_num));
-        tfSum->GetParameters(backup_old.data());
+        for (int i = 0; i < par_num; ++i)
+            backup_old[int2size_t(i)] = hfp->get_param(i);
+
         double chi2_backup_old = dataobj->Chisquare(tfSum, "R");
 
         auto fit_res = dataobj->Fit(tfSum, pars, gpars, hfp->get_fit_range_min(), hfp->get_fit_range_max());
@@ -216,8 +218,10 @@ struct fitter_impl
         // cov.Print();
 
         // backup new parameters
-        params_vector backup_new(int2size_t(par_num));
-        tfSum->GetParameters(backup_new.data());
+        params_vector backup_new = backup_old;
+        for (int i = 0; i < par_num; ++i)
+            backup_new[int2size_t(i)].value = tfSum->GetParameter(i);
+
         double chi2_backup_new = dataobj->Chisquare(tfSum, "R");
 
         auto qa_res = checker(backup_old, chi2_backup_old, backup_new, chi2_backup_new, fit_res);
@@ -244,8 +248,11 @@ struct fitter_impl
         }
         else
         {
-            tfSum->SetParameters(backup_old.data());
-            new_sig_func->SetParameters(backup_old.data());
+            for (int i = 0; i < par_num; ++i)
+            {
+                tfSum->SetParameter(i, backup_old[int2size_t(i)].value);
+                new_sig_func->SetParameter(i, backup_old[int2size_t(i)].value);
+            }
 
             if (verbose_flag)
             {
@@ -334,7 +341,7 @@ template <> struct fmt::formatter<hf::params_vector>
         // ctx.out() is an output iterator to write to.
 
         for (const auto& par : p)
-            fmt::format_to(ctx.out(), "{:} ", par);
+            fmt::format_to(ctx.out(), "{:.{}} ", par.value, par.print_precision);
 
         return ctx.out();
     }

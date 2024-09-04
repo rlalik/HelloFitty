@@ -120,7 +120,7 @@ auto v2::parse_line_entry(const TString& line) -> std::pair<TString, entry>
     return std::make_pair(std::move(name), std::move(hfp));
 }
 
-auto v2::format_line_entry(const TString& name, const hf::entry* hist_fit) -> TString
+auto v2::format_line_entry(const TString& name, const hf::entry* hist_fit, int precision) -> TString
 {
     auto out = fmt::format("{:c}{:s}\t{:} {:} {:d}", hist_fit->get_flag_disabled() ? '@' : ' ', name.Data(),
                            hist_fit->get_fit_range_min(), hist_fit->get_fit_range_max(), hist_fit->get_flag_rebin());
@@ -153,13 +153,17 @@ auto v2::format_line_entry(const TString& name, const hf::entry* hist_fit) -> TS
 
         if (param.mode == param::fit_mode::free and param.has_limits == false)
         {
-            out += fmt::format("  {:}", param.value);
+            out += fmt::format("  {:.{}}", param.value, param.store_precision);
         }
         else if (param.mode == param::fit_mode::fixed and param.has_limits == false)
         {
-            out += fmt::format("  {:} {:c}", param.value, sep);
+            out += fmt::format("  {:.{}} {:c}", param.value, param.store_precision, sep);
         }
-        else { out += fmt::format("  {:} {:c} {:} {:}", param.value, sep, param.min, param.max); }
+        else
+        {
+            out += fmt::format("  {:.{}} {:c} {:.{}} {:.{}}", param.value, param.store_precision, sep, param.min,
+                               param.store_precision, param.max, param.store_precision);
+        }
     }
 
     return out;
