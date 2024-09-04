@@ -4,6 +4,7 @@
 #include <TF1.h>
 #include <TString.h>
 
+#include <fmt/color.h>
 #include <fmt/core.h>
 #include <fmt/ranges.h>
 
@@ -28,12 +29,6 @@ constexpr auto size_t2int(size_t val) -> int
     return (val <= std::numeric_limits<int>::max()) ? static_cast<int>(val) : -1;
 }
 constexpr auto int2size_t(int val) -> size_t { return (val < 0) ? __SIZE_MAX__ : static_cast<size_t>(val); }
-
-struct params_vector
-{
-    std::vector<double> pars;
-    params_vector(size_t n) : pars(n) {}
-};
 
 auto apply_style(TF1* function, std::unordered_map<int, hf::draw_opts>& styles, int index) -> bool
 {
@@ -178,6 +173,7 @@ struct fitter_impl
     format_version output_format_version{format_version::v2};
 
     static bool verbose_flag;
+    fit_qa_checker checker{hf::chi2checker()};
 
     TString par_ref;
     TString par_aux;
@@ -206,12 +202,10 @@ struct fitter_impl
 
         // backup old parameters
         params_vector backup_old(int2size_t(par_num));
-        tfSum->GetParameters(backup_old.pars.data());
+        tfSum->GetParameters(backup_old.data());
         double chi2_backup_old = dataobj->Chisquare(tfSum, "R");
 
-        if (verbose_flag) { fmt::print("* old {} : {} --> chi2:  {:f} -- *\n", name, backup_old, chi2_backup_old); }
-
-        dataobj->Fit(tfSum, pars, gpars, hfp->get_fit_range_min(), hfp->get_fit_range_max());
+        auto fit_res = dataobj->Fit(tfSum, pars, gpars, hfp->get_fit_range_min(), hfp->get_fit_range_max());
 
         TF1* new_sig_func = dynamic_cast<TF1*>(dataobj->GetListOfFunctions()->At(0));
 
@@ -223,23 +217,44 @@ struct fitter_impl
 
         // backup new parameters
         params_vector backup_new(int2size_t(par_num));
-        tfSum->GetParameters(backup_new.pars.data());
+        tfSum->GetParameters(backup_new.data());
         double chi2_backup_new = dataobj->Chisquare(tfSum, "R");
 
-        if (verbose_flag) { fmt::print("* new {} : {} --> chi2:  {:f} -- *", name, backup_new, chi2_backup_new); }
+        auto qa_res = checker(backup_old, chi2_backup_old, backup_new, chi2_backup_new, fit_res);
 
-        if (chi2_backup_new > chi2_backup_old)
+        if (qa_res > 0)
         {
-            tfSum->SetParameters(backup_old.pars.data());
-            new_sig_func->SetParameters(backup_old.pars.data());
-            fmt::print("{}\n", "\t [ FAILED - restoring old params ]");
+            if (verbose_flag)
+            {
+                fmt::print(fmt::fg(fmt::color::royal_blue), "* old  {} : {} --> chi2:  {:} -- *\n", name, backup_old,
+                           chi2_backup_old);
+                fmt::print(fmt::fg(fmt::color::lime_green), "* new  {} : {} --> chi2:  {:} -- *", name, backup_new,
+                           chi2_backup_new);
+                fmt::print("{}\n", "\t [ OK ]");
+            }
+        }
+        else if (qa_res == 0)
+        {
+            if (verbose_flag)
+            {
+                fmt::print(fmt::fg(fmt::color::orange), "* fine {} : {} --> chi2:  {:} -- *", name, backup_old,
+                           chi2_backup_new);
+                fmt::print("{}\n", "\t [ pass ]");
+            }
         }
         else
         {
-            // fmt::print("\n\tIS-OK: {:g} vs. {:g} -> {:f}", tfSum->GetMaximum(), hist->GetMaximum(),
-            //        hist->Chisquare(tfSum, "R"));
+            tfSum->SetParameters(backup_old.data());
+            new_sig_func->SetParameters(backup_old.data());
 
-            if (verbose_flag) fmt::print("{}\n", "\t [ OK ]");
+            if (verbose_flag)
+            {
+                fmt::print(fmt::fg(fmt::color::royal_blue), "* old  {} : {} --> chi2:  {:} -- *\n", name, backup_old,
+                           chi2_backup_old);
+                fmt::print(fmt::fg(fmt::color::crimson), "* new  {} : {} --> chi2:  {:} -- *", name, backup_new,
+                           chi2_backup_new);
+                fmt::print("{}\n", "\t [ FAILED - restoring old params ]");
+            }
         }
 
         tfSum->SetChisquare(dataobj->Chisquare(tfSum, "R"));
@@ -299,7 +314,7 @@ struct fitter_impl
 } // namespace hf::detail
 
 // see https://fmt.dev/latest/api.html#formatting-user-defined-types
-template <> struct fmt::formatter<params_vector>
+template <> struct fmt::formatter<hf::params_vector>
 {
     // Parses format specifications of the form ['f' | 'e' | 'g'].
     CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
@@ -314,12 +329,12 @@ template <> struct fmt::formatter<params_vector>
 
     // Formats the point p using the parsed format specification (presentation)
     // stored in this formatter.
-    auto format(const params_vector& p, format_context& ctx) const -> format_context::iterator
+    auto format(const hf::params_vector& p, format_context& ctx) const -> format_context::iterator
     {
         // ctx.out() is an output iterator to write to.
 
-        for (const auto& par : p.pars)
-            fmt::format_to(ctx.out(), "{:.g} ", par);
+        for (const auto& par : p)
+            fmt::format_to(ctx.out(), "{:} ", par);
 
         return ctx.out();
     }

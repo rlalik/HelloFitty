@@ -342,6 +342,8 @@ auto fitter::set_function_style(int function_index) -> draw_opts&
 
 auto fitter::set_function_style() -> draw_opts& { return set_function_style(-1); }
 
+auto fitter::set_qa_checker(fit_qa_checker checker) -> void { m_d->checker = std::move(checker); }
+
 auto fitter::print() const -> void
 {
     for (auto it = m_d->hfpmap.begin(); it != m_d->hfpmap.end(); ++it)

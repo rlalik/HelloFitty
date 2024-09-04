@@ -22,8 +22,10 @@
 #include "HelloFitty/hellofitty_export.hpp"
 
 #include <RtypesCore.h>
+#include <TFitResultPtr.h>
 #include <TString.h>
 
+#include <functional>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -267,6 +269,21 @@ enum class format_version
     v2,     ///< variable function number with params on the tail of line
 };
 
+using params_vector = std::vector<double>;
+using fit_qa_checker =
+    std::function<int(const params_vector&, double, const params_vector&, double, const TFitResultPtr&)>;
+
+struct chi2checker
+{
+    int operator()(const params_vector& /*old_pars*/, double old_chi2, const params_vector& /*new_pars*/,
+                   double new_chi2, const TFitResultPtr&)
+    {
+        if (new_chi2 < old_chi2) return 1;
+        if (new_chi2 == old_chi2) return 0;
+        return -1;
+    }
+};
+
 class HELLOFITTY_EXPORT fitter final
 {
 public:
@@ -378,6 +395,8 @@ public:
 
     auto get_function_style(int function_index) -> draw_opts&;
     auto get_function_style() -> draw_opts&;
+
+    auto set_qa_checker(fit_qa_checker checker) -> void;
 
 private:
     auto import_parameters(const TString& filename) -> bool;
