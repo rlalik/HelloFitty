@@ -176,16 +176,16 @@ public:
     auto get_function(int function_index) const -> const char*;
 
     auto set_param(int par_id, param par) -> void;
-    auto set_param(int par_id, Double_t value, param::fit_mode mode = param::fit_mode::free) -> void;
+    auto set_param(int par_id, Double_t value, hf::param::fit_mode mode = hf::param::fit_mode::free) -> void;
     auto set_param(int par_id, Double_t value, Double_t min, Double_t max,
-                   param::fit_mode mode = param::fit_mode::free) -> void;
+                   hf::param::fit_mode mode = hf::param::fit_mode::free) -> void;
     auto update_param(int par_id, Double_t value) -> void;
 
-    auto get_param(int par_id) -> param&;
-    auto get_param(int par_id) const -> const param&;
+    auto get_param(int par_id) const -> hf::param;
+    auto get_param(const char* name) const -> hf::param;
 
-    auto get_param(const char* name) -> param&;
-    auto get_param(const char* name) const -> const param&;
+    auto param(int par_id) -> hf::param&;
+    auto param(int par_id) const -> const hf::param&;
 
     auto set_fit_range(Double_t range_lower, Double_t range_upper) -> void;
     auto get_fit_range_min() const -> Double_t;

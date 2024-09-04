@@ -52,7 +52,7 @@ TEST(TestsParam, Basic)
     ASSERT_EQ(par6.has_limits, true);
 }
 
-TEST(TestsParam, FormatterE) { ASSERT_THROW(fmt::format("{:e}", par1), fmt::format_error); }
+TEST(TestsParam, FormatterE) { ASSERT_THROW((void)fmt::format("{:e}", par1), fmt::format_error); }
 
 /*
 TEST(TestsParam, FormatterE)

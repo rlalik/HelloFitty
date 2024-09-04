@@ -81,20 +81,20 @@ auto fit_entry::get_function(int function_index) const -> const char*
     return m_d->funcs.at(int2size_t(function_index)).body_string.Data();
 }
 
-auto fit_entry::set_param(int par_id, param par) -> void
+auto fit_entry::set_param(int par_id, hf::param par) -> void
 {
     const auto upar_id = int2size_t(par_id);
     m_d->pars.at(upar_id) = std::move(par);
 }
 
-auto fit_entry::set_param(int par_id, Double_t value, param::fit_mode mode) -> void
+auto fit_entry::set_param(int par_id, Double_t value, hf::param::fit_mode mode) -> void
 {
-    set_param(par_id, param(value, mode));
+    set_param(par_id, hf::param(value, mode));
 }
 
 auto fit_entry::set_param(int par_id, Double_t value, Double_t l, Double_t u, param::fit_mode mode) -> void
 {
-    set_param(par_id, param(value, l, u, mode));
+    set_param(par_id, hf::param(value, l, u, mode));
 }
 
 auto fit_entry::update_param(int par_id, Double_t value) -> void
@@ -105,7 +105,7 @@ auto fit_entry::update_param(int par_id, Double_t value) -> void
     par.value = value;
 }
 
-auto fit_entry::get_param(int par_id) const -> const param&
+auto fit_entry::get_param(int par_id) const -> hf::param
 {
     const auto upar_id = int2size_t(par_id);
     try
@@ -118,11 +118,6 @@ auto fit_entry::get_param(int par_id) const -> const param&
     }
 }
 
-auto fit_entry::get_param(int par_id) -> param&
-{
-    return const_cast<param&>(const_cast<const fit_entry*>(this)->get_param(par_id));
-}
-
 auto get_param_name_index(TF1* fun, const char* name) -> Int_t
 {
     auto par_index = fun->GetParNumber(name);
@@ -130,14 +125,27 @@ auto get_param_name_index(TF1* fun, const char* name) -> Int_t
     return par_index;
 }
 
-auto fit_entry::get_param(const char* name) -> param&
+auto fit_entry::get_param(const char* name) const -> hf::param
 {
     return get_param(get_param_name_index(&m_d->complete_function_object, name));
 }
 
-auto fit_entry::get_param(const char* name) const -> const param&
+auto fit_entry::param(int par_id) const -> const hf::param&
 {
-    return get_param(get_param_name_index(&m_d->complete_function_object, name));
+    const auto upar_id = int2size_t(par_id);
+    try
+    {
+        return m_d->pars.at(upar_id);
+    }
+    catch (std::out_of_range& e)
+    {
+        throw hf::index_error(e.what());
+    }
+}
+
+auto fit_entry::param(int par_id) -> hf::param&
+{
+    return const_cast<hf::param&>(const_cast<const fit_entry*>(this)->param(par_id));
 }
 
 auto fit_entry::set_fit_range(Double_t range_lower, Double_t range_upper) -> void
