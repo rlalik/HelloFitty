@@ -105,10 +105,7 @@ auto entry::update_param(int par_id, Double_t value) -> void
     par.value = value;
 }
 
-auto entry::get_param(int par_id) const -> hf::param
-{
-    return param(par_id);
-}
+auto entry::get_param(int par_id) const -> hf::param { return param(par_id); }
 
 auto get_param_name_index(TF1* fun, const char* name) -> Int_t
 {

@@ -29,6 +29,23 @@ constexpr auto size_t2int(size_t val) -> int
 }
 constexpr auto int2size_t(int val) -> size_t { return (val < 0) ? __SIZE_MAX__ : static_cast<size_t>(val); }
 
+struct params_vector
+{
+    std::vector<double> pars;
+    params_vector(size_t n) : pars(n) {}
+};
+
+auto apply_style(TF1* function, std::unordered_map<int, hf::draw_opts>& styles, int index) -> bool
+{
+    const auto style = styles.find(index);
+    if (style != styles.cend())
+    {
+        style->second.apply(function);
+        return true;
+    }
+    return false;
+}
+
 } // namespace
 
 namespace hf::detail
@@ -75,8 +92,8 @@ struct function_impl final
 
 struct entry_impl
 {
-    Double_t range_min; // function range
-    Double_t range_max; // function range
+    Double_t range_min; // function range mix
+    Double_t range_max; // function range max
 
     int rebin{0}; // rebin, 0 == no rebin
     bool fit_disabled{false};
@@ -172,8 +189,140 @@ struct fitter_impl
     TString function_decorator{"f_*"};
 
     std::unordered_map<int, draw_opts> partial_functions_styles;
+
+    template <class T>
+    auto generic_fit(entry* hfp, entry_impl* hfp_m_d, const char* name, T* dataobj, const char* pars,
+                     const char* gpars) -> bool
+    {
+        hfp_m_d->prepare();
+
+        TF1* tfSum = &hfp->get_function_object();
+        tfSum->SetName(tools::format_name(name, function_decorator));
+
+        dataobj->GetListOfFunctions()->Clear();
+        dataobj->GetListOfFunctions()->SetOwner(kTRUE);
+
+        const auto par_num = tfSum->GetNpar();
+
+        // backup old parameters
+        params_vector backup_old(int2size_t(par_num));
+        tfSum->GetParameters(backup_old.pars.data());
+        double chi2_backup_old = dataobj->Chisquare(tfSum, "R");
+
+        if (verbose_flag) { fmt::print("* old {} : {} --> chi2:  {:f} -- *\n", name, backup_old, chi2_backup_old); }
+
+        dataobj->Fit(tfSum, pars, gpars, hfp->get_fit_range_min(), hfp->get_fit_range_max());
+
+        TF1* new_sig_func = dynamic_cast<TF1*>(dataobj->GetListOfFunctions()->At(0));
+
+        // TVirtualFitter * fitter = TVirtualFitter::GetFitter();
+        // TMatrixDSym cov;
+        // fitter->GetCovarianceMatrix()
+        // cov.Use(fitter->GetNumberTotalParameters(), fitter->GetCovarianceMatrix());
+        // cov.Print();
+
+        // backup new parameters
+        params_vector backup_new(int2size_t(par_num));
+        tfSum->GetParameters(backup_new.pars.data());
+        double chi2_backup_new = dataobj->Chisquare(tfSum, "R");
+
+        if (verbose_flag) { fmt::print("* new {} : {} --> chi2:  {:f} -- *", name, backup_new, chi2_backup_new); }
+
+        if (chi2_backup_new > chi2_backup_old)
+        {
+            tfSum->SetParameters(backup_old.pars.data());
+            new_sig_func->SetParameters(backup_old.pars.data());
+            fmt::print("{}\n", "\t [ FAILED - restoring old params ]");
+        }
+        else
+        {
+            // fmt::print("\n\tIS-OK: {:g} vs. {:g} -> {:f}", tfSum->GetMaximum(), hist->GetMaximum(),
+            //        hist->Chisquare(tfSum, "R"));
+
+            if (verbose_flag) fmt::print("{}\n", "\t [ OK ]");
+        }
+
+        tfSum->SetChisquare(dataobj->Chisquare(tfSum, "R"));
+
+        new_sig_func->SetChisquare(dataobj->Chisquare(tfSum, "R"));
+
+        const auto functions_count = hfp->get_functions_count();
+
+        for (auto i = 0; i < par_num; ++i)
+        {
+            double par = tfSum->GetParameter(i);
+            double err = tfSum->GetParError(i);
+
+            for (auto function = 0; function < functions_count; ++function)
+            {
+                auto& partial_function = hfp->get_function_object(function);
+                if (i < partial_function.GetNpar())
+                {
+                    partial_function.SetParameter(i, par);
+                    partial_function.SetParError(i, err);
+                }
+            }
+
+            hfp->update_param(i, par);
+        }
+
+        auto complete_function = dynamic_cast<TF1*>(dataobj->GetListOfFunctions()->At(0));
+        if (!apply_style(complete_function, hfp_m_d->partial_functions_styles, -1))
+        {
+            if (!apply_style(complete_function, partial_functions_styles, -1))
+            {
+                complete_function->ResetBit(TF1::kNotDraw);
+            }
+        }
+
+        for (auto i = 0; i < functions_count; ++i)
+        {
+            auto& partial_function = hfp->get_function_object(i);
+            // partial_function.SetName(tools::format_name(hfp->get_name(), function_decorator + "_function_" + i));
+
+            auto cloned = dynamic_cast<TF1*>(
+                partial_function.Clone(tools::format_name(name, function_decorator + "_function_" + i)));
+            if (!apply_style(cloned, hfp_m_d->partial_functions_styles, i))
+            {
+                if (!apply_style(cloned, partial_functions_styles, i)) { cloned->ResetBit(TF1::kNotDraw); }
+            }
+
+            // tfSig->SetBit(TF1::kNotGlobal); TODO do I need it?
+
+            dataobj->GetListOfFunctions()->Add(cloned);
+        }
+
+        return true;
+    }
 };
 
 } // namespace hf::detail
+
+// see https://fmt.dev/latest/api.html#formatting-user-defined-types
+template <> struct fmt::formatter<params_vector>
+{
+    // Parses format specifications of the form ['f' | 'e' | 'g'].
+    CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
+    {
+        // Parse the presentation format and store it in the formatter:
+        auto it = ctx.begin(), end = ctx.end();
+        if (it != end && *it != '}') FMT_THROW(format_error("invalid format"));
+
+        // Return an iterator past the end of the parsed range:
+        return it;
+    }
+
+    // Formats the point p using the parsed format specification (presentation)
+    // stored in this formatter.
+    auto format(const params_vector& p, format_context& ctx) const -> format_context::iterator
+    {
+        // ctx.out() is an output iterator to write to.
+
+        for (const auto& par : p.pars)
+            fmt::format_to(ctx.out(), "{:.g} ", par);
+
+        return ctx.out();
+    }
+};
 
 #endif /* HELLOFITTY_DETAILS_H*/

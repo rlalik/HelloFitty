@@ -41,12 +41,6 @@ bool hf::detail::fitter_impl::verbose_flag = true;
 
 namespace
 {
-struct params_vector
-{
-    std::vector<double> pars;
-    params_vector(size_t n) : pars(n) {}
-};
-
 enum class source
 {
     none,
@@ -86,45 +80,7 @@ auto select_source(const char* filename, const char* auxname = nullptr) -> sourc
     return mod_aux > mod_ref ? source::auxiliary : source::reference;
 }
 
-auto apply_style(TF1* function, std::unordered_map<int, hf::draw_opts>& styles, int index) -> bool
-{
-    const auto style = styles.find(index);
-    if (style != styles.cend())
-    {
-        style->second.apply(function);
-        return true;
-    }
-    return false;
-}
-
 } // namespace
-
-// see https://fmt.dev/latest/api.html#formatting-user-defined-types
-template <> struct fmt::formatter<params_vector>
-{
-    // Parses format specifications of the form ['f' | 'e' | 'g'].
-    CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
-    {
-        // Parse the presentation format and store it in the formatter:
-        auto it = ctx.begin(), end = ctx.end();
-        if (it != end && *it != '}') FMT_THROW(format_error("invalid format"));
-
-        // Return an iterator past the end of the parsed range:
-        return it;
-    }
-
-    // Formats the point p using the parsed format specification (presentation)
-    // stored in this formatter.
-    auto format(const params_vector& p, format_context& ctx) const -> format_context::iterator
-    {
-        // ctx.out() is an output iterator to write to.
-
-        for (const auto& par : p.pars)
-            fmt::format_to(ctx.out(), "{:.g} ", par);
-
-        return ctx.out();
-    }
-};
 
 template <> struct fmt::formatter<hf::entry>
 {
@@ -331,119 +287,11 @@ auto fitter::fit(entry* hfp, TH1* hist, const char* pars, const char* gpars) -> 
     Int_t bin_l = hist->FindBin(hfp->get_fit_range_min());
     Int_t bin_u = hist->FindBin(hfp->get_fit_range_max());
 
-    hfp->m_d->prepare();
-
-    if (hfp->get_flag_rebin() != 0)
-    {
-        // was_rebin = true;
-        hist->Rebin(hfp->get_flag_rebin());
-    }
+    if (hfp->get_flag_rebin() != 0) { hist->Rebin(hfp->get_flag_rebin()); }
 
     if (hist->Integral(bin_l, bin_u) == 0) return false;
 
-    TF1* tfSum = &hfp->get_function_object();
-    tfSum->SetName(tools::format_name(hist->GetName(), m_d->function_decorator));
-
-    hist->GetListOfFunctions()->Clear();
-    hist->GetListOfFunctions()->SetOwner(kTRUE);
-
-    const auto par_num = tfSum->GetNpar();
-
-    // backup old parameters
-    params_vector backup_old(int2size_t(par_num));
-    tfSum->GetParameters(backup_old.pars.data());
-    double chi2_backup_old = hist->Chisquare(tfSum, "R");
-
-    if (m_d->verbose_flag)
-    {
-        fmt::print("* old {} : {} --> chi2:  {:f} -- *\n", hist->GetName(), backup_old, chi2_backup_old);
-    }
-
-    hist->Fit(tfSum, pars, gpars, hfp->get_fit_range_min(), hfp->get_fit_range_max());
-
-    TF1* new_sig_func = dynamic_cast<TF1*>(hist->GetListOfFunctions()->At(0));
-
-    // TVirtualFitter * fitter = TVirtualFitter::GetFitter();
-    // TMatrixDSym cov;
-    // fitter->GetCovarianceMatrix()
-    // cov.Use(fitter->GetNumberTotalParameters(), fitter->GetCovarianceMatrix());
-    // cov.Print();
-
-    // backup new parameters
-    params_vector backup_new(int2size_t(par_num));
-    tfSum->GetParameters(backup_new.pars.data());
-    double chi2_backup_new = hist->Chisquare(tfSum, "R");
-
-    if (m_d->verbose_flag)
-    {
-        fmt::print("* new {} : {} --> chi2:  {:f} -- *", hist->GetName(), backup_new, chi2_backup_new);
-    }
-
-    if (chi2_backup_new > chi2_backup_old)
-    {
-        tfSum->SetParameters(backup_old.pars.data());
-        new_sig_func->SetParameters(backup_old.pars.data());
-        fmt::print("{}\n", "\t [ FAILED - restoring old params ]");
-    }
-    else
-    {
-        // fmt::print("\n\tIS-OK: {:g} vs. {:g} -> {:f}", tfSum->GetMaximum(), hist->GetMaximum(),
-        //        hist->Chisquare(tfSum, "R"));
-
-        if (m_d->verbose_flag) fmt::print("{}\n", "\t [ OK ]");
-    }
-
-    tfSum->SetChisquare(hist->Chisquare(tfSum, "R"));
-
-    new_sig_func->SetChisquare(hist->Chisquare(tfSum, "R"));
-
-    const auto functions_count = hfp->get_functions_count();
-
-    for (auto i = 0; i < par_num; ++i)
-    {
-        double par = tfSum->GetParameter(i);
-        double err = tfSum->GetParError(i);
-
-        for (auto function = 0; function < functions_count; ++function)
-        {
-            auto& partial_function = hfp->get_function_object(function);
-            if (i < partial_function.GetNpar())
-            {
-                partial_function.SetParameter(i, par);
-                partial_function.SetParError(i, err);
-            }
-        }
-
-        hfp->update_param(i, par);
-    }
-
-    auto complete_function = dynamic_cast<TF1*>(hist->GetListOfFunctions()->At(0));
-    if (!apply_style(complete_function, hfp->m_d->partial_functions_styles, -1))
-    {
-        if (!apply_style(complete_function, m_d->partial_functions_styles, -1))
-        {
-            complete_function->ResetBit(TF1::kNotDraw);
-        }
-    }
-
-    for (auto i = 0; i < functions_count; ++i)
-    {
-        auto& partial_function = hfp->get_function_object(i);
-        // partial_function.SetName(tools::format_name(hfp->get_name(), m_d->function_decorator + "_function_" + i));
-
-        auto cloned = dynamic_cast<TF1*>(
-            partial_function.Clone(tools::format_name(hist->GetName(), m_d->function_decorator + "_function_" + i)));
-        if (!apply_style(cloned, hfp->m_d->partial_functions_styles, i))
-        {
-            if (!apply_style(cloned, m_d->partial_functions_styles, i)) { cloned->ResetBit(TF1::kNotDraw); }
-        }
-
-        // tfSig->SetBit(TF1::kNotGlobal); TODO do I need it?
-
-        hist->GetListOfFunctions()->Add(cloned);
-    }
-
-    return true;
+    return m_d->generic_fit(hfp, hfp->m_d.get(), hist->GetName(), hist, pars, gpars);
 }
 
 auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* gpars) -> std::pair<bool, entry*>
@@ -472,105 +320,7 @@ auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* 
 
 auto fitter::fit(entry* hfp, const char* name, TGraph* graph, const char* pars, const char* gpars) -> bool
 {
-    hfp->m_d->prepare();
-
-    TF1* tfSum = &hfp->get_function_object();
-    tfSum->SetName(tools::format_name(name, m_d->function_decorator));
-
-    graph->GetListOfFunctions()->Clear();
-    graph->GetListOfFunctions()->SetOwner(kTRUE);
-
-    const auto par_num = tfSum->GetNpar();
-
-    // backup old parameters
-    params_vector backup_old(int2size_t(par_num));
-    tfSum->GetParameters(backup_old.pars.data());
-    double chi2_backup_old = graph->Chisquare(tfSum, "R");
-
-    if (m_d->verbose_flag) { fmt::print("* old {} : {} --> chi2:  {:f} -- *\n", name, backup_old, chi2_backup_old); }
-
-    graph->Fit(tfSum, pars, gpars, hfp->get_fit_range_min(), hfp->get_fit_range_max());
-
-    TF1* new_sig_func = dynamic_cast<TF1*>(graph->GetListOfFunctions()->At(0));
-
-    // TVirtualFitter * fitter = TVirtualFitter::GetFitter();
-    // TMatrixDSym cov;
-    // fitter->GetCovarianceMatrix()
-    // cov.Use(fitter->GetNumberTotalParameters(), fitter->GetCovarianceMatrix());
-    // cov.Print();
-
-    // backup new parameters
-    params_vector backup_new(int2size_t(par_num));
-    tfSum->GetParameters(backup_new.pars.data());
-    double chi2_backup_new = graph->Chisquare(tfSum, "R");
-
-    if (m_d->verbose_flag) { fmt::print("* new {} : {} --> chi2:  {:f} -- *", name, backup_new, chi2_backup_new); }
-
-    if (chi2_backup_new > chi2_backup_old)
-    {
-        tfSum->SetParameters(backup_old.pars.data());
-        new_sig_func->SetParameters(backup_old.pars.data());
-        fmt::print("{}\n", "\t [ FAILED - restoring old params ]");
-    }
-    else
-    {
-        // fmt::print("\n\tIS-OK: {:g} vs. {:g} -> {:f}", tfSum->GetMaximum(), hist->GetMaximum(),
-        //        hist->Chisquare(tfSum, "R"));
-
-        if (m_d->verbose_flag) fmt::print("{}\n", "\t [ OK ]");
-    }
-
-    tfSum->SetChisquare(graph->Chisquare(tfSum, "R"));
-
-    new_sig_func->SetChisquare(graph->Chisquare(tfSum, "R"));
-
-    const auto functions_count = hfp->get_functions_count();
-
-    for (auto i = 0; i < par_num; ++i)
-    {
-        double par = tfSum->GetParameter(i);
-        double err = tfSum->GetParError(i);
-
-        for (auto function = 0; function < functions_count; ++function)
-        {
-            auto& partial_function = hfp->get_function_object(function);
-            if (i < partial_function.GetNpar())
-            {
-                partial_function.SetParameter(i, par);
-                partial_function.SetParError(i, err);
-            }
-        }
-
-        hfp->update_param(i, par);
-    }
-
-    auto complete_function = dynamic_cast<TF1*>(graph->GetListOfFunctions()->At(0));
-    if (!apply_style(complete_function, hfp->m_d->partial_functions_styles, -1))
-    {
-        if (!apply_style(complete_function, m_d->partial_functions_styles, -1))
-        {
-            complete_function->ResetBit(TF1::kNotDraw);
-        }
-    }
-
-    for (auto i = 0; i < functions_count; ++i)
-    {
-        auto& partial_function = hfp->get_function_object(i);
-        // partial_function.SetName(tools::format_name(hfp->get_name(), m_d->function_decorator + "_function_" + i));
-
-        auto cloned = dynamic_cast<TF1*>(
-            partial_function.Clone(tools::format_name(name, m_d->function_decorator + "_function_" + i)));
-        if (!apply_style(cloned, hfp->m_d->partial_functions_styles, i))
-        {
-            if (!apply_style(cloned, m_d->partial_functions_styles, i)) { cloned->ResetBit(TF1::kNotDraw); }
-        }
-
-        // tfSig->SetBit(TF1::kNotGlobal); TODO do I need it?
-
-        graph->GetListOfFunctions()->Add(cloned);
-    }
-
-    return true;
+    return m_d->generic_fit(hfp, hfp->m_d.get(), name, graph, pars, gpars);
 }
 
 auto fitter::set_generic_entry(entry generic) -> void { m_d->generic_parameters = generic; }
