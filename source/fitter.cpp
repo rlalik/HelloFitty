@@ -126,7 +126,7 @@ template <> struct fmt::formatter<params_vector>
     }
 };
 
-template <> struct fmt::formatter<hf::fit_entry>
+template <> struct fmt::formatter<hf::entry>
 {
     // Presentation format: 'f' - fixed, 'e' - exponential, 'g' - either.
     char presentation = 'g';
@@ -142,7 +142,7 @@ template <> struct fmt::formatter<hf::fit_entry>
         return it;
     }
 
-    auto format(const hf::fit_entry& /*fitentry*/, format_context& ctx) const -> format_context::iterator
+    auto format(const hf::entry& /*fitentry*/, format_context& ctx) const -> format_context::iterator
     {
         return ctx.out();
     }
@@ -221,7 +221,7 @@ auto fitter::export_to_file(bool update_reference) -> bool
         return export_parameters(m_d->par_ref.Data());
 }
 
-auto fitter::insert_parameter(std::pair<TString, fit_entry> hfp) -> fit_entry*
+auto fitter::insert_parameter(std::pair<TString, entry> hfp) -> entry*
 {
     auto res = m_d->hfpmap.emplace(std::move(hfp));
     if (!res.second) res.first->second = hfp.second;
@@ -229,7 +229,7 @@ auto fitter::insert_parameter(std::pair<TString, fit_entry> hfp) -> fit_entry*
     return &res.first->second;
 }
 
-auto fitter::insert_parameter(TString name, fit_entry hfp) -> fit_entry*
+auto fitter::insert_parameter(TString name, entry hfp) -> entry*
 {
     return insert_parameter(std::make_pair(std::move(name), std::move(hfp)));
 }
@@ -273,9 +273,9 @@ auto fitter::export_parameters(const TString& filename) -> bool
     return true;
 }
 
-auto fitter::find_fit(TH1* hist) const -> fit_entry* { return find_fit(hist->GetName()); }
+auto fitter::find_fit(TH1* hist) const -> entry* { return find_fit(hist->GetName()); }
 
-auto fitter::find_fit(const char* name) const -> fit_entry*
+auto fitter::find_fit(const char* name) const -> entry*
 {
     auto it = m_d->hfpmap.find(tools::format_name(name, m_d->name_decorator));
     if (it != m_d->hfpmap.end()) return &it->second;
@@ -283,11 +283,11 @@ auto fitter::find_fit(const char* name) const -> fit_entry*
     return nullptr;
 }
 
-auto fitter::find_or_make(TH1* hist) -> fit_entry* { return find_or_make(hist->GetName()); }
+auto fitter::find_or_make(TH1* hist) -> entry* { return find_or_make(hist->GetName()); }
 
-auto fitter::find_or_make(const char* name) -> fit_entry*
+auto fitter::find_or_make(const char* name) -> entry*
 {
-    fit_entry* hfp = find_fit(name);
+    entry* hfp = find_fit(name);
     if (!hfp)
     {
         // fmt::print("HFP for histogram {:s} not found, trying from defaults.\n", name);
@@ -302,9 +302,9 @@ auto fitter::find_or_make(const char* name) -> fit_entry*
     return hfp;
 }
 
-auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> std::pair<bool, fit_entry*>
+auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> std::pair<bool, entry*>
 {
-    fit_entry* hfp = find_fit(hist->GetName());
+    entry* hfp = find_fit(hist->GetName());
     if (!hfp)
     {
         fmt::print("HFP for histogram {:s} not found, trying from defaults.\n", hist->GetName());
@@ -326,7 +326,7 @@ auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> std::pair<bo
     return {status, hfp};
 }
 
-auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars) -> bool
+auto fitter::fit(entry* hfp, TH1* hist, const char* pars, const char* gpars) -> bool
 {
     Int_t bin_l = hist->FindBin(hfp->get_fit_range_min());
     Int_t bin_u = hist->FindBin(hfp->get_fit_range_max());
@@ -446,9 +446,9 @@ auto fitter::fit(fit_entry* hfp, TH1* hist, const char* pars, const char* gpars)
     return true;
 }
 
-auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* gpars) -> std::pair<bool, fit_entry*>
+auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* gpars) -> std::pair<bool, entry*>
 {
-    fit_entry* hfp = find_fit(name);
+    entry* hfp = find_fit(name);
     if (!hfp)
     {
         fmt::print("HFP for graphs {:s} not found, trying from defaults.\n", name);
@@ -470,7 +470,7 @@ auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* 
     return {status, hfp};
 }
 
-auto fitter::fit(fit_entry* hfp, const char* name, TGraph* graph, const char* pars, const char* gpars) -> bool
+auto fitter::fit(entry* hfp, const char* name, TGraph* graph, const char* pars, const char* gpars) -> bool
 {
     hfp->m_d->prepare();
 
@@ -573,7 +573,7 @@ auto fitter::fit(fit_entry* hfp, const char* name, TGraph* graph, const char* pa
     return true;
 }
 
-auto fitter::set_generic_entry(fit_entry generic) -> void { m_d->generic_parameters = generic; }
+auto fitter::set_generic_entry(entry generic) -> void { m_d->generic_parameters = generic; }
 
 auto fitter::has_generic_entry() -> bool { return m_d->generic_parameters.is_valid(); }
 

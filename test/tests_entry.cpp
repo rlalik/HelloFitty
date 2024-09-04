@@ -9,9 +9,9 @@
 #include <string>    // for string
 #include <tuple>     // for get, tuple
 
-TEST(TestsFitEntry, Functions)
+TEST(TestsEntry, Functions)
 {
-    hf::fit_entry hfp1(1, 10);
+    hf::entry hfp1(1, 10);
     ASSERT_EQ(hfp1.get_fit_range_min(), 1);
     ASSERT_EQ(hfp1.get_fit_range_max(), 10);
 
@@ -33,9 +33,9 @@ TEST(TestsFitEntry, Functions)
     ASSERT_STREQ(hfp1.get_function(1), "expo(3)");
 }
 
-TEST(TestsFitEntry, Params)
+TEST(TestsEntry, Params)
 {
-    hf::fit_entry hfp1(1, 10);
+    hf::entry hfp1(1, 10);
     ASSERT_EQ(hfp1.add_function("gaus(0)"), 0);
 
     ASSERT_NO_THROW(hfp1.get_param(0));
@@ -53,9 +53,9 @@ TEST(TestsFitEntry, Params)
     ASSERT_EQ(hfp2.get_param("Constant").value, 13);
 }
 
-TEST(TestsFitEntry, Cloning)
+TEST(TestsEntry, Cloning)
 {
-    hf::fit_entry hfp1(1, 10);
+    hf::entry hfp1(1, 10);
     ASSERT_EQ(hfp1.add_function("gaus(0)"), 0);
     ASSERT_EQ(hfp1.add_function("expo(3)"), 1);
 
@@ -76,9 +76,9 @@ TEST(TestsFitEntry, Cloning)
     hfp1.clear();
 }
 
-TEST(TestsFitEntry, Backups)
+TEST(TestsEntry, Backups)
 {
-    hf::fit_entry hfp1(1, 10);
+    hf::entry hfp1(1, 10);
     ASSERT_EQ(hfp1.add_function("gaus(0)"), 0);
     ASSERT_EQ(hfp1.add_function("expo(3)"), 1);
 

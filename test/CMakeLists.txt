@@ -4,7 +4,7 @@ set(INSTALL_GTEST OFF)
 find_or_fetch_package(GTest https://github.com/google/googletest GIT_TAG release-1.11.0)
 
 set(tests_SRCS tests_param.cpp
-               tests_fit_entry.cpp
+               tests_entry.cpp
                tests_parser_v1.cpp
                tests_parser_v2.cpp
                tests_fitter.cpp

@@ -22,7 +22,7 @@
 
 #include "details.hpp"
 
-template <> struct fmt::formatter<hf::fit_entry>
+template <> struct fmt::formatter<hf::entry>
 {
     // Presentation format: 'f' - fixed, 'e' - exponential, 'g' - either.
     char presentation = 'g';
@@ -38,7 +38,7 @@ template <> struct fmt::formatter<hf::fit_entry>
         return it;
     }
 
-    auto format(const hf::fit_entry& /*fitentry*/, format_context& ctx) const -> format_context::iterator
+    auto format(const hf::entry& /*fitentry*/, format_context& ctx) const -> format_context::iterator
     {
         return ctx.out();
     }
@@ -47,57 +47,57 @@ template <> struct fmt::formatter<hf::fit_entry>
 namespace hf
 {
 
-fit_entry::fit_entry() : m_d{make_unique<detail::fit_entry_impl>()} {}
+entry::entry() : m_d{make_unique<detail::entry_impl>()} {}
 
-fit_entry::fit_entry(Double_t range_lower, Double_t range_upper) : m_d{make_unique<detail::fit_entry_impl>()}
+entry::entry(Double_t range_lower, Double_t range_upper) : m_d{make_unique<detail::entry_impl>()}
 {
     m_d->range_min = range_lower;
     m_d->range_max = range_upper;
 }
 
-fit_entry::fit_entry(const fit_entry& other) { m_d = make_unique<detail::fit_entry_impl>(*other.m_d); }
+entry::entry(const entry& other) { m_d = make_unique<detail::entry_impl>(*other.m_d); }
 
-auto fit_entry::operator=(const fit_entry& other) -> fit_entry&
+auto entry::operator=(const entry& other) -> entry&
 {
-    m_d = make_unique<detail::fit_entry_impl>(*other.m_d);
+    m_d = make_unique<detail::entry_impl>(*other.m_d);
     return *this;
 }
 
-fit_entry::~fit_entry() noexcept = default;
+entry::~entry() noexcept = default;
 
-auto fit_entry::is_valid() const -> bool { return m_d->range_max > m_d->range_min; }
+auto entry::is_valid() const -> bool { return m_d->range_max > m_d->range_min; }
 
-auto fit_entry::clear() -> void { drop(); }
+auto entry::clear() -> void { drop(); }
 
-auto fit_entry::add_function(TString formula) -> int
+auto entry::add_function(TString formula) -> int
 {
     auto current_function_idx = m_d->add_function_lazy(std::move(formula));
     m_d->compile();
     return current_function_idx;
 }
 
-auto fit_entry::get_function(int function_index) const -> const char*
+auto entry::get_function(int function_index) const -> const char*
 {
     return m_d->funcs.at(int2size_t(function_index)).body_string.Data();
 }
 
-auto fit_entry::set_param(int par_id, hf::param par) -> void
+auto entry::set_param(int par_id, hf::param par) -> void
 {
     const auto upar_id = int2size_t(par_id);
     m_d->pars.at(upar_id) = std::move(par);
 }
 
-auto fit_entry::set_param(int par_id, Double_t value, hf::param::fit_mode mode) -> void
+auto entry::set_param(int par_id, Double_t value, hf::param::fit_mode mode) -> void
 {
     set_param(par_id, hf::param(value, mode));
 }
 
-auto fit_entry::set_param(int par_id, Double_t value, Double_t l, Double_t u, param::fit_mode mode) -> void
+auto entry::set_param(int par_id, Double_t value, Double_t l, Double_t u, param::fit_mode mode) -> void
 {
     set_param(par_id, hf::param(value, l, u, mode));
 }
 
-auto fit_entry::update_param(int par_id, Double_t value) -> void
+auto entry::update_param(int par_id, Double_t value) -> void
 {
     const auto upar_id = int2size_t(par_id);
     auto& par = m_d->pars.at(upar_id);
@@ -105,17 +105,9 @@ auto fit_entry::update_param(int par_id, Double_t value) -> void
     par.value = value;
 }
 
-auto fit_entry::get_param(int par_id) const -> hf::param
+auto entry::get_param(int par_id) const -> hf::param
 {
-    const auto upar_id = int2size_t(par_id);
-    try
-    {
-        return m_d->pars.at(upar_id);
-    }
-    catch (std::out_of_range& e)
-    {
-        throw hf::index_error(e.what());
-    }
+    return param(par_id);
 }
 
 auto get_param_name_index(TF1* fun, const char* name) -> Int_t
@@ -125,12 +117,12 @@ auto get_param_name_index(TF1* fun, const char* name) -> Int_t
     return par_index;
 }
 
-auto fit_entry::get_param(const char* name) const -> hf::param
+auto entry::get_param(const char* name) const -> hf::param
 {
     return get_param(get_param_name_index(&m_d->complete_function_object, name));
 }
 
-auto fit_entry::param(int par_id) const -> const hf::param&
+auto entry::param(int par_id) const -> const hf::param&
 {
     const auto upar_id = int2size_t(par_id);
     try
@@ -143,61 +135,61 @@ auto fit_entry::param(int par_id) const -> const hf::param&
     }
 }
 
-auto fit_entry::param(int par_id) -> hf::param&
+auto entry::param(int par_id) -> hf::param&
 {
-    return const_cast<hf::param&>(const_cast<const fit_entry*>(this)->param(par_id));
+    return const_cast<hf::param&>(const_cast<const entry*>(this)->param(par_id));
 }
 
-auto fit_entry::set_fit_range(Double_t range_lower, Double_t range_upper) -> void
+auto entry::set_fit_range(Double_t range_lower, Double_t range_upper) -> void
 {
     m_d->range_min = range_lower;
     m_d->range_max = range_upper;
 }
 
-auto fit_entry::get_fit_range_min() const -> Double_t { return m_d->range_min; }
+auto entry::get_fit_range_min() const -> Double_t { return m_d->range_min; }
 
-auto fit_entry::get_fit_range_max() const -> Double_t { return m_d->range_max; }
+auto entry::get_fit_range_max() const -> Double_t { return m_d->range_max; }
 
-auto fit_entry::get_functions_count() const -> int { return size_t2int(m_d->funcs.size()); }
+auto entry::get_functions_count() const -> int { return size_t2int(m_d->funcs.size()); }
 
-auto fit_entry::get_function_object(int function_index) const -> const TF1&
+auto entry::get_function_object(int function_index) const -> const TF1&
 {
     return m_d->funcs.at(int2size_t(function_index)).function_obj;
 }
 
-auto fit_entry::get_function_object(int function_index) -> TF1&
+auto entry::get_function_object(int function_index) -> TF1&
 {
-    return const_cast<TF1&>(const_cast<const fit_entry*>(this)->get_function_object(function_index));
+    return const_cast<TF1&>(const_cast<const entry*>(this)->get_function_object(function_index));
 }
 
-auto fit_entry::get_function_object() const -> const TF1&
+auto entry::get_function_object() const -> const TF1&
 {
     if (!m_d->complete_function_object.IsValid()) { m_d->compile(); }
     return m_d->complete_function_object;
 }
 
-auto fit_entry::get_function_object() -> TF1&
+auto entry::get_function_object() -> TF1&
 {
-    return const_cast<TF1&>(const_cast<const fit_entry*>(this)->get_function_object());
+    return const_cast<TF1&>(const_cast<const entry*>(this)->get_function_object());
 }
 
-auto fit_entry::clone_function(int function_index, const char* new_name) -> std::unique_ptr<TF1>
+auto entry::clone_function(int function_index, const char* new_name) -> std::unique_ptr<TF1>
 {
     return std::unique_ptr<TF1>(dynamic_cast<TF1*>(get_function_object(function_index).Clone(new_name)));
 }
 
-auto fit_entry::clone_function(const char* new_name) -> std::unique_ptr<TF1>
+auto entry::clone_function(const char* new_name) -> std::unique_ptr<TF1>
 {
     return std::unique_ptr<TF1>(dynamic_cast<TF1*>(get_function_object().Clone(new_name)));
 }
 
-auto fit_entry::get_function_params_count() const -> int { return get_function_object().GetNpar(); }
+auto entry::get_function_params_count() const -> int { return get_function_object().GetNpar(); }
 
-auto fit_entry::get_flag_rebin() const -> int { return m_d->rebin; }
+auto entry::get_flag_rebin() const -> int { return m_d->rebin; }
 
-auto fit_entry::get_flag_disabled() const -> bool { return m_d->fit_disabled; }
+auto entry::get_flag_disabled() const -> bool { return m_d->fit_disabled; }
 
-auto fit_entry::print(const TString& name, bool detailed) const -> void
+auto entry::print(const TString& name, bool detailed) const -> void
 {
     fmt::print("## name: {:s}    rebin: {:d}   range: {:g} -- {:g}  param num: {:d}  {:s}\n", name.Data(), m_d->rebin,
                m_d->range_min, m_d->range_min, get_function_params_count(), get_flag_disabled() ? "DISABLED" : "");
@@ -233,13 +225,13 @@ auto fit_entry::print(const TString& name, bool detailed) const -> void
     // } FIXME
 }
 
-auto fit_entry::backup() -> void { m_d->backup(); }
+auto entry::backup() -> void { m_d->backup(); }
 
-auto fit_entry::restore() -> void { m_d->restore(); }
+auto entry::restore() -> void { m_d->restore(); }
 
-auto fit_entry::drop() -> void { m_d->parameters_backup.clear(); }
+auto entry::drop() -> void { m_d->parameters_backup.clear(); }
 
-auto fit_entry::set_function_style(int function_index) -> draw_opts&
+auto entry::set_function_style(int function_index) -> draw_opts&
 {
     auto res = m_d->partial_functions_styles.insert({function_index, draw_opts()});
     if (res.second == true) return res.first->second;
@@ -247,6 +239,6 @@ auto fit_entry::set_function_style(int function_index) -> draw_opts&
     throw std::runtime_error("Function style already exists.");
 }
 
-auto fit_entry::set_function_style() -> draw_opts& { return set_function_style(-1); }
+auto entry::set_function_style() -> draw_opts& { return set_function_style(-1); }
 
 } // namespace hf

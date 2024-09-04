@@ -12,7 +12,7 @@
 
 namespace hf::parser
 {
-auto v1::parse_line_entry(const TString& line) -> std::pair<TString, fit_entry>
+auto v1::parse_line_entry(const TString& line) -> std::pair<TString, entry>
 {
     TString line_ = line;
     line_.ReplaceAll("\t", " ");
@@ -26,9 +26,9 @@ auto v1::parse_line_entry(const TString& line) -> std::pair<TString, fit_entry>
     //                                   dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
     //                                   dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
 
-    auto name = dynamic_cast<TObjString*>(arr->At(0))->String();                 // hist name
-    auto hfp = fit_entry(dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
-                         dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
+    auto name = dynamic_cast<TObjString*>(arr->At(0))->String();             // hist name
+    auto hfp = entry(dynamic_cast<TObjString*>(arr->At(4))->String().Atof(), // low range
+                     dynamic_cast<TObjString*>(arr->At(5))->String().Atof());
     if (name[0] == '@')
     {
         hfp.m_d->fit_disabled = true;
@@ -109,7 +109,7 @@ auto v1::parse_line_entry(const TString& line) -> std::pair<TString, fit_entry>
     return std::make_pair(std::move(name), std::move(hfp));
 }
 
-auto v1::format_line_entry(const TString& name, const hf::fit_entry* hist_fit) -> TString
+auto v1::format_line_entry(const TString& name, const hf::entry* hist_fit) -> TString
 {
     auto out = TString::Format("%c%s\t%s %s %d %.0f %.0f", hist_fit->get_flag_disabled() ? '@' : ' ', name.Data(),
                                hist_fit->get_function(0), hist_fit->get_function(1), hist_fit->get_flag_rebin(),

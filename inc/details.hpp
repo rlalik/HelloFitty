@@ -73,7 +73,7 @@ struct function_impl final
     }
 };
 
-struct fit_entry_impl
+struct entry_impl
 {
     Double_t range_min; // function range
     Double_t range_max; // function range
@@ -90,7 +90,7 @@ struct fit_entry_impl
 
     std::unordered_map<int, draw_opts> partial_functions_styles;
 
-    fit_entry_impl() : pars(10), parameters_backup(10) {}
+    entry_impl() : pars(10), parameters_backup(10) {}
     /// Does not recompile the total function. Use compile() after adding last function.
     auto add_function_lazy(TString formula) -> int
     {
@@ -165,8 +165,8 @@ struct fitter_impl
     TString par_ref;
     TString par_aux;
 
-    fit_entry generic_parameters;
-    std::map<TString, fit_entry> hfpmap;
+    entry generic_parameters;
+    std::map<TString, entry> hfpmap;
 
     TString name_decorator{"*"};
     TString function_decorator{"f_*"};

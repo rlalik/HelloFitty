@@ -66,7 +66,7 @@ public:
 namespace detail
 {
 struct draw_opts_impl;
-struct fit_entry_impl;
+struct entry_impl;
 struct fitter_impl;
 } // namespace detail
 
@@ -149,19 +149,19 @@ struct v2;
 } // namespace parser
 
 /// Stores full description of a single fit entry - signal and background functions, and parameters.
-class HELLOFITTY_EXPORT fit_entry final
+class HELLOFITTY_EXPORT entry final
 {
 public:
-    fit_entry();
-    explicit fit_entry(Double_t range_lower, Double_t range_upper);
+    entry();
+    explicit entry(Double_t range_lower, Double_t range_upper);
 
-    fit_entry(const fit_entry& other);
-    auto operator=(const fit_entry&) -> fit_entry&;
+    entry(const entry& other);
+    auto operator=(const entry&) -> entry&;
 
-    explicit fit_entry(fit_entry&&) = default;
-    auto operator=(fit_entry&&) -> fit_entry& = default;
+    explicit entry(entry&&) = default;
+    auto operator=(entry&&) -> entry& = default;
 
-    ~fit_entry() noexcept;
+    ~entry() noexcept;
 
     auto init() -> void;
 
@@ -253,7 +253,7 @@ public:
     friend hf::parser::v2;
 
 private:
-    std::unique_ptr<detail::fit_entry_impl> m_d;
+    std::unique_ptr<detail::entry_impl> m_d;
 };
 
 /// Specifies the data file format
@@ -290,7 +290,7 @@ public:
     /// function and aparameters to be fit. It will not be used for disabled histograms.
     /// Pass an emtpy object to clear the generic entry.
     /// @param generic a generic histogram function object
-    auto set_generic_entry(fit_entry generic) -> void;
+    auto set_generic_entry(entry generic) -> void;
     /// Check if the generic entry is set.
     /// @return true if the generic entry exists.
     auto has_generic_entry() -> bool;
@@ -309,61 +309,61 @@ public:
     /// @return true if the file was written
     auto export_to_file(bool update_reference = false) -> bool;
 
-    auto find_fit(TH1* hist) const -> fit_entry*;
-    auto find_fit(const char* name) const -> fit_entry*;
+    auto find_fit(TH1* hist) const -> entry*;
+    auto find_fit(const char* name) const -> entry*;
 
-    auto find_or_make(TH1* hist) -> fit_entry*;
-    auto find_or_make(const char* name) -> fit_entry*;
+    auto find_or_make(TH1* hist) -> entry*;
+    auto find_or_make(const char* name) -> entry*;
 
-    /// Fit the histogram using fit_entry either located in the collection or using generic entry if provided.
+    /// Fit the histogram using entry either located in the collection or using generic entry if provided.
     /// @param hist histogram to be fitted
     /// @param pars histogram fitting pars
     /// @param gpars histogram fit drawing pars
-    /// @return pair of bool (true if fit successfull) and used fit_entry
-    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, fit_entry*>;
-    /// Fit the histogram using provided fit_entry. The fit entry is not automatically stored in the collection and must
+    /// @return pair of bool (true if fit successfull) and used entry
+    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, entry*>;
+    /// Fit the histogram using provided entry. The fit entry is not automatically stored in the collection and must
     /// be add using @see hf::fitter::insert_parameter.
-    /// @param hfp histogram fit_entry to be used
+    /// @param hfp histogram entry to be used
     /// @param hist histogram to be fitted
     /// @param pars histogram fitting pars
     /// @param gpars histogram fit drawing pars
     /// @return true if fit was successful
-    auto fit(fit_entry* hfp, TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
+    auto fit(entry* hfp, TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
 
-    /// Fit the graph using fit_entry either located in the collection or using generic entry if provided.
+    /// Fit the graph using entry either located in the collection or using generic entry if provided.
     /// @param name entry name (graphs are not named object)
     /// @param graph graph to be fitted
     /// @param pars graph fitting pars
     /// @param gpars graph fit drawing pars
-    /// @return pair of bool (true if fit successfull) and used fit_entry
+    /// @return pair of bool (true if fit successfull) and used entry
     auto fit(const char* name, TGraph* graph, const char* pars = "BQ",
-             const char* gpars = "") -> std::pair<bool, fit_entry*>;
-    /// Fit the graph using provided fit_entry. The fit entry is not automatically stored in the collection and must
+             const char* gpars = "") -> std::pair<bool, entry*>;
+    /// Fit the graph using provided entry. The fit entry is not automatically stored in the collection and must
     /// be add using @see hf::fitter::insert_parameter.
-    /// @param hfp graph fit_entry to be used
+    /// @param hfp graph entry to be used
     /// @param name entry name (graphs are not named object)
     /// @param graph graph to be fitted
     /// @param hist graph to be fitted
     /// @param pars graph fitting pars
     /// @param gpars graph fit drawing pars
     /// @return true if fit was successful
-    auto fit(fit_entry* hfp, const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "") -> bool;
+    auto fit(entry* hfp, const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "") -> bool;
 
     auto print() const -> void;
 
     static auto set_verbose(bool verbose) -> void;
 
-    /// Insert new pair of name,fit_entry. If the entry for given name exists, update it with the
+    /// Insert new pair of name,entry. If the entry for given name exists, update it with the
     /// new value.
     /// @param name histogram name
     /// @param hfp histogram fit entry
     /// @return pointer to the registered entry
-    auto insert_parameter(TString name, fit_entry hfp) -> fit_entry*;
-    /// Insert new pair of name,fit_entry. If the entry for given name exists, update it with the
+    auto insert_parameter(TString name, entry hfp) -> entry*;
+    /// Insert new pair of name,entry. If the entry for given name exists, update it with the
     /// new value.
     /// @param hfp pair of histogram name and histogram fit entry
     /// @return pointer to the registered entry
-    auto insert_parameter(std::pair<TString, fit_entry> hfp) -> fit_entry*;
+    auto insert_parameter(std::pair<TString, entry> hfp) -> entry*;
 
     auto set_name_decorator(TString decorator) -> void;
     auto clear_name_decorator() -> void;
@@ -398,14 +398,14 @@ auto HELLOFITTY_EXPORT detect_format(const TString& line) -> format_version;
 /// @param version entry version
 /// @return ownership of the parsed entry
 auto HELLOFITTY_EXPORT parse_line_entry(const TString& line, format_version version = hf::format_version::detect)
-    -> std::pair<TString, fit_entry>;
+    -> std::pair<TString, entry>;
 
 /// Export the entry to the text line using given format. By default the newest v2 is used.
 /// @param name the entry (histogram) name
 /// @param entry fit entry
 /// @param version entry version
 /// @return the entry string
-auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::fit_entry* entry,
+auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::entry* entry,
                                          format_version version = hf::format_version::v2) -> TString;
 
 } // namespace tools

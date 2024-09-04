@@ -26,7 +26,7 @@ add_library(
     source/hellofitty.cpp
     source/draw_opts.cpp
     source/param.cpp
-    source/fit_entry.cpp
+    source/entry.cpp
     source/fitter.cpp
     source/parser_v1.cpp
     source/parser_v2.cpp

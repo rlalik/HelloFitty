@@ -20,8 +20,8 @@ namespace hf::parser
 /// @{
 struct v1
 {
-    static auto HELLOFITTY_EXPORT parse_line_entry(const TString& line) -> std::pair<TString, fit_entry>;
-    static auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::fit_entry* hist_fit) -> TString;
+    static auto HELLOFITTY_EXPORT parse_line_entry(const TString& line) -> std::pair<TString, entry>;
+    static auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::entry* hist_fit) -> TString;
 };
 /// @}
 
@@ -31,8 +31,8 @@ struct v1
 /// @{
 struct v2
 {
-    static auto HELLOFITTY_EXPORT parse_line_entry(const TString& line) -> std::pair<TString, fit_entry>;
-    static auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::fit_entry* hist_fit) -> TString;
+    static auto HELLOFITTY_EXPORT parse_line_entry(const TString& line) -> std::pair<TString, entry>;
+    static auto HELLOFITTY_EXPORT format_line_entry(const TString& name, const hf::entry* hist_fit) -> TString;
 };
 /// @}
 
