@@ -122,14 +122,13 @@ auto v2::parse_line_entry(const TString& line) -> std::pair<TString, entry>
 
 auto v2::format_line_entry(const TString& name, const hf::entry* hist_fit) -> TString
 {
-    auto out =
-        TString::Format("%c%s\t%g %g %d", hist_fit->get_flag_disabled() ? '@' : ' ', name.Data(),
-                        hist_fit->get_fit_range_min(), hist_fit->get_fit_range_max(), hist_fit->get_flag_rebin());
+    auto out = fmt::format("{:c}{:s}\t{:} {:} {:d}", hist_fit->get_flag_disabled() ? '@' : ' ', name.Data(),
+                           hist_fit->get_fit_range_min(), hist_fit->get_fit_range_max(), hist_fit->get_flag_rebin());
     const auto function_count = hist_fit->get_functions_count();
 
     for (auto function_counter = 0; function_counter < function_count; ++function_counter)
     {
-        out += TString::Format(" %s", hist_fit->get_function(function_counter));
+        out += fmt::format(" {:s}", hist_fit->get_function(function_counter));
     }
 
     out += " |";
@@ -137,11 +136,7 @@ auto v2::format_line_entry(const TString& name, const hf::entry* hist_fit) -> TS
     auto max_params = hist_fit->get_function_params_count();
     for (auto param_counter = 0; param_counter < max_params; ++param_counter)
     {
-        const auto param = hist_fit->get_param(param_counter);
-        const TString val = TString::Format("%g", param.value);
-        const TString min = TString::Format("%g", param.min);
-        const TString max = TString::Format("%g", param.max);
-
+        const auto param = hist_fit->param(param_counter);
         char sep{0};
 
         switch (param.mode)
@@ -158,13 +153,13 @@ auto v2::format_line_entry(const TString& name, const hf::entry* hist_fit) -> TS
 
         if (param.mode == param::fit_mode::free and param.has_limits == false)
         {
-            out += TString::Format("  %s", val.Data());
+            out += fmt::format("  {:}", param.value);
         }
         else if (param.mode == param::fit_mode::fixed and param.has_limits == false)
         {
-            out += TString::Format("  %s %c", val.Data(), sep);
+            out += fmt::format("  {:} {:c}", param.value, sep);
         }
-        else { out += TString::Format("  %s %c %s %s", val.Data(), sep, min.Data(), max.Data()); }
+        else { out += fmt::format("  {:} {:c} {:} {:}", param.value, sep, param.min, param.max); }
     }
 
     return out;

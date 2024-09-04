@@ -22,9 +22,9 @@ TEST(TestsParserV2, Parsing1Function)
 
     ASSERT_EQ(hfp.second.get_function_params_count(), 3);
 
-    ASSERT_EQ(hfp.second.get_param(0).value, 1);
-    ASSERT_EQ(hfp.second.get_param(1).value, 2);
-    ASSERT_EQ(hfp.second.get_param(2).value, 3);
+    ASSERT_EQ(hfp.second.param(0).value, 1);
+    ASSERT_EQ(hfp.second.param(1).value, 2);
+    ASSERT_EQ(hfp.second.param(2).value, 3);
 }
 
 TEST(TestsParserV2, Parsing2Functions)
@@ -38,12 +38,12 @@ TEST(TestsParserV2, Parsing2Functions)
 
     ASSERT_EQ(hfp.second.get_function_params_count(), 5);
 
-    ASSERT_EQ(hfp.second.get_param(0).value, 1);
-    ASSERT_EQ(hfp.second.get_param(1).value, 2);
-    ASSERT_EQ(hfp.second.get_param(2).value, 3);
+    ASSERT_EQ(hfp.second.param(0).value, 1);
+    ASSERT_EQ(hfp.second.param(1).value, 2);
+    ASSERT_EQ(hfp.second.param(2).value, 3);
 
-    ASSERT_EQ(hfp.second.get_param(3).value, 4);
-    ASSERT_EQ(hfp.second.get_param(4).value, 0);
+    ASSERT_EQ(hfp.second.param(3).value, 4);
+    ASSERT_EQ(hfp.second.param(4).value, 0);
 }
 
 TEST(TestsParserV2, Parsing3Functions)
@@ -58,15 +58,15 @@ TEST(TestsParserV2, Parsing3Functions)
 
     ASSERT_EQ(hfp.second.get_function_params_count(), 7);
 
-    ASSERT_EQ(hfp.second.get_param(0).value, 1);
-    ASSERT_EQ(hfp.second.get_param(1).value, 2);
-    ASSERT_EQ(hfp.second.get_param(2).value, 3);
+    ASSERT_EQ(hfp.second.param(0).value, 1);
+    ASSERT_EQ(hfp.second.param(1).value, 2);
+    ASSERT_EQ(hfp.second.param(2).value, 3);
 
-    ASSERT_EQ(hfp.second.get_param(3).value, 4);
-    ASSERT_EQ(hfp.second.get_param(4).value, 5);
+    ASSERT_EQ(hfp.second.param(3).value, 4);
+    ASSERT_EQ(hfp.second.param(4).value, 5);
 
-    ASSERT_EQ(hfp.second.get_param(5).value, 6);
-    ASSERT_EQ(hfp.second.get_param(6).value, 0);
+    ASSERT_EQ(hfp.second.param(5).value, 6);
+    ASSERT_EQ(hfp.second.param(6).value, 0);
 }
 
 TEST(TestsParserV2, Formatting3Functions)

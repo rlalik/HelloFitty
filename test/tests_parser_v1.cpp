@@ -33,29 +33,29 @@ TEST(TestsParserV1, ParsingLine)
 
     ASSERT_EQ(hfp1.second.get_function_params_count(), 4);
 
-    ASSERT_EQ(hfp1.second.get_param(0).value, 1);
-    ASSERT_EQ(hfp1.second.get_param(0).min, 0);
-    ASSERT_EQ(hfp1.second.get_param(0).max, 0);
-    ASSERT_EQ(hfp1.second.get_param(0).mode, hf::param::fit_mode::free);
-    ASSERT_EQ(hfp1.second.get_param(0).has_limits, false);
+    ASSERT_EQ(hfp1.second.param(0).value, 1);
+    ASSERT_EQ(hfp1.second.param(0).min, 0);
+    ASSERT_EQ(hfp1.second.param(0).max, 0);
+    ASSERT_EQ(hfp1.second.param(0).mode, hf::param::fit_mode::free);
+    ASSERT_EQ(hfp1.second.param(0).has_limits, false);
 
-    ASSERT_EQ(hfp1.second.get_param(1).value, 2);
-    ASSERT_EQ(hfp1.second.get_param(1).min, 1);
-    ASSERT_EQ(hfp1.second.get_param(1).max, 3);
-    ASSERT_EQ(hfp1.second.get_param(1).mode, hf::param::fit_mode::free);
-    ASSERT_EQ(hfp1.second.get_param(1).has_limits, true);
+    ASSERT_EQ(hfp1.second.param(1).value, 2);
+    ASSERT_EQ(hfp1.second.param(1).min, 1);
+    ASSERT_EQ(hfp1.second.param(1).max, 3);
+    ASSERT_EQ(hfp1.second.param(1).mode, hf::param::fit_mode::free);
+    ASSERT_EQ(hfp1.second.param(1).has_limits, true);
 
-    ASSERT_EQ(hfp1.second.get_param(2).value, 3);
-    ASSERT_EQ(hfp1.second.get_param(2).min, 2);
-    ASSERT_EQ(hfp1.second.get_param(2).max, 5);
-    ASSERT_EQ(hfp1.second.get_param(2).mode, hf::param::fit_mode::fixed);
-    ASSERT_EQ(hfp1.second.get_param(2).has_limits, true);
+    ASSERT_EQ(hfp1.second.param(2).value, 3);
+    ASSERT_EQ(hfp1.second.param(2).min, 2);
+    ASSERT_EQ(hfp1.second.param(2).max, 5);
+    ASSERT_EQ(hfp1.second.param(2).mode, hf::param::fit_mode::fixed);
+    ASSERT_EQ(hfp1.second.param(2).has_limits, true);
 
-    ASSERT_EQ(hfp1.second.get_param(3).value, 4);
-    ASSERT_EQ(hfp1.second.get_param(3).min, 0);
-    ASSERT_EQ(hfp1.second.get_param(3).max, 0);
-    ASSERT_EQ(hfp1.second.get_param(3).mode, hf::param::fit_mode::fixed);
-    ASSERT_EQ(hfp1.second.get_param(3).has_limits, false);
+    ASSERT_EQ(hfp1.second.param(3).value, 4);
+    ASSERT_EQ(hfp1.second.param(3).min, 0);
+    ASSERT_EQ(hfp1.second.param(3).max, 0);
+    ASSERT_EQ(hfp1.second.param(3).mode, hf::param::fit_mode::fixed);
+    ASSERT_EQ(hfp1.second.param(3).has_limits, false);
 
     hfp1.second.print(hfp1.first);
 
@@ -76,29 +76,29 @@ TEST(TestsParserV1, ParsingLine)
 
     ASSERT_EQ(hfp2.second.get_function_params_count(), 4);
 
-    ASSERT_EQ(hfp2.second.get_param(0).value, 1);
-    ASSERT_EQ(hfp2.second.get_param(0).min, 0);
-    ASSERT_EQ(hfp2.second.get_param(0).max, 0);
-    ASSERT_EQ(hfp2.second.get_param(0).mode, hf::param::fit_mode::free);
-    ASSERT_EQ(hfp2.second.get_param(0).has_limits, false);
+    ASSERT_EQ(hfp2.second.param(0).value, 1);
+    ASSERT_EQ(hfp2.second.param(0).min, 0);
+    ASSERT_EQ(hfp2.second.param(0).max, 0);
+    ASSERT_EQ(hfp2.second.param(0).mode, hf::param::fit_mode::free);
+    ASSERT_EQ(hfp2.second.param(0).has_limits, false);
 
-    ASSERT_EQ(hfp2.second.get_param(1).value, 2);
-    ASSERT_EQ(hfp2.second.get_param(1).min, 1);
-    ASSERT_EQ(hfp2.second.get_param(1).max, 3);
-    ASSERT_EQ(hfp2.second.get_param(1).mode, hf::param::fit_mode::free);
-    ASSERT_EQ(hfp2.second.get_param(1).has_limits, true);
+    ASSERT_EQ(hfp2.second.param(1).value, 2);
+    ASSERT_EQ(hfp2.second.param(1).min, 1);
+    ASSERT_EQ(hfp2.second.param(1).max, 3);
+    ASSERT_EQ(hfp2.second.param(1).mode, hf::param::fit_mode::free);
+    ASSERT_EQ(hfp2.second.param(1).has_limits, true);
 
-    ASSERT_EQ(hfp2.second.get_param(2).value, 3);
-    ASSERT_EQ(hfp2.second.get_param(2).min, 2);
-    ASSERT_EQ(hfp2.second.get_param(2).max, 5);
-    ASSERT_EQ(hfp2.second.get_param(2).mode, hf::param::fit_mode::fixed);
-    ASSERT_EQ(hfp2.second.get_param(2).has_limits, true);
+    ASSERT_EQ(hfp2.second.param(2).value, 3);
+    ASSERT_EQ(hfp2.second.param(2).min, 2);
+    ASSERT_EQ(hfp2.second.param(2).max, 5);
+    ASSERT_EQ(hfp2.second.param(2).mode, hf::param::fit_mode::fixed);
+    ASSERT_EQ(hfp2.second.param(2).has_limits, true);
 
-    ASSERT_EQ(hfp2.second.get_param(3).value, 4);
-    ASSERT_EQ(hfp2.second.get_param(3).min, 0);
-    ASSERT_EQ(hfp2.second.get_param(3).max, 0);
-    ASSERT_EQ(hfp2.second.get_param(3).mode, hf::param::fit_mode::fixed);
-    ASSERT_EQ(hfp2.second.get_param(3).has_limits, false);
+    ASSERT_EQ(hfp2.second.param(3).value, 4);
+    ASSERT_EQ(hfp2.second.param(3).min, 0);
+    ASSERT_EQ(hfp2.second.param(3).max, 0);
+    ASSERT_EQ(hfp2.second.param(3).mode, hf::param::fit_mode::fixed);
+    ASSERT_EQ(hfp2.second.param(3).has_limits, false);
 
     hfp2.second.print(hfp2.first);
 
@@ -118,29 +118,29 @@ TEST(TestsParserV1, ParsingLine)
 
     ASSERT_EQ(hfp3.second.get_function_params_count(), 4);
 
-    ASSERT_EQ(hfp3.second.get_param(0).value, 0);
-    ASSERT_EQ(hfp3.second.get_param(0).min, 0);
-    ASSERT_EQ(hfp3.second.get_param(0).max, 0);
-    ASSERT_EQ(hfp3.second.get_param(0).mode, hf::param::fit_mode::free);
-    ASSERT_EQ(hfp3.second.get_param(0).has_limits, false);
+    ASSERT_EQ(hfp3.second.param(0).value, 0);
+    ASSERT_EQ(hfp3.second.param(0).min, 0);
+    ASSERT_EQ(hfp3.second.param(0).max, 0);
+    ASSERT_EQ(hfp3.second.param(0).mode, hf::param::fit_mode::free);
+    ASSERT_EQ(hfp3.second.param(0).has_limits, false);
 
-    ASSERT_EQ(hfp3.second.get_param(1).value, 0);
-    ASSERT_EQ(hfp3.second.get_param(1).min, 0);
-    ASSERT_EQ(hfp3.second.get_param(1).max, 0);
-    ASSERT_EQ(hfp3.second.get_param(1).mode, hf::param::fit_mode::free);
-    ASSERT_EQ(hfp3.second.get_param(1).has_limits, false);
+    ASSERT_EQ(hfp3.second.param(1).value, 0);
+    ASSERT_EQ(hfp3.second.param(1).min, 0);
+    ASSERT_EQ(hfp3.second.param(1).max, 0);
+    ASSERT_EQ(hfp3.second.param(1).mode, hf::param::fit_mode::free);
+    ASSERT_EQ(hfp3.second.param(1).has_limits, false);
 
-    ASSERT_EQ(hfp3.second.get_param(2).value, 0);
-    ASSERT_EQ(hfp3.second.get_param(2).min, 0);
-    ASSERT_EQ(hfp3.second.get_param(2).max, 0);
-    ASSERT_EQ(hfp3.second.get_param(2).mode, hf::param::fit_mode::free);
-    ASSERT_EQ(hfp3.second.get_param(2).has_limits, false);
+    ASSERT_EQ(hfp3.second.param(2).value, 0);
+    ASSERT_EQ(hfp3.second.param(2).min, 0);
+    ASSERT_EQ(hfp3.second.param(2).max, 0);
+    ASSERT_EQ(hfp3.second.param(2).mode, hf::param::fit_mode::free);
+    ASSERT_EQ(hfp3.second.param(2).has_limits, false);
 
-    ASSERT_EQ(hfp3.second.get_param(3).value, 0);
-    ASSERT_EQ(hfp3.second.get_param(3).min, 0);
-    ASSERT_EQ(hfp3.second.get_param(3).max, 0);
-    ASSERT_EQ(hfp3.second.get_param(3).mode, hf::param::fit_mode::free);
-    ASSERT_EQ(hfp3.second.get_param(3).has_limits, false);
+    ASSERT_EQ(hfp3.second.param(3).value, 0);
+    ASSERT_EQ(hfp3.second.param(3).min, 0);
+    ASSERT_EQ(hfp3.second.param(3).max, 0);
+    ASSERT_EQ(hfp3.second.param(3).mode, hf::param::fit_mode::free);
+    ASSERT_EQ(hfp3.second.param(3).has_limits, false);
 
     hfp3.second.print(hfp3.first);
 
