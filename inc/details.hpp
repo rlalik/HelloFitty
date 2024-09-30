@@ -186,8 +186,8 @@ struct fitter_impl
     std::unordered_map<int, draw_opts> partial_functions_styles;
 
     template <class T>
-    auto generic_fit(entry* hfp, entry_impl* hfp_m_d, const char* name, T* dataobj, const char* pars,
-                     const char* gpars) -> bool
+    auto generic_fit(entry* hfp, entry_impl* hfp_m_d, const char* name, T* dataobj, const char* pars, const char* gpars)
+        -> bool
     {
         hfp_m_d->prepare();
 

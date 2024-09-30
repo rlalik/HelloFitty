@@ -309,7 +309,7 @@ public:
 
     /// For histograms which have no record in the entries collection, you can set a generic
     /// function and aparameters to be fit. It will not be used for disabled histograms.
-    /// Pass an emtpy object to clear the generic entry.
+    /// Pass an empty object to clear the generic entry.
     /// @param generic a generic histogram function object
     auto set_generic_entry(entry generic) -> void;
     /// Check if the generic entry is set.
@@ -325,8 +325,8 @@ public:
     /// @param aux_file the output file for parameters
     /// @param mode source selection mode
     /// @return the file was properly imported
-    auto init_from_file(std::string input_file, std::string aux_file,
-                        priority_mode mode = priority_mode::newer) -> bool;
+    auto init_from_file(std::string input_file, std::string aux_file, priority_mode mode = priority_mode::newer)
+        -> bool;
     /// Force file exporting. If the output file was not set, the function does nothing.
     /// @return true if the file was written
     auto export_to_file(bool update_reference = false) -> bool;
@@ -341,7 +341,7 @@ public:
     /// @param hist histogram to be fitted
     /// @param pars histogram fitting pars
     /// @param gpars histogram fit drawing pars
-    /// @return pair of bool (true if fit successfull) and used entry
+    /// @return pair of bool (true if fit successful) and used entry
     auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, entry*>;
     /// Fit the histogram using provided entry. The fit entry is not automatically stored in the collection and must
     /// be add using @see hf::fitter::insert_parameter.
@@ -357,9 +357,9 @@ public:
     /// @param graph graph to be fitted
     /// @param pars graph fitting pars
     /// @param gpars graph fit drawing pars
-    /// @return pair of bool (true if fit successfull) and used entry
-    auto fit(const char* name, TGraph* graph, const char* pars = "BQ",
-             const char* gpars = "") -> std::pair<bool, entry*>;
+    /// @return pair of bool (true if fit successful) and used entry
+    auto fit(const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "")
+        -> std::pair<bool, entry*>;
     /// Fit the graph using provided entry. The fit entry is not automatically stored in the collection and must
     /// be add using @see hf::fitter::insert_parameter.
     /// @param hfp graph entry to be used

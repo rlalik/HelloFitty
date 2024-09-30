@@ -151,6 +151,10 @@ auto entry::set_fit_range(Double_t range_lower, Double_t range_upper) -> void
 {
     m_d->range_min = range_lower;
     m_d->range_max = range_upper;
+
+    m_d->complete_function_object.SetRange(range_lower, range_upper);
+    for (auto& f : m_d->funcs)
+        f.function_obj.SetRange(range_lower, range_upper);
 }
 
 auto entry::get_fit_range_min() const -> Double_t { return m_d->range_min; }

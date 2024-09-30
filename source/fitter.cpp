@@ -24,7 +24,6 @@
 #include "details.hpp"
 #include "parser.hpp"
 
-#include <TF1.h>
 #include <TGraph.h>
 #include <TH1.h>
 #include <TList.h>

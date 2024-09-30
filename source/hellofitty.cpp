@@ -58,8 +58,8 @@ auto parse_line_entry(const std::string& line, format_version version) -> std::p
     }
 }
 
-auto HELLOFITTY_EXPORT format_line_entry(const std::string& name, const hf::entry* entry,
-                                         format_version version) -> std::string
+auto HELLOFITTY_EXPORT format_line_entry(const std::string& name, const hf::entry* entry, format_version version)
+    -> std::string
 {
     switch (version)
     {

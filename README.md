@@ -49,7 +49,7 @@ In the data file each line corresponds to a single histogram. The line is identi
 
 ## Functions
 Each function is an independent entity, and can be a combinations of various generic functions. Any form of function accepted by `TFormula` is allowed, e.g.: `cos(x)+sin(x)`, `gaus(0)+exp(3)`, `[0]*x+[2]`, etc.
-For all the functions belonging to a single histogram, a sum of functions is created and the sum is fit. For example, to fit a gausian signal and a polynomial background, one could define two functions: `gaus(0) pol3(3)`. From the fitting point of view it does not matter whether you define two partial functions `gaus(0) pol3(3)` or one larger `gaus(0)+pol3(3)`, however HelloFitty offers ways to access each partial function separately, which would not be possible with one grand function.
+For all the functions belonging to a single histogram, a sum of functions is created and the sum is fit. For example, to fit a gaussian signal and a polynomial background, one could define two functions: `gaus(0) pol3(3)`. From the fitting point of view it does not matter whether you define two partial functions `gaus(0) pol3(3)` or one larger `gaus(0)+pol3(3)`, however HelloFitty offers ways to access each partial function separately, which would not be possible with one grand function.
 
 ## Parameters
 After the `|` separator which marks end of function definitions, the parameters definitions start. There should be as many parameters defined as expected by the functions, and more or less parameters will result in throw of `hf::invalid_format`.
