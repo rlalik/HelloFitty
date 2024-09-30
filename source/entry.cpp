@@ -199,7 +199,7 @@ auto entry::get_flag_disabled() const -> bool { return m_d->fit_disabled; }
 auto entry::print(const std::string& name, bool detailed) const -> void
 {
     fmt::print("## name: {:s}    rebin: {:d}   range: {:g} -- {:g}  param num: {:d}  {:s}\n", name, m_d->rebin,
-               m_d->range_min, m_d->range_min, get_function_params_count(), get_flag_disabled() ? "DISABLED" : "");
+               m_d->range_min, m_d->range_max, get_function_params_count(), get_flag_disabled() ? "DISABLED" : "");
 
     for (const auto& func : m_d->funcs)
     {
