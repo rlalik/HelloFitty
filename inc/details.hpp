@@ -229,10 +229,10 @@ struct fitter_impl
         {
             if (verbose_flag)
             {
-                fmt::print(fmt::fg(fmt::color::royal_blue), "* old  {} : {} --> chi2:  {:} -- *\n", name, backup_old,
-                           chi2_backup_old);
-                fmt::print(fmt::fg(fmt::color::lime_green), "* new  {} : {} --> chi2:  {:} -- *", name, backup_new,
-                           chi2_backup_new);
+                fmt::print(fmt::fg(fmt::color::royal_blue), "* old  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *\n", name,
+                           hfp_m_d->range_min, hfp_m_d->range_max, backup_old, chi2_backup_old);
+                fmt::print(fmt::fg(fmt::color::lime_green), "* new  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *", name,
+                           hfp_m_d->range_min, hfp_m_d->range_max, backup_new, chi2_backup_new);
                 fmt::print("{}\n", "\t [ OK ]");
             }
         }
@@ -240,8 +240,8 @@ struct fitter_impl
         {
             if (verbose_flag)
             {
-                fmt::print(fmt::fg(fmt::color::orange), "* fine {} : {} --> chi2:  {:} -- *", name, backup_old,
-                           chi2_backup_new);
+                fmt::print(fmt::fg(fmt::color::orange), "* fine {} ({:g}--{:g}) : {} --> chi2:  {:} -- *", name,
+                           hfp_m_d->range_min, hfp_m_d->range_max, backup_old, chi2_backup_new);
                 fmt::print("{}\n", "\t [ pass ]");
             }
         }
@@ -255,10 +255,10 @@ struct fitter_impl
 
             if (verbose_flag)
             {
-                fmt::print(fmt::fg(fmt::color::royal_blue), "* old  {} : {} --> chi2:  {:} -- *\n", name, backup_old,
-                           chi2_backup_old);
-                fmt::print(fmt::fg(fmt::color::crimson), "* new  {} : {} --> chi2:  {:} -- *", name, backup_new,
-                           chi2_backup_new);
+                fmt::print(fmt::fg(fmt::color::royal_blue), "* old  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *\n", name,
+                           hfp_m_d->range_min, hfp_m_d->range_max, backup_old, chi2_backup_old);
+                fmt::print(fmt::fg(fmt::color::crimson), "* new  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *", name,
+                           hfp_m_d->range_min, hfp_m_d->range_max, backup_new, chi2_backup_new);
                 fmt::print("{}\n", "\t [ FAILED - restoring old params ]");
             }
         }
