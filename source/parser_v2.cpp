@@ -10,6 +10,8 @@
 
 #include <memory>
 
+#include <fmt/core.h>
+
 namespace hf::parser
 {
 auto v2::parse_line_entry(const std::string& line) -> std::pair<std::string, entry>
@@ -18,7 +20,7 @@ auto v2::parse_line_entry(const std::string& line) -> std::pair<std::string, ent
     line_.ReplaceAll("\t", " ");
     auto arr = std::unique_ptr<TObjArray>(line_.Tokenize(" "));
 
-    if (arr->GetEntries() < 5) { throw hf::format_error("Not enough parameters"); };
+    if (arr->GetEntries() < 5) { throw hf::format_error(fmt::format("Not enough parameters in {}", line)); };
 
     // auto hfp = make_unique<fit_entry>(dynamic_cast<TObjString*>(arr->At(0))->String(),        // hist name
     //                                   dynamic_cast<TObjString*>(arr->At(1))->String(),        // func val
@@ -60,7 +62,7 @@ auto v2::parse_line_entry(const std::string& line) -> std::pair<std::string, ent
 
     for (int i = token_id + 1; i < all_tokens; i += step)
     {
-        if (current_param > params_count) { throw hf::format_error("To many parameters"); }
+        if (current_param > params_count) { throw hf::format_error(fmt::format("To many parameters in {}", name)); }
 
         Double_t l_, u_;
         param::fit_mode flag_;
@@ -111,7 +113,7 @@ auto v2::parse_line_entry(const std::string& line) -> std::pair<std::string, ent
         }
         catch (const std::out_of_range&)
         {
-            throw hf::format_error("To many parameters");
+            throw hf::format_error(fmt::format("To many parameters in {}", name));
         }
 
         current_param++;
