@@ -2,6 +2,7 @@
 #define HELLOFITTY_DETAILS_H
 
 #include <TF1.h>
+#include <TFitResult.h>
 
 #include <fmt/color.h>
 #include <fmt/core.h>
@@ -177,7 +178,6 @@ struct fitter_impl
     std::string par_ref;
     std::string par_aux;
 
-    entry generic_parameters;
     std::map<std::string, entry> hfpmap;
 
     std::string name_decorator{"*"};
@@ -207,6 +207,12 @@ struct fitter_impl
         double chi2_backup_old = dataobj->Chisquare(tfSum, "R");
 
         auto fit_res = dataobj->Fit(tfSum, pars, gpars, hfp->get_fit_range_min(), hfp->get_fit_range_max());
+
+        auto fit_status = fit_res.Get() ? fit_res->Status() : int(fit_res);
+
+        if (fit_status != 0) {
+            return false;
+        }
 
         TF1* new_sig_func = dynamic_cast<TF1*>(dataobj->GetListOfFunctions()->At(0));
 

@@ -86,7 +86,7 @@ The fitter allows to set default function which will be used for histograms not 
 # Features
 HelloFitty provides following structures:
 * `hf::fitter` -- the main fitting manager responsible to read/write data from files and fit histograms
-* `hf::fit_entry` -- a structure holding full info about functions and parameters for a given histogram
+* `hf::entry` -- a structure holding full info about functions and parameters for a given histogram
 * `hf::param` -- a single parameter info: values and boundaries
 * `hf::draw_opts` -- partial and grand function drawing options
 
@@ -118,22 +118,28 @@ By default it will update the auxiliary file unless `update_reference` is set to
 
 You can search whether given histogram is present in the fitter (after loading from file), either using the histogram object or histogram name:
 ```c++
-auto find_fit(TH1* hist) const -> fit_entry*;
-auto find_fit(const char* name) const -> fit_entry*;
+auto find_fit(TH1* hist) const -> entry*;
+auto find_fit(const char* name) const -> entry*;
 ```
-You can finally fit the histogram using the histogram object with the fit entry stored in the fitter, or histogram object and providing additional fit entry object:
+or request to create from generic entry if not found with:
 ```c++
-auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
-auto fit(fit_entry* hfp, TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
+auto find_or_make(TH1* hist, entry* generic = nullptr) const -> entry*;
+auto find_or_make(const char* name, entry* generic = nullptr) const -> entry*;
+```
+
+You can finally fit the histogram (or graphs assuimg you rpivide name for nameless graph) using the histogram object with the fit entry stored in the fitter or using generic object fit entry:
+```c++
+auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "", entry* generic = nullptr) -> std::pair<bool, entry*>;
+auto fit(const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "", entry* generic = nullptr) -> std::pair<bool, entry*>;
 ```
 In addition to importing from file, you can add additional fit entries to the fitter:
 ```c++
-auto insert_parameter(std::pair<std::string, fit_entry> hfp) -> void;
-auto insert_parameter(const std::string& name, std::unique_ptr<fit_entry> hfp) -> void;
+auto insert_parameter(std::pair<std::string, entry> hfp) -> void;
+auto insert_parameter(const std::string& name, std::unique_ptr<entry> hfp) -> void;
 ```
 To set default fitting function for histograms not present in the histogram entries collection, use
 ```c++
-auto set_generic_entry(fit_entry generic) -> void;
+auto set_generic_entry(entry generic) -> void;
 ```
 Use of generic function will create an entry in the auxiliary file, e.g.:
 ```c++
@@ -169,14 +175,14 @@ The decorator could have form of text string with a character `*`, which will be
 * decorator `*_v1` on `hist_name` will give `hist_name_v1`
 * but decorator `_v1` on `hist_name` will give `_v1`
 
-## `hf::fit_entry`
+## `hf::entry`
 The fit entry can be created by parsing the input file or created by user and provided to the fitter:
 ```c++
-explicit fit_entry(Double_t range_lower, Double_t range_upper);
+explicit entry(Double_t range_lower, Double_t range_upper);
 ```
 The fit entry can be read from file (as shown above) or created from the code level:
 ```c++
-hf::fit_entry hfp(0, 10);
+hf::entry hfp(0, 10);
 auto fid1 = hfp.add_function("gaus(0)");                    // function id = 0
 auto fid2 = hfp.add_function("expo(3)");                    // function id = 1
 hfp.set_param(0, 10, 0, 20, hf::param::fit_mode::free);     // gaus(0) par [0]
@@ -197,7 +203,7 @@ auto drop() -> void;
 ```
 You can use this before fit and fit result is of worse quality then one can restore original parameters.
 ```c++
-auto hfp = hf::fit_entry(0, 10);
+auto hfp = hf::entry(0, 10);
 hfp.add_function(...);
 // and more...
 

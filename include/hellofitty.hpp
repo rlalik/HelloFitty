@@ -64,6 +64,13 @@ public:
     using std::length_error::length_error;
 };
 
+// Incorrect fitting range
+class range_error : public std::runtime_error
+{
+public:
+    using std::runtime_error::runtime_error;
+};
+
 namespace detail
 {
 struct draw_opts_impl;
@@ -307,15 +314,6 @@ public:
 
     auto clear() -> void;
 
-    /// For histograms which have no record in the entries collection, you can set a generic
-    /// function and aparameters to be fit. It will not be used for disabled histograms.
-    /// Pass an empty object to clear the generic entry.
-    /// @param generic a generic histogram function object
-    auto set_generic_entry(entry generic) -> void;
-    /// Check if the generic entry is set.
-    /// @return true if the generic entry exists.
-    auto has_generic_entry() -> bool;
-
     /// Load parameters from the reference input.
     /// @param input_file the input parameters
     /// @return the file was properly imported
@@ -334,42 +332,31 @@ public:
     auto find_fit(TH1* hist) const -> entry*;
     auto find_fit(const char* name) const -> entry*;
 
-    auto find_or_make(TH1* hist) -> entry*;
-    auto find_or_make(const char* name) -> entry*;
+    /// Find hfp by histogram name, or create from generic if not null.
+    /// @param hist object to find hfp for
+    /// @param generic object to use as a reference if name not found
+    /// @return hfp found for name, or created from geenric if not nullptr, or nullptr
+    auto find_or_make(TH1* hist, entry* generic = nullptr) -> entry*;
+    auto find_or_make(const char* name, entry* generic = nullptr) -> entry*;
 
     /// Fit the histogram using entry either located in the collection or using generic entry if provided.
     /// @param hist histogram to be fitted
     /// @param pars histogram fitting pars
     /// @param gpars histogram fit drawing pars
+    /// @param generic histogram entry to be used if non present yet
     /// @return pair of bool (true if fit successful) and used entry
-    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, entry*>;
-    /// Fit the histogram using provided entry. The fit entry is not automatically stored in the collection and must
-    /// be add using @see hf::fitter::insert_parameter.
-    /// @param hfp histogram entry to be used
-    /// @param hist histogram to be fitted
-    /// @param pars histogram fitting pars
-    /// @param gpars histogram fit drawing pars
-    /// @return true if fit was successful
-    auto fit(entry* hfp, TH1* hist, const char* pars = "BQ", const char* gpars = "") -> bool;
+    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "", entry* generic = nullptr)
+        -> std::pair<bool, entry*>;
 
     /// Fit the graph using entry either located in the collection or using generic entry if provided.
     /// @param name entry name (graphs are not named object)
     /// @param graph graph to be fitted
     /// @param pars graph fitting pars
     /// @param gpars graph fit drawing pars
+    /// @param generic histogram entry to be used if non present yet
     /// @return pair of bool (true if fit successful) and used entry
-    auto fit(const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "")
+    auto fit(const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "", entry* generic = nullptr)
         -> std::pair<bool, entry*>;
-    /// Fit the graph using provided entry. The fit entry is not automatically stored in the collection and must
-    /// be add using @see hf::fitter::insert_parameter.
-    /// @param hfp graph entry to be used
-    /// @param name entry name (graphs are not named object)
-    /// @param graph graph to be fitted
-    /// @param hist graph to be fitted
-    /// @param pars graph fitting pars
-    /// @param gpars graph fit drawing pars
-    /// @return true if fit was successful
-    auto fit(entry* hfp, const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "") -> bool;
 
     auto print() const -> void;
 

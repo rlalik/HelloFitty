@@ -51,6 +51,8 @@ entry::entry() : m_d{make_unique<detail::entry_impl>()} {}
 
 entry::entry(Double_t range_lower, Double_t range_upper) : m_d{make_unique<detail::entry_impl>()}
 {
+    if (range_lower == range_upper) throw hf::range_error("fitting range cannot be empty");
+
     m_d->range_min = range_lower;
     m_d->range_max = range_upper;
 }
@@ -149,6 +151,8 @@ auto entry::param(const char* name) -> hf::param&
 
 auto entry::set_fit_range(Double_t range_lower, Double_t range_upper) -> void
 {
+    if (range_lower == range_upper) throw hf::range_error("fitting range cannot be empty");
+
     m_d->range_min = range_lower;
     m_d->range_max = range_upper;
 

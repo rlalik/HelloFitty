@@ -4,11 +4,14 @@
 
 #include "details.hpp"
 
+#include <TF1.h>
 #include <TH1.h>
 
 #include <memory>
 #include <string>
 #include <utility>
+
+auto make_hist() { return std::make_unique<TH1I>("h_foo", "foo", 10, 0, 10); }
 
 TEST(TestsFitter, PrefixSuffixTest)
 {
@@ -46,38 +49,79 @@ TEST(TestsFitter, InsertParameters)
 TEST(TestsFitter, FitFinding)
 {
     hf::fitter fitter;
+    auto h_foo = make_hist();
 
-    TH1I* h_foo = new TH1I("h_foo", "foo", 10, 0, 10);
-    const auto fit1 = fitter.find_fit(h_foo);
+    const auto fit1 = fitter.find_fit(h_foo.get());
     ASSERT_EQ(fit1, nullptr);
 
-    hf::entry hfp_defaults(1, 10);
-    ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
-    fitter.set_generic_entry(hfp_defaults);
-
-    const auto fit2 = fitter.find_fit(h_foo);
+    const auto fit2 = fitter.find_fit(h_foo.get());
     ASSERT_EQ(fit2, nullptr);
 
     fitter.clear();
-    delete h_foo;
 }
 
-TEST(TestsFitter, Fitting)
+TEST(TestsFitter, FittingHist)
+{
+    hf::fitter fitter;
+    auto h_foo = make_hist();
+
+    hf::entry hfp_defaults(0, 10);
+    EXPECT_THROW(fitter.fit(h_foo.get(), "", "", &hfp_defaults), std::logic_error);
+}
+
+TEST(TestsFitter, FittingHistBadHFP)
+{
+    hf::fitter fitter;
+    auto h_foo = make_hist();
+
+    hf::entry hfp_defaults(0, 10);
+    ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
+
+    ASSERT_FALSE(fitter.fit(h_foo.get(), "", "").first);
+
+    // test fitting without function
+    ASSERT_FALSE(fitter.fit(h_foo.get(), "", "", &hfp_defaults).first);
+}
+
+TEST(TestsFitter, FittingHistGoodHFP)
+{
+    hf::fitter fitter;
+    hf::entry hfp_defaults(0, 10);
+    auto h_foo = make_hist();
+
+    auto fgaus = std::make_unique<TF1>("f_gaus", "gaus", 0, 10);
+    fgaus->SetParameters(1, 5, 1);
+    h_foo->FillRandom("f_gaus");
+
+    ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
+
+    // test fitting empty range
+    // fitter.find_fit(h_foo->GetName())->set_fit_range(0, 10);
+    ASSERT_TRUE(fitter.fit(h_foo.get(), "", "", &hfp_defaults).first);
+
+    fitter.clear();
+}
+
+TEST(TestsFitter, FittingGraph)
 {
     hf::fitter fitter;
 
-    TH1I* h_foo = new TH1I("h_foo", "foo", 10, 0, 10);
-    EXPECT_THROW(fitter.fit(h_foo, "", ""), std::logic_error);
-
-    hf::entry hfp_defaults(1, 10);
-    ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
-    fitter.set_generic_entry(hfp_defaults);
-
-    const auto fit2 = fitter.fit(h_foo, "", "");
-    ASSERT_FALSE(fit2.first);
-
-    fitter.clear();
-    delete h_foo;
+    // TH1I* h_foo = new TH1I("h_foo", "foo", 10, 0, 10);
+    // // EXPECT_THROW(fitter.fit(h_foo, "", ""), std::logic_error);
+    //
+    // hf::entry hfp_defaults(1, 10);
+    // EXPECT_THROW(fitter.fit(h_foo, "", "", &hfp_defaults), std::logic_error);
+    //
+    // ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
+    //
+    // const auto fit1 = fitter.fit(h_foo, "", "");
+    // ASSERT_FALSE(fit1.first);
+    //
+    // const auto fit2 = fitter.fit(h_foo, "", "", &hfp_defaults);
+    // ASSERT_TRUE(fit2.first);
+    //
+    // fitter.clear();
+    // delete h_foo;
 }
 
 TEST(TestsFitter, NameDecorator)

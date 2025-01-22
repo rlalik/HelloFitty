@@ -238,93 +238,61 @@ auto fitter::find_fit(const char* name) const -> entry*
     return nullptr;
 }
 
-auto fitter::find_or_make(TH1* hist) -> entry* { return find_or_make(hist->GetName()); }
+auto fitter::find_or_make(TH1* hist, entry* generic) -> entry* { return find_or_make(hist->GetName(), generic); }
 
-auto fitter::find_or_make(const char* name) -> entry*
+auto fitter::find_or_make(const char* name, entry* generic) -> entry*
 {
     entry* hfp = find_fit(name);
-    if (!hfp)
+    if (!hfp and generic)
     {
-        // fmt::print("HFP for histogram {:s} not found, trying from defaults.\n", name);
+        if (detail::fitter_impl::verbose_flag)
+            fmt::print("HFP for histogram {:s} not found, trying from generic.\n", name);
 
-        if (!m_d->generic_parameters.get_functions_count())
-            throw std::logic_error("Generic Fit Entry has no functions.");
+        if (!generic->get_functions_count()) throw std::logic_error("Generic Fit Entry has no functions.");
 
-        hfp = insert_parameter(std::string(name), m_d->generic_parameters);
-        if (!m_d->generic_parameters.get_functions_count()) throw std::logic_error("Could not insert new parameter.");
+        hfp = insert_parameter(std::string(name), *generic);
+        if (!hfp) throw std::logic_error("Could not insert new parameter.");
+
+        if (detail::fitter_impl::verbose_flag) fmt::print("HFP for histogram {:s} created from generic.\n", name);
     }
 
     return hfp;
 }
 
-auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> std::pair<bool, entry*>
+auto fitter::fit(TH1* hist, const char* pars, const char* gpars, entry* generic) -> std::pair<bool, entry*>
 {
-    entry* hfp = find_fit(hist->GetName());
-    if (!hfp)
-    {
-        fmt::print("HFP for histogram {:s} not found, trying from defaults.\n", hist->GetName());
-
-        if (!m_d->generic_parameters.get_functions_count())
-            throw std::logic_error("Generic Fit Entry has no functions.");
-
-        hfp = insert_parameter(std::string(hist->GetName()), m_d->generic_parameters);
-        if (!m_d->generic_parameters.get_functions_count()) throw std::logic_error("Could not insert new parameter.");
-    }
-
+    entry* hfp = find_or_make(hist->GetName(), generic);
     if (!hfp) return {false, hfp};
 
     hfp->backup();
-    bool status = fit(hfp, hist, pars, gpars);
 
-    if (!status) hfp->restore();
-
-    return {status, hfp};
-}
-
-auto fitter::fit(entry* hfp, TH1* hist, const char* pars, const char* gpars) -> bool
-{
     Int_t bin_l = hist->FindBin(hfp->get_fit_range_min());
     Int_t bin_u = hist->FindBin(hfp->get_fit_range_max());
 
     if (hfp->get_flag_rebin() != 0) { hist->Rebin(hfp->get_flag_rebin()); }
 
-    if (hist->Integral(bin_l, bin_u) == 0) return false;
+    if (bin_u - bin_l == 0) return {false, hfp};
+    // if (hist->Integral(bin_l, bin_u) == 0) return {false, hfp};
 
-    return m_d->generic_fit(hfp, hfp->m_d.get(), hist->GetName(), hist, pars, gpars);
-}
-
-auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* gpars) -> std::pair<bool, entry*>
-{
-    entry* hfp = find_fit(name);
-    if (!hfp)
-    {
-        fmt::print("HFP for graphs {:s} not found, trying from defaults.\n", name);
-
-        if (!m_d->generic_parameters.get_functions_count())
-            throw std::logic_error("Generic Fit Entry has no functions.");
-
-        hfp = insert_parameter(std::string(name), m_d->generic_parameters);
-        if (!m_d->generic_parameters.get_functions_count()) throw std::logic_error("Could not insert new parameter.");
-    }
-
-    if (!hfp) return {false, hfp};
-
-    hfp->backup();
-    bool status = fit(hfp, name, graph, pars, gpars);
-
+    bool status = m_d->generic_fit(hfp, hfp->m_d.get(), hist->GetName(), hist, pars, gpars);
     if (!status) hfp->restore();
 
     return {status, hfp};
 }
 
-auto fitter::fit(entry* hfp, const char* name, TGraph* graph, const char* pars, const char* gpars) -> bool
+auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* gpars, entry* generic)
+    -> std::pair<bool, entry*>
 {
-    return m_d->generic_fit(hfp, hfp->m_d.get(), name, graph, pars, gpars);
+    entry* hfp = find_or_make(name, generic);
+    if (!hfp) return {false, hfp};
+
+    hfp->backup();
+
+    bool status = m_d->generic_fit(hfp, hfp->m_d.get(), name, graph, pars, gpars);
+    if (!status) hfp->restore();
+
+    return {status, hfp};
 }
-
-auto fitter::set_generic_entry(entry generic) -> void { m_d->generic_parameters = generic; }
-
-auto fitter::has_generic_entry() -> bool { return m_d->generic_parameters.is_valid(); }
 
 auto fitter::set_name_decorator(std::string decorator) -> void { m_d->name_decorator = std::move(decorator); }
 auto fitter::clear_name_decorator() -> void { m_d->name_decorator = "*"; }
