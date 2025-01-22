@@ -2,7 +2,7 @@
   "version": 3,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 12,
+    "minor": 14,
     "patch": 0
   },
   "configurePresets": [
@@ -109,11 +109,13 @@
     },
     {
       "name": "ci-linux",
+      "description": "Includes fortification with the CMake default release flags",
       "inherits": ["flags-gcc-clang", "ci-std"],
       "generator": "Unix Makefiles",
       "hidden": true,
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_CXX_FLAGS_RELEASE": "-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=3 -O3 -DNDEBUG"
       }
     },
     {

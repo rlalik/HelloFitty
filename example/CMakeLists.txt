@@ -1,22 +1,30 @@
-# set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_INSTALL_PREFIX}/lib/CMake)
-# set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} ${CMAKE_INSTALL_PREFIX}/lib/CMake)
+cmake_minimum_required(VERSION 3.14)
 
-# include(find_or_fetch_package)
-# find_or_fetch_package(RootTools https://github.com/rlalik/RootTools GIT_TAG
-                      # master)
+project(HelloFittyExamples CXX)
 
-# set(HAS_ROOTTOOLS ${RootTools_FOUND})
+include(../cmake/project-is-top-level.cmake)
+include(../cmake/folders.cmake)
 
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
+if(PROJECT_IS_TOP_LEVEL)
+  find_package(HelloFitty REQUIRED)
+endif()
 
-add_executable(example1 example1.cpp)
-target_include_directories(example1 PRIVATE ${CMAKE_BINARY_DIR})
-target_link_libraries(example1 HelloFitty::HelloFitty ${FMT_TARGET})
+add_custom_target(run-examples)
 
-add_executable(example2 example2.cpp)
-target_include_directories(example2 PRIVATE ${CMAKE_BINARY_DIR})
-target_link_libraries(example2 HelloFitty::HelloFitty ${FMT_TARGET})
+function(add_example NAME)
+  add_executable("${NAME}" "${NAME}.cpp")
+  target_link_libraries("${NAME}" PRIVATE HelloFitty::HelloFitty ${FMT_TARGET})
+  target_compile_features("${NAME}" PRIVATE cxx_std_17)
+  add_custom_target("run_${NAME}" COMMAND "${NAME}" VERBATIM)
+  add_dependencies("run_${NAME}" "${NAME}")
+  add_dependencies(run-examples "run_${NAME}")
+endfunction()
+
+add_example(example1)
+add_example(example2)
 
 if(RootTools_FOUND)
   # target_link_libraries(example2 RT::RootTools)
 endif(RootTools_FOUND)
+
+add_folders(Example)

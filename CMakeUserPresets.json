@@ -2,7 +2,7 @@
   "version": 3,
   "cmakeMinimumRequired": {
     "major": 3,
-    "minor": 12,
+    "minor": 14,
     "patch": 0
   },
   "configurePresets": [
@@ -72,7 +72,7 @@
       "name": "dev",
       "configurePreset": "dev",
       "configuration": "Debug",
-      "jobs": 4
+      "jobs": 32
     }
   ],
   "testPresets": [
@@ -84,7 +84,7 @@
         "outputOnFailure": true
       },
       "execution": {
-        "jobs": 4,
+        "jobs": 32,
         "noTestsAction": "error"
       }
     }

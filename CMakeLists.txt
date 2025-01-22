@@ -4,7 +4,7 @@ include(cmake/prelude.cmake)
 
 project(
     HelloFitty
-    VERSION 0.12.1
+    VERSION 0.20.0
     DESCRIPTION "Hello Fitty - a versatile histogram fitting tool for ROOT-based projects."
     HOMEPAGE_URL "https://github.com/rlalik/HelloFitty"
     LANGUAGES CXX
@@ -15,12 +15,20 @@ include(cmake/variables.cmake)
 include(cmake/find_or_fetch_package.cmake)
 
 # find ROOT
-#list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)
 
-find_or_fetch_package(fmt https://github.com/fmtlib/fmt GIT_TAG 11.0.2 VERSION 11.0.2)
+# FMT
+find_or_fetch_package(fmt https://github.com/fmtlib/fmt GIT_TAG 11.1.2 VERSION 11.1.2)
+if (fmt_FETCHED)
+  set(FMT_TARGET $<BUILD_INTERFACE:fmt::fmt-header-only>)
+else()
+  set(FMT_TARGET fmt::fmt)
+endif()
 
 # ---- Declare library ----
+
+configure_file(config.h.in inc/hellofitty_config.h)
+
 add_library(
     HelloFitty
     source/hellofitty.cpp
@@ -33,15 +41,10 @@ add_library(
 )
 add_library(HelloFitty::HelloFitty ALIAS HelloFitty)
 
-target_link_libraries(HelloFitty PUBLIC ROOT::Core ROOT::Hist)
-if (fmt_FETCHED)
-  set(FMT_TARGET $<BUILD_INTERFACE:fmt::fmt-header-only>)
-else()
-  set(FMT_TARGET fmt::fmt)
-endif()
-target_link_libraries(HelloFitty PRIVATE ${FMT_TARGET})
-
-configure_file(config.h.in hellofitty_config.h)
+target_link_libraries(HelloFitty
+    PUBLIC ROOT::Core ROOT::Hist
+    PRIVATE ${FMT_TARGET}
+)
 
 include(GenerateExportHeader)
 generate_export_header(
@@ -68,24 +71,24 @@ set_target_properties(
 target_include_directories(
     HelloFitty ${warning_guard}
     PUBLIC
-    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
-    "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/inc>"
+    "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>"
+    "\$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/inc>"
 )
 
 target_include_directories(
     HelloFitty SYSTEM
     PUBLIC
-    "$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/export>"
-    "$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>"
+    "\$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/export>"
+    "\$<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/inc>"
 )
 
 option(BUILD_DICTIONARY "Build ROOT dictionary." OFF)
 if (BUILD_DICTIONARY)
-  # cmake-format: off
-  root_generate_dictionary(G__HelloFitty_cc hellofitty.hpp
-    MODULE HelloFitty
-    LINKDEF inc/LinkDef.h)
-  # cmake-format: on
+    # cmake-format: off
+    root_generate_dictionary(G__HelloFitty_cc hellofitty.hpp
+        MODULE HelloFitty
+        LINKDEF inc/LinkDef.h)
+    # cmake-format: on
 endif()
 
 # target_compile_features(HelloFitty PUBLIC cxx_std_11)
