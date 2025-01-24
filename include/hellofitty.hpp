@@ -31,9 +31,9 @@
 #include <string>
 
 #if __cplusplus < 201402L
-#define CONSTEXPR
+#    define CONSTEXPR
 #else
-#define CONSTEXPR constexpr
+#    define CONSTEXPR constexpr
 #endif
 
 class TF1;
@@ -121,20 +121,24 @@ struct param final
         fixed ///< parameter is fixed
     };
 
-    Double_t value{0.0};           ///< param value
-    Double_t min{0.0};             ///< lower limit
-    Double_t max{0.0};             ///< upper limit
-    fit_mode mode{fit_mode::free}; ///< Parameter fitting mode
-    bool has_limits{false};        ///< Remembers whether hit limits were set
-    int print_precision{8};        ///< Screen print precision
-    int store_precision{8};        ///< File export precision
+    Double_t value {0.0};           ///< param value
+    Double_t min {0.0};             ///< lower limit
+    Double_t max {0.0};             ///< upper limit
+    fit_mode mode {fit_mode::free}; ///< Parameter fitting mode
+    bool has_limits {false};        ///< Remembers whether hit limits were set
+    int print_precision {8};        ///< Screen print precision
+    int store_precision {8};        ///< File export precision
 
     constexpr param() = default;
 
     /// Accept param value and fit mode
     /// @param par_value initial parameter value
     /// @param par_mode parameter fitting mode, see @ref fit_mode
-    constexpr explicit param(Double_t par_value, param::fit_mode par_mode) : value(par_value), mode(par_mode) {}
+    constexpr explicit param(Double_t par_value, param::fit_mode par_mode)
+        : value(par_value)
+        , mode(par_mode)
+    {
+    }
 
     /// Accept param value, boundaries and fit mode
     /// @param par_value initial parameter value
@@ -142,7 +146,11 @@ struct param final
     /// @param par_max value's upper fit boundary
     /// @param par_mode parameter fitting mode, see @ref fit_mode
     constexpr explicit param(Double_t par_value, Double_t par_min, Double_t par_max, param::fit_mode par_mode)
-        : value(par_value), min(par_min), max(par_max), mode(par_mode), has_limits(true)
+        : value(par_value)
+        , min(par_min)
+        , max(par_max)
+        , mode(par_mode)
+        , has_limits(true)
     {
     }
 
@@ -286,8 +294,8 @@ struct chi2checker
     int operator()(const params_vector& /*old_pars*/, double old_chi2, const params_vector& /*new_pars*/,
                    double new_chi2, const TFitResultPtr&)
     {
-        if (new_chi2 < old_chi2) return 1;
-        if (new_chi2 == old_chi2) return 0;
+        if (new_chi2 < old_chi2) { return 1; }
+        if (new_chi2 == old_chi2) { return 0; }
         return -1;
     }
 };
@@ -323,8 +331,8 @@ public:
     /// @param aux_file the output file for parameters
     /// @param mode source selection mode
     /// @return the file was properly imported
-    auto init_from_file(std::string input_file, std::string aux_file, priority_mode mode = priority_mode::newer)
-        -> bool;
+    auto init_from_file(std::string input_file, std::string aux_file,
+                        priority_mode mode = priority_mode::newer) -> bool;
     /// Force file exporting. If the output file was not set, the function does nothing.
     /// @return true if the file was written
     auto export_to_file(bool update_reference = false) -> bool;
@@ -335,7 +343,7 @@ public:
     /// Find hfp by histogram name, or create from generic if not null.
     /// @param hist object to find hfp for
     /// @param generic object to use as a reference if name not found
-    /// @return hfp found for name, or created from geenric if not nullptr, or nullptr
+    /// @return hfp found for name, or created from generic if not nullptr, or nullptr
     auto find_or_make(TH1* hist, entry* generic = nullptr) -> entry*;
     auto find_or_make(const char* name, entry* generic = nullptr) -> entry*;
 
@@ -345,8 +353,8 @@ public:
     /// @param gpars histogram fit drawing pars
     /// @param generic histogram entry to be used if non present yet
     /// @return pair of bool (true if fit successful) and used entry
-    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "", entry* generic = nullptr)
-        -> std::pair<bool, entry*>;
+    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "",
+             entry* generic = nullptr) -> std::pair<bool, entry*>;
 
     /// Fit the graph using entry either located in the collection or using generic entry if provided.
     /// @param name entry name (graphs are not named object)
@@ -355,8 +363,8 @@ public:
     /// @param gpars graph fit drawing pars
     /// @param generic histogram entry to be used if non present yet
     /// @return pair of bool (true if fit successful) and used entry
-    auto fit(const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "", entry* generic = nullptr)
-        -> std::pair<bool, entry*>;
+    auto fit(const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "",
+             entry* generic = nullptr) -> std::pair<bool, entry*>;
 
     auto print() const -> void;
 
@@ -424,13 +432,14 @@ auto HELLOFITTY_EXPORT format_line_entry(const std::string& name, const hf::entr
 } // namespace hf
 
 #ifdef FMT_RANGES_H_
-template <> struct fmt::formatter<hf::param>
+template<>
+struct fmt::formatter<hf::param>
 {
     CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         // Parse the presentation format and store it in the formatter:
         auto it = ctx.begin(), end = ctx.end();
-        if (it != end && *it != '}') FMT_THROW(format_error("invalid format"));
+        if (it != end && *it != '}') { FMT_THROW(format_error("invalid format")); }
 
         // Check if reached the end of the range:
         // if (it != end && *it != '}') format_error("invalid format");
@@ -438,9 +447,10 @@ template <> struct fmt::formatter<hf::param>
         // Return an iterator past the end of the parsed range:
         return it;
     }
+
     auto format(const hf::param& par, format_context& ctx) const -> format_context::iterator
     {
-        char sep{0};
+        char sep {0};
 
         switch (par.mode)
         {

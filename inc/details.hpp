@@ -12,7 +12,8 @@
 #include <unordered_map>
 
 #if __cplusplus < 201402L
-template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args&&... args)
+template<typename T, typename... Args>
+auto make_unique(Args&&... args) -> std::unique_ptr<T>
 {
     return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
 }
@@ -28,6 +29,7 @@ constexpr auto size_t2int(size_t val) -> int
 {
     return (val <= std::numeric_limits<int>::max()) ? static_cast<int>(val) : -1;
 }
+
 constexpr auto int2size_t(int val) -> size_t { return (val < 0) ? __SIZE_MAX__ : static_cast<size_t>(val); }
 
 auto apply_style(TF1* function, std::unordered_map<int, hf::draw_opts>& styles, int index) -> bool
@@ -54,10 +56,10 @@ struct draw_opts_impl final
     std::optional<Width_t> line_width;
     std::optional<Style_t> line_style;
 #else
-    Int_t visible{-1};
-    Color_t line_color{-1};
-    Width_t line_width{-1};
-    Style_t line_style{-1};
+    Int_t visible {-1};
+    Color_t line_color {-1};
+    Width_t line_width {-1};
+    Style_t line_style {-1};
 #endif
 };
 
@@ -90,8 +92,8 @@ struct entry_impl
     Double_t range_min; // function range mix
     Double_t range_max; // function range max
 
-    int rebin{0}; // rebin, 0 == no rebin
-    bool fit_disabled{false};
+    int rebin {0}; // rebin, 0 == no rebin
+    bool fit_disabled {false};
 
     std::vector<function_impl> funcs;
     std::string complete_function_body;
@@ -102,7 +104,12 @@ struct entry_impl
 
     std::unordered_map<int, draw_opts> partial_functions_styles;
 
-    entry_impl() : pars(10), parameters_backup(10) {}
+    entry_impl()
+        : pars(10)
+        , parameters_backup(10)
+    {
+    }
+
     /// Does not recompile the total function. Use compile() after adding last function.
     auto add_function_lazy(std::string formula) -> int
     {
@@ -156,7 +163,7 @@ struct entry_impl
 
     auto restore() -> void
     {
-        if (parameters_backup.size() != pars.size()) throw hf::length_error("Backup storage is empty.");
+        if (parameters_backup.size() != pars.size()) { throw hf::length_error("Backup storage is empty."); }
 
         const auto n = pars.size();
         for (std::remove_const<decltype(n)>::type i = 0; i < n; ++i)
@@ -169,25 +176,25 @@ struct entry_impl
 struct fitter_impl
 {
     fitter::priority_mode mode;
-    format_version input_format_version{format_version::detect};
-    format_version output_format_version{format_version::v2};
+    format_version input_format_version {format_version::detect};
+    format_version output_format_version {format_version::v2};
 
     static bool verbose_flag;
-    fit_qa_checker checker{hf::chi2checker()};
+    fit_qa_checker checker {hf::chi2checker()};
 
     std::string par_ref;
     std::string par_aux;
 
     std::map<std::string, entry> hfpmap;
 
-    std::string name_decorator{"*"};
-    std::string function_decorator{"f_*"};
+    std::string name_decorator {"*"};
+    std::string function_decorator {"f_*"};
 
     std::unordered_map<int, draw_opts> partial_functions_styles;
 
-    template <class T>
-    auto generic_fit(entry* hfp, entry_impl* hfp_m_d, const char* name, T* dataobj, const char* pars, const char* gpars)
-        -> bool
+    template<class T>
+    auto generic_fit(entry* hfp, entry_impl* hfp_m_d, const char* name, T* dataobj, const char* pars,
+                     const char* gpars) -> bool
     {
         hfp_m_d->prepare();
 
@@ -202,7 +209,9 @@ struct fitter_impl
         // backup old parameters
         params_vector backup_old(int2size_t(par_num));
         for (int i = 0; i < par_num; ++i)
+        {
             backup_old[int2size_t(i)] = hfp->get_param(i);
+        }
 
         double chi2_backup_old = dataobj->Chisquare(tfSum, "R");
 
@@ -210,9 +219,7 @@ struct fitter_impl
 
         auto fit_status = fit_res.Get() ? fit_res->Status() : int(fit_res);
 
-        if (fit_status != 0) {
-            return false;
-        }
+        if (fit_status != 0) { return false; }
 
         TF1* new_sig_func = dynamic_cast<TF1*>(dataobj->GetListOfFunctions()->At(0));
 
@@ -225,7 +232,9 @@ struct fitter_impl
         // backup new parameters
         params_vector backup_new = backup_old;
         for (int i = 0; i < par_num; ++i)
+        {
             backup_new[int2size_t(i)].value = tfSum->GetParameter(i);
+        }
 
         double chi2_backup_new = dataobj->Chisquare(tfSum, "R");
 
@@ -326,14 +335,15 @@ struct fitter_impl
 } // namespace hf::detail
 
 // see https://fmt.dev/latest/api.html#formatting-user-defined-types
-template <> struct fmt::formatter<hf::params_vector>
+template<>
+struct fmt::formatter<hf::params_vector>
 {
     // Parses format specifications of the form ['f' | 'e' | 'g'].
     CONSTEXPR auto parse(format_parse_context& ctx) -> format_parse_context::iterator
     {
         // Parse the presentation format and store it in the formatter:
         auto it = ctx.begin(), end = ctx.end();
-        if (it != end && *it != '}') FMT_THROW(format_error("invalid format"));
+        if (it != end && *it != '}') { FMT_THROW(format_error("invalid format")); }
 
         // Return an iterator past the end of the parsed range:
         return it;
@@ -346,7 +356,9 @@ template <> struct fmt::formatter<hf::params_vector>
         // ctx.out() is an output iterator to write to.
 
         for (const auto& par : p)
+        {
             fmt::format_to(ctx.out(), "{:.{}} ", par.value, par.print_precision);
+        }
 
         return ctx.out();
     }

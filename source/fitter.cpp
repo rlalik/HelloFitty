@@ -31,9 +31,9 @@
 #include <fstream>
 
 #if __cplusplus >= 201703L
-#include <filesystem>
+#    include <filesystem>
 #else
-#include <sys/stat.h>
+#    include <sys/stat.h>
 #endif
 
 bool hf::detail::fitter_impl::verbose_flag = true;
@@ -55,9 +55,9 @@ auto select_source(const char* filename, const char* auxname = nullptr) -> sourc
     const auto s_ref = std::filesystem::exists(filename);
     const auto s_aux = std::filesystem::exists(auxname);
 
-    if (!s_ref and !s_aux) return source::none;
-    if (s_ref and !s_aux) return source::only_reference;
-    if (!s_ref and s_aux) return source::only_auxiliary;
+    if (!s_ref and !s_aux) { return source::none; }
+    if (s_ref and !s_aux) { return source::only_reference; }
+    if (!s_ref and s_aux) { return source::only_auxiliary; }
 
     const std::filesystem::file_time_type mod_ref = std::filesystem::last_write_time(filename);
     const std::filesystem::file_time_type mod_aux = std::filesystem::last_write_time(auxname);
@@ -81,7 +81,8 @@ auto select_source(const char* filename, const char* auxname = nullptr) -> sourc
 
 } // namespace
 
-template <> struct fmt::formatter<hf::entry>
+template<>
+struct fmt::formatter<hf::entry>
 {
     // Presentation format: 'f' - fixed, 'e' - exponential, 'g' - either.
     char presentation = 'g';
@@ -91,7 +92,7 @@ template <> struct fmt::formatter<hf::entry>
     {
         // Parse the presentation format and store it in the formatter:
         auto it = ctx.begin(), end = ctx.end();
-        if (it != end && *it != '}') FMT_THROW(format_error("invalid format"));
+        if (it != end && *it != '}') { FMT_THROW(format_error("invalid format")); }
 
         // Return an iterator past the end of the parsed range:
         return it;
@@ -108,7 +109,11 @@ namespace hf
 
 auto fitter::set_verbose(bool verbose) -> void { detail::fitter_impl::verbose_flag = verbose; }
 
-fitter::fitter() : m_d{make_unique<detail::fitter_impl>()} { m_d->mode = priority_mode::newer; }
+fitter::fitter()
+    : m_d {make_unique<detail::fitter_impl>()}
+{
+    m_d->mode = priority_mode::newer;
+}
 
 fitter::fitter(fitter&&) = default;
 
@@ -132,30 +137,30 @@ auto fitter::init_from_file(std::string filename) -> bool
                (selected == source::reference or selected == source::only_reference) ? 'x' : ' ',
                (selected == source::auxiliary or selected == source::only_auxiliary) ? 'x' : ' ');
 
-    if (selected == source::none) return false;
+    if (selected == source::none) { return false; }
 
     if (m_d->mode == priority_mode::reference)
     {
-        if (selected == source::only_auxiliary)
-            return false;
-        else
-            return import_parameters(m_d->par_ref);
+        if (selected == source::only_auxiliary) { return false; }
+        else { return import_parameters(m_d->par_ref); }
     }
 
     if (m_d->mode == priority_mode::auxiliary)
     {
-        if (selected == source::only_reference)
-            return false;
-        else
-            return import_parameters(m_d->par_aux);
+        if (selected == source::only_reference) { return false; }
+        else { return import_parameters(m_d->par_aux); }
     }
 
     if (m_d->mode == priority_mode::newer)
     {
         if (selected == source::auxiliary or selected == source::only_auxiliary)
+        {
             return import_parameters(m_d->par_aux);
+        }
         else if (selected == source::reference or selected == source::only_reference)
+        {
             return import_parameters(m_d->par_ref);
+        }
     }
 
     return false;
@@ -170,16 +175,14 @@ auto fitter::init_from_file(std::string filename, std::string auxname, priority_
 
 auto fitter::export_to_file(bool update_reference) -> bool
 {
-    if (!update_reference)
-        return export_parameters(m_d->par_aux);
-    else
-        return export_parameters(m_d->par_ref);
+    if (!update_reference) { return export_parameters(m_d->par_aux); }
+    else { return export_parameters(m_d->par_ref); }
 }
 
 auto fitter::insert_parameter(std::pair<std::string, entry> hfp) -> entry*
 {
     auto res = m_d->hfpmap.emplace(std::move(hfp));
-    if (!res.second) res.first->second = hfp.second;
+    if (!res.second) { res.first->second = hfp.second; }
 
     return &res.first->second;
 }
@@ -233,7 +236,7 @@ auto fitter::find_fit(TH1* hist) const -> entry* { return find_fit(hist->GetName
 auto fitter::find_fit(const char* name) const -> entry*
 {
     auto it = m_d->hfpmap.find(tools::format_name(name, m_d->name_decorator));
-    if (it != m_d->hfpmap.end()) return &it->second;
+    if (it != m_d->hfpmap.end()) { return &it->second; }
 
     return nullptr;
 }
@@ -246,14 +249,16 @@ auto fitter::find_or_make(const char* name, entry* generic) -> entry*
     if (!hfp and generic)
     {
         if (detail::fitter_impl::verbose_flag)
+        {
             fmt::print("HFP for histogram {:s} not found, trying from generic.\n", name);
+        }
 
-        if (!generic->get_functions_count()) throw std::logic_error("Generic Fit Entry has no functions.");
+        if (!generic->get_functions_count()) { throw std::logic_error("Generic Fit Entry has no functions."); }
 
         hfp = insert_parameter(std::string(name), *generic);
-        if (!hfp) throw std::logic_error("Could not insert new parameter.");
+        if (!hfp) { throw std::logic_error("Could not insert new parameter."); }
 
-        if (detail::fitter_impl::verbose_flag) fmt::print("HFP for histogram {:s} created from generic.\n", name);
+        if (detail::fitter_impl::verbose_flag) { fmt::print("HFP for histogram {:s} created from generic.\n", name); }
     }
 
     return hfp;
@@ -262,7 +267,7 @@ auto fitter::find_or_make(const char* name, entry* generic) -> entry*
 auto fitter::fit(TH1* hist, const char* pars, const char* gpars, entry* generic) -> std::pair<bool, entry*>
 {
     entry* hfp = find_or_make(hist->GetName(), generic);
-    if (!hfp) return {false, hfp};
+    if (!hfp) { return {false, hfp}; }
 
     hfp->backup();
 
@@ -271,30 +276,31 @@ auto fitter::fit(TH1* hist, const char* pars, const char* gpars, entry* generic)
 
     if (hfp->get_flag_rebin() != 0) { hist->Rebin(hfp->get_flag_rebin()); }
 
-    if (bin_u - bin_l == 0) return {false, hfp};
+    if (bin_u - bin_l == 0) { return {false, hfp}; }
     // if (hist->Integral(bin_l, bin_u) == 0) return {false, hfp};
 
     bool status = m_d->generic_fit(hfp, hfp->m_d.get(), hist->GetName(), hist, pars, gpars);
-    if (!status) hfp->restore();
+    if (!status) { hfp->restore(); }
 
     return {status, hfp};
 }
 
-auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* gpars, entry* generic)
-    -> std::pair<bool, entry*>
+auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* gpars,
+                 entry* generic) -> std::pair<bool, entry*>
 {
     entry* hfp = find_or_make(name, generic);
-    if (!hfp) return {false, hfp};
+    if (!hfp) { return {false, hfp}; }
 
     hfp->backup();
 
     bool status = m_d->generic_fit(hfp, hfp->m_d.get(), name, graph, pars, gpars);
-    if (!status) hfp->restore();
+    if (!status) { hfp->restore(); }
 
     return {status, hfp};
 }
 
 auto fitter::set_name_decorator(std::string decorator) -> void { m_d->name_decorator = std::move(decorator); }
+
 auto fitter::clear_name_decorator() -> void { m_d->name_decorator = "*"; }
 
 auto fitter::set_function_decorator(std::string decorator) -> void { m_d->function_decorator = std::move(decorator); }
@@ -302,7 +308,7 @@ auto fitter::set_function_decorator(std::string decorator) -> void { m_d->functi
 auto fitter::set_function_style(int function_index) -> draw_opts&
 {
     auto res = m_d->partial_functions_styles.insert({function_index, draw_opts()});
-    if (res.second == true) return res.first->second;
+    if (res.second == true) { return res.first->second; }
 
     throw std::runtime_error("Function style already exists.");
 }

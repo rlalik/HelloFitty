@@ -38,18 +38,20 @@ jobs:
     # edit the "<name>" placeholder to your GitHub name.
     # If you do not wish to use codecov, then simply delete this job from the
     # workflow.
-    if: github.repository_owner == '<name>'
-      && false
+    if: github.repository_owner == 'rlalik'
+
+    container:
+      image: rootproject/root:6.34.00-ubuntu24.10
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Install LCov
-      run: sudo apt-get update -q
-        && sudo apt-get install lcov -q -y
+      run: apt-get update -q
+        && apt-get install lcov -q -y
 
     - name: Configure
-      run: cmake --preset=ci-coverage
+      run: cmake --preset=ci-coverage -Wno-error=dev
 
     - name: Build
       run: cmake --build build/coverage -j 2
@@ -60,6 +62,12 @@ jobs:
 
     - name: Process coverage info
       run: cmake --build build/coverage -t coverage
+
+    - name: Publish to coveralls.io
+      uses: coverallsapp/github-action@v1.1.2
+      with:
+        github-token: ${{ github.token }}
+        path-to-lcov: coverage.info
 
     - name: Submit to codecov.io
       uses: codecov/codecov-action@v4
@@ -72,13 +80,20 @@ jobs:
 
     runs-on: ubuntu-24.04
 
+    container:
+      image: rootproject/root:6.34.00-ubuntu24.10
+
     env: { CXX: clang++-18 }
 
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install Clang
+      run: apt-get update -q
+        && apt-get install clang-18 -q -y
+
     - name: Configure
-      run: cmake --preset=ci-sanitize
+      run: cmake --preset=ci-sanitize -Wno-error=dev
 
     - name: Build
       run: cmake --build build/sanitize -j 2
@@ -101,7 +116,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-14, ubuntu-24.04, windows-2022]
+        os: [ubuntu-24.04]
 
         type: [shared, static]
 
@@ -111,15 +126,18 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    container:
+      image: rootproject/root:6.34.00-ubuntu24.10
+
     steps:
     - uses: actions/checkout@v4
 
     - name: Install static analyzers
       if: matrix.os == 'ubuntu-24.04'
       run: >-
-        sudo apt-get install clang-tidy-18 cppcheck -y -q
+        apt-get install clang-tidy-18 cppcheck -y -q
 
-        sudo update-alternatives --install
+        update-alternatives --install
         /usr/bin/clang-tidy clang-tidy
         /usr/bin/clang-tidy-18 180
 
@@ -132,7 +150,7 @@ jobs:
     - name: Configure
       shell: pwsh
       run: cmake "--preset=ci-$("${{ matrix.os }}".split("-")[0])"
-        -D BUILD_SHARED_LIBS=${{ matrix.shared }}
+        -D BUILD_SHARED_LIBS=${{ matrix.shared }} -Wno-error=dev
 
     - name: Setup PATH
       if: matrix.os == 'windows-2022' && matrix.type == 'shared'
@@ -183,8 +201,8 @@ jobs:
       run: pip3 install jinja2 Pygments
 
     - name: Install Doxygen
-      run: sudo apt-get update -q
-        && sudo apt-get install doxygen -q -y
+      run: apt-get update -q
+        && apt-get install doxygen -q -y
 
     - name: Build docs
       run: cmake "-DPROJECT_SOURCE_DIR=$PWD" "-DPROJECT_BINARY_DIR=$PWD/build"

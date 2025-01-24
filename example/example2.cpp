@@ -1,5 +1,7 @@
 #include "hellofitty.hpp"
 
+#include "hellofitty_config.h"
+
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
@@ -14,15 +16,23 @@
 #include <fmt/printf.h>
 
 #ifdef HAS_ROOTTOOLS
-#include <RootTools.h>
+#    include <RootTools.h>
 #endif
 
 auto main(int argc, char* argv[]) -> int
 {
+    auto input_root = std::string(examples_bin_path) + "test_hist_output.root";
+    auto input_param = std::string(examples_bin_path) + "test_output1.txt";
+
     if (argc < 3)
     {
         fmt::print(stderr, "Usage: {} file.root file_with_params\n", argv[0]);
-        std::exit(EXIT_FAILURE);
+        fmt::print(stderr, "Using defaults: {} {}\n", input_root, input_param);
+    }
+    else
+    {
+        input_root = argv[1];
+        input_param = argv[2];
     }
 
     // load custom functions definitions
@@ -31,17 +41,17 @@ auto main(int argc, char* argv[]) -> int
 #endif
 
     // create params output filename
-    auto opf = fmt::sprintf("%s%s", argv[2], ".out");
+    auto opf = fmt::sprintf("%s%s", input_param, ".out");
 
     // create fitting factory
     hf::fitter ff;
-    ff.init_from_file(argv[2], opf.c_str());
+    ff.init_from_file(input_param.c_str(), opf.c_str());
 
     // uncomment this to print all entries
     // ff.print();
 
     // open root file
-    TFile* file = TFile::Open(argv[1], "READ");
+    TFile* file = TFile::Open(input_root.c_str(), "READ");
 
     TFile* ofile = nullptr;
     if (argc >= 4)

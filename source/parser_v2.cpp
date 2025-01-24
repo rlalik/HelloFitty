@@ -139,7 +139,7 @@ auto v2::format_line_entry(const std::string& name, const hf::entry* hist_fit) -
     for (auto param_counter = 0; param_counter < max_params; ++param_counter)
     {
         const auto param = hist_fit->param(param_counter);
-        char sep{0};
+        char sep {0};
 
         switch (param.mode)
         {

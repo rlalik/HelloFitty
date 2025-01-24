@@ -1,0 +1,58 @@
+name: C++11
+
+on:
+  push:
+  pull_request:
+  release:
+    # tags:
+    # - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  standard-check:
+    name: C++11
+    runs-on: ubuntu-latest
+
+    container:
+      image: rootproject/root:6.22.08-ubuntu20.04
+
+    steps:
+      - name: Install common dependencies
+        run: |
+          apt update
+          apt install git -y
+          cmake --version
+
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        with:
+          submodules: recursive
+
+      - name: Configure
+        env:
+          CC: ${{ steps.setup_cc.outputs.cc }}
+          CXX: ${{ steps.setup_cc.outputs.cxx }}
+        shell: bash
+        run: |
+          . /etc/profile
+          root-config --version
+          root-config --cflags
+          root-config --features
+          mkdir build
+          cd build
+          cmake .. \
+            -DHelloFitty_DEVELOPER_MODE=ON \
+            -DBUILD_TESTING=ON \
+            -DCMAKE_INSTALL_PREFIX:PATH=instdir
+
+      - name: Build
+        shell: bash
+        run: |
+            cd build
+            make -j$(nproc)
+
+      - name: Test
+        shell: bash
+        run: |
+            cd build
+            make test

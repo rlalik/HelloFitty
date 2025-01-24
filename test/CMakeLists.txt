@@ -13,15 +13,7 @@ if(PROJECT_IS_TOP_LEVEL)
 endif()
 
 set(INSTALL_GTEST OFF)
-find_or_fetch_package(GTest https://github.com/google/googletest GIT_TAG release-1.11.0)
-
-if(TARGET GTest::gtest_main)
-  # new cmake provided
-  set(GTEST_TRG GTest::gtest_main)
-else()
-  # old cmake and pc files
-  set(GTEST_TRG gtest gtest_main)
-endif()
+find_or_fetch_package(GTest https://github.com/google/googletest GIT_TAG v1.15.2)
 
 # ---- Tests ----
 
@@ -37,14 +29,11 @@ target_link_libraries(gtests
     PRIVATE
         HelloFitty::HelloFitty
         ROOT::Core
-        ${GTEST_TRG}
+        GTest::gtest_main
         ${FMT_TARGET}
 )
 
-if(ENABLE_ADVANCE_TOOLS)
-  target_code_coverage(gtests ALL)
-endif()
-
+include(GoogleTest)
 gtest_discover_tests(gtests)
 
 # ---- End-of-file commands ----

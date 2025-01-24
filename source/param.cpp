@@ -26,10 +26,8 @@ namespace hf
 auto param::print() const -> void
 {
     fmt::print("{:10g}   Mode: {:>5}   Limits: ", value, mode == fit_mode::free ? "free" : "fixed");
-    if (has_limits)
-        fmt::print(" {:g}, {:g}\n", min, max);
-    else
-        fmt::print(" none\n");
+    if (has_limits) { fmt::print(" {:g}, {:g}\n", min, max); }
+    else { fmt::print(" none\n"); }
 }
 
 } // namespace hf

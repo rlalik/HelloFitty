@@ -62,7 +62,9 @@ TEST(TestsEntry, Cloning)
     // ASSERT_EQ(hfp1, hfp2); FIXME implement == operator
 
     for (int i = 0; i < hfp1.get_functions_count(); ++i)
+    {
         ASSERT_STREQ(hfp1.get_function(i), hfp2.get_function(i));
+    }
 
     ASSERT_EQ(hfp1.get_fit_range_min(), hfp2.get_fit_range_min());
     ASSERT_EQ(hfp1.get_fit_range_max(), hfp2.get_fit_range_max());

@@ -22,7 +22,8 @@
 
 #include "details.hpp"
 
-template <> struct fmt::formatter<hf::entry>
+template<>
+struct fmt::formatter<hf::entry>
 {
     // Presentation format: 'f' - fixed, 'e' - exponential, 'g' - either.
     char presentation = 'g';
@@ -32,7 +33,7 @@ template <> struct fmt::formatter<hf::entry>
     {
         // Parse the presentation format and store it in the formatter:
         auto it = ctx.begin(), end = ctx.end();
-        if (it != end && *it != '}') FMT_THROW(format_error("invalid format"));
+        if (it != end && *it != '}') { FMT_THROW(format_error("invalid format")); }
 
         // Return an iterator past the end of the parsed range:
         return it;
@@ -47,11 +48,15 @@ template <> struct fmt::formatter<hf::entry>
 namespace hf
 {
 
-entry::entry() : m_d{make_unique<detail::entry_impl>()} {}
-
-entry::entry(Double_t range_lower, Double_t range_upper) : m_d{make_unique<detail::entry_impl>()}
+entry::entry()
+    : m_d {make_unique<detail::entry_impl>()}
 {
-    if (range_lower == range_upper) throw hf::range_error("fitting range cannot be empty");
+}
+
+entry::entry(Double_t range_lower, Double_t range_upper)
+    : m_d {make_unique<detail::entry_impl>()}
+{
+    if (range_lower == range_upper) { throw hf::range_error("fitting range cannot be empty"); }
 
     m_d->range_min = range_lower;
     m_d->range_max = range_upper;
@@ -151,14 +156,16 @@ auto entry::param(const char* name) -> hf::param&
 
 auto entry::set_fit_range(Double_t range_lower, Double_t range_upper) -> void
 {
-    if (range_lower == range_upper) throw hf::range_error("fitting range cannot be empty");
+    if (range_lower == range_upper) { throw hf::range_error("fitting range cannot be empty"); }
 
     m_d->range_min = range_lower;
     m_d->range_max = range_upper;
 
     m_d->complete_function_object.SetRange(range_lower, range_upper);
     for (auto& f : m_d->funcs)
+    {
         f.function_obj.SetRange(range_lower, range_upper);
+    }
 }
 
 auto entry::get_fit_range_min() const -> Double_t { return m_d->range_min; }
@@ -249,7 +256,7 @@ auto entry::drop() -> void { m_d->parameters_backup.clear(); }
 auto entry::set_function_style(int function_index) -> draw_opts&
 {
     auto res = m_d->partial_functions_styles.insert({function_index, draw_opts()});
-    if (res.second == true) return res.first->second;
+    if (res.second == true) { return res.first->second; }
 
     throw std::runtime_error("Function style already exists.");
 }

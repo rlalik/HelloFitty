@@ -182,7 +182,7 @@ auto main() -> int
         fmt::print("{}", "\n");
 
         hfp->backup();
-        if (!ff.fit(hist, "BQ0", "", hfp).first) hfp->restore();
+        if (!ff.fit(hist, "BQ0", "", hfp).first) { hfp->restore(); }
 
         fmt::print("{}", "\nAfter fitting:\n");
         hfp->print("test_hist", true);

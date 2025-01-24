@@ -21,6 +21,7 @@ struct v1
     static auto HELLOFITTY_EXPORT parse_line_entry(const std::string& line) -> std::pair<std::string, entry>;
     static auto HELLOFITTY_EXPORT format_line_entry(const std::string& name, const hf::entry* hist_fit) -> std::string;
 };
+
 /// @}
 
 /// New format with variable number of functions:
@@ -32,6 +33,7 @@ struct v2
     static auto HELLOFITTY_EXPORT parse_line_entry(const std::string& line) -> std::pair<std::string, entry>;
     static auto HELLOFITTY_EXPORT format_line_entry(const std::string& name, const hf::entry* hist_fit) -> std::string;
 };
+
 /// @}
 
 } // namespace hf::parser
