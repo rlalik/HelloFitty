@@ -66,7 +66,7 @@ TEST(TestsFitter, FittingHist)
     auto h_foo = make_hist();
 
     hf::entry hfp_defaults(0, 10);
-    EXPECT_THROW(fitter.fit(h_foo.get(), "", "", &hfp_defaults), std::logic_error);
+    EXPECT_THROW(fitter.fit(h_foo.get(), &hfp_defaults, "", ""), std::logic_error);
 }
 
 TEST(TestsFitter, FittingHistBadHFP)
@@ -80,7 +80,7 @@ TEST(TestsFitter, FittingHistBadHFP)
     ASSERT_FALSE(fitter.fit(h_foo.get(), "", "").first);
 
     // test fitting without function
-    ASSERT_FALSE(fitter.fit(h_foo.get(), "", "", &hfp_defaults).first);
+    ASSERT_FALSE(fitter.fit(h_foo.get(), &hfp_defaults, "", "").first);
 }
 
 TEST(TestsFitter, FittingHistGoodHFP)
@@ -97,7 +97,7 @@ TEST(TestsFitter, FittingHistGoodHFP)
 
     // test fitting empty range
     // fitter.find_fit(h_foo->GetName())->set_fit_range(0, 10);
-    ASSERT_TRUE(fitter.fit(h_foo.get(), "", "", &hfp_defaults).first);
+    ASSERT_TRUE(fitter.fit(h_foo.get(), &hfp_defaults, "", "").first);
 
     fitter.clear();
 }

@@ -264,39 +264,66 @@ auto fitter::find_or_make(const char* name, entry* generic) -> entry*
     return hfp;
 }
 
-auto fitter::fit(TH1* hist, const char* pars, const char* gpars, entry* generic) -> std::pair<bool, entry*>
+auto fitter::fit(TH1* hist, const char* pars, const char* gpars) -> std::pair<bool, entry*>
+{
+    entry* hfp = find_or_make(hist->GetName());
+    if (!hfp) { return {false, hfp}; }
+
+    return fit(hfp, hist, pars, gpars);
+}
+
+auto fitter::fit(TH1* hist, entry* generic, const char* pars, const char* gpars) -> std::pair<bool, entry*>
 {
     entry* hfp = find_or_make(hist->GetName(), generic);
     if (!hfp) { return {false, hfp}; }
 
-    hfp->backup();
-
-    Int_t bin_l = hist->FindBin(hfp->get_fit_range_min());
-    Int_t bin_u = hist->FindBin(hfp->get_fit_range_max());
-
-    if (hfp->get_flag_rebin() != 0) { hist->Rebin(hfp->get_flag_rebin()); }
-
-    if (bin_u - bin_l == 0) { return {false, hfp}; }
-    // if (hist->Integral(bin_l, bin_u) == 0) return {false, hfp};
-
-    bool status = m_d->generic_fit(hfp, hfp->m_d.get(), hist->GetName(), hist, pars, gpars);
-    if (!status) { hfp->restore(); }
-
-    return {status, hfp};
+    return fit(hfp, hist, pars, gpars);
 }
 
-auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* gpars,
-                 entry* generic) -> std::pair<bool, entry*>
+auto fitter::fit(entry* custom, TH1* hist, const char* pars, const char* gpars) -> std::pair<bool, entry*>
+{
+    custom->backup();
+
+    Int_t bin_l = hist->FindBin(custom->get_fit_range_min());
+    Int_t bin_u = hist->FindBin(custom->get_fit_range_max());
+
+    if (custom->get_flag_rebin() != 0) { hist->Rebin(custom->get_flag_rebin()); }
+
+    if (bin_u - bin_l == 0) { return {false, custom}; }
+    // if (hist->Integral(bin_l, bin_u) == 0) return {false, hfp};
+
+    bool status = m_d->generic_fit(custom, custom->m_d.get(), hist->GetName(), hist, pars, gpars);
+    if (!status) { custom->restore(); }
+
+    return {status, custom};
+}
+
+auto fitter::fit(const char* name, TGraph* graph, const char* pars, const char* gpars) -> std::pair<bool, entry*>
+{
+    entry* hfp = find_or_make(name);
+    if (!hfp) { return {false, hfp}; }
+
+    return fit(hfp, name, graph, pars, gpars);
+}
+
+auto fitter::fit(const char* name, TGraph* graph, entry* generic, const char* pars,
+                 const char* gpars) -> std::pair<bool, entry*>
 {
     entry* hfp = find_or_make(name, generic);
     if (!hfp) { return {false, hfp}; }
 
-    hfp->backup();
+    return fit(hfp, name, graph, pars, gpars);
+}
 
-    bool status = m_d->generic_fit(hfp, hfp->m_d.get(), name, graph, pars, gpars);
-    if (!status) { hfp->restore(); }
+auto fitter::fit(entry* custom, const char* name, TGraph* graph, const char* pars,
+                 const char* gpars) -> std::pair<bool, entry*>
+{
+    custom->backup();
 
-    return {status, hfp};
+    bool status = m_d->generic_fit(custom, custom->m_d.get(), name, graph, pars, gpars);
+    if (!status) { custom->restore(); }
+
+    return {status, custom};
 }
 
 auto fitter::set_name_decorator(std::string decorator) -> void { m_d->name_decorator = std::move(decorator); }

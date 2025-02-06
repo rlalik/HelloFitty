@@ -34,14 +34,14 @@ jobs:
 
     runs-on: ubuntu-24.04
 
+    container:
+      image: rootproject/root:latest
+
     # To enable coverage, delete the last line from the conditional below and
     # edit the "<name>" placeholder to your GitHub name.
     # If you do not wish to use codecov, then simply delete this job from the
     # workflow.
     if: github.repository_owner == 'rlalik'
-
-    container:
-      image: rootproject/root:6.34.00-ubuntu24.10
 
     steps:
     - uses: actions/checkout@v4
@@ -51,7 +51,7 @@ jobs:
         && apt-get install lcov -q -y
 
     - name: Configure
-      run: cmake --preset=ci-coverage -Wno-error=dev
+      run: cmake --preset=ci-coverage -DVDT_LIBRARY=/usr
 
     - name: Build
       run: cmake --build build/coverage -j 2
@@ -60,20 +60,20 @@ jobs:
       working-directory: build/coverage
       run: ctest --output-on-failure --no-tests=error -j 2
 
+    # CMake custom targets are not quaranted to be run in order,
+    # hence we enforce it here.
+    - name: Examples
+      run: |
+        cmake --build build/coverage -t run_example1
+        cmake --build build/coverage -t run_example2
+
     - name: Process coverage info
       run: cmake --build build/coverage -t coverage
 
-    - name: Publish to coveralls.io
-      uses: coverallsapp/github-action@v1.1.2
-      with:
-        github-token: ${{ github.token }}
-        path-to-lcov: coverage.info
-
-    - name: Submit to codecov.io
-      uses: codecov/codecov-action@v4
+    - name: Coveralls
+      uses: coverallsapp/github-action@v2
       with:
         file: build/coverage/coverage.info
-        token: ${{ secrets.CODECOV_TOKEN }}
 
   sanitize:
     needs: [lint]
@@ -81,19 +81,19 @@ jobs:
     runs-on: ubuntu-24.04
 
     container:
-      image: rootproject/root:6.34.00-ubuntu24.10
+      image: rootproject/root:latest
 
     env: { CXX: clang++-18 }
 
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Clang
+    - name: Install Dependencies
       run: apt-get update -q
         && apt-get install clang-18 -q -y
 
     - name: Configure
-      run: cmake --preset=ci-sanitize -Wno-error=dev
+      run: cmake --preset=ci-sanitize -DVDT_LIBRARY=/usr
 
     - name: Build
       run: cmake --build build/sanitize -j 2
@@ -116,7 +116,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-24.04]
+        container: ["latest"]
 
         type: [shared, static]
 
@@ -124,16 +124,15 @@ jobs:
         - { type: shared, shared: YES }
         - { type: static, shared: NO }
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-24.04
 
     container:
-      image: rootproject/root:6.34.00-ubuntu24.10
+      image: rootproject/root:${{ matrix.container }}
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Install static analyzers
-      if: matrix.os == 'ubuntu-24.04'
       run: >-
         apt-get install clang-tidy-18 cppcheck -y -q
 
@@ -141,20 +140,8 @@ jobs:
         /usr/bin/clang-tidy clang-tidy
         /usr/bin/clang-tidy-18 180
 
-    - name: Setup MultiToolTask
-      if: matrix.os == 'windows-2022'
-      run: |
-        Add-Content "$env:GITHUB_ENV" 'UseMultiToolTask=true'
-        Add-Content "$env:GITHUB_ENV" 'EnforceProcessCountAcrossBuilds=true'
-
     - name: Configure
-      shell: pwsh
-      run: cmake "--preset=ci-$("${{ matrix.os }}".split("-")[0])"
-        -D BUILD_SHARED_LIBS=${{ matrix.shared }} -Wno-error=dev
-
-    - name: Setup PATH
-      if: matrix.os == 'windows-2022' && matrix.type == 'shared'
-      run: Add-Content "$env:GITHUB_PATH" "$(Get-Location)\build\Release"
+      run: cmake --preset=ci-ubuntu -DVDT_LIBRARY=/usr
 
     - name: Build
       run: cmake --build build --config Release -j 2
@@ -185,7 +172,7 @@ jobs:
     # simply delete this job similarly to the coverage one.
     if: github.ref == 'refs/heads/master'
       && github.event_name == 'push'
-      && github.repository_owner == '<name>'
+      && github.repository_owner == 'rlalik'
       && false
 
     permissions:
@@ -205,7 +192,7 @@ jobs:
         && apt-get install doxygen -q -y
 
     - name: Build docs
-      run: cmake "-DPROJECT_SOURCE_DIR=$PWD" "-DPROJECT_BINARY_DIR=$PWD/build"
+      run: cmake "-DPROJECT_SOURCE_DIR=$PWD" "-DPROJECT_BINARY_DIR=$PWD/build" -DVDT_LIBRARY=/usr
         -P cmake/docs-ci.cmake
 
     - name: Deploy docs

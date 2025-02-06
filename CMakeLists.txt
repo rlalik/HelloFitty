@@ -4,7 +4,7 @@ include(cmake/prelude.cmake)
 
 project(
     HelloFitty
-    VERSION 0.20.0
+    VERSION 0.21.0
     DESCRIPTION "Hello Fitty - a versatile histogram fitting tool for ROOT-based projects."
     HOMEPAGE_URL "https://github.com/rlalik/HelloFitty"
     LANGUAGES CXX
@@ -12,13 +12,16 @@ project(
 
 include(cmake/project-is-top-level.cmake)
 include(cmake/variables.cmake)
+
+# ---- Dependencies ----
+
 include(cmake/find_or_fetch_package.cmake)
 
 # find ROOT
 find_package(ROOT QUIET REQUIRED COMPONENTS Core Hist)
 
 # FMT
-find_or_fetch_package(fmt https://github.com/fmtlib/fmt GIT_TAG 11.1.2 VERSION 11.1.2)
+find_or_fetch_package(fmt https://github.com/fmtlib/fmt GIT_TAG 11.1.3 VERSION 11.1.3)
 if (fmt_FETCHED)
   set(FMT_TARGET $<BUILD_INTERFACE:fmt::fmt-header-only>)
 else()
@@ -120,35 +123,3 @@ elseif(NOT PROJECT_IS_TOP_LEVEL)
 endif()
 
 include(cmake/dev-mode.cmake)
-
-# Export the package for use from the build-tree (this registers the build-tree
-# with a global CMake-registry)
-export(PACKAGE HelloFitty)
-
-# messages
-message(
-  STATUS
-    "<<< Configuration >>>
-Project:        ${PROJECT_NAME}
-
-Architecture:   ${CMAKE_CXX_LIBRARY_ARCHITECTURE}
-Build type      ${CMAKE_BUILD_TYPE}
-Install path    ${CMAKE_INSTALL_PREFIX}
-
-Compiler:
-C++             ${CMAKE_CXX_COMPILER}
-
-Linker:
-Ld              ${CMAKE_LINKER}
-
-Compiler flags:
-C++             ${CMAKE_CXX_FLAGS}
-
-Linker flags:
-Executable      ${CMAKE_EXE_LINKER_FLAGS}
-Module          ${CMAKE_MODULE_LINKER_FLAGS}
-Shared          ${CMAKE_SHARED_LINKER_FLAGS}\n")
-
-foreach(p LIB BIN INCLUDE)
-  message(STATUS "CMAKE_INSTALL_${p}DIR: ${CMAKE_INSTALL_${p}DIR}")
-endforeach()

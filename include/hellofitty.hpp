@@ -353,8 +353,9 @@ public:
     /// @param gpars histogram fit drawing pars
     /// @param generic histogram entry to be used if non present yet
     /// @return pair of bool (true if fit successful) and used entry
-    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "",
-             entry* generic = nullptr) -> std::pair<bool, entry*>;
+    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, entry*>;
+    auto fit(TH1* hist, entry* generic, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, entry*>;
+    auto fit(entry* custom, TH1* hist, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, entry*>;
 
     /// Fit the graph using entry either located in the collection or using generic entry if provided.
     /// @param name entry name (graphs are not named object)
@@ -363,8 +364,12 @@ public:
     /// @param gpars graph fit drawing pars
     /// @param generic histogram entry to be used if non present yet
     /// @return pair of bool (true if fit successful) and used entry
-    auto fit(const char* name, TGraph* graph, const char* pars = "BQ", const char* gpars = "",
-             entry* generic = nullptr) -> std::pair<bool, entry*>;
+    auto fit(const char* name, TGraph* graph, const char* pars = "BQ",
+             const char* gpars = "") -> std::pair<bool, entry*>;
+    auto fit(const char* name, TGraph* graph, entry* generic, const char* pars = "BQ",
+             const char* gpars = "") -> std::pair<bool, entry*>;
+    auto fit(entry* custom, const char* name, TGraph* graph, const char* pars = "BQ",
+             const char* gpars = "") -> std::pair<bool, entry*>;
 
     auto print() const -> void;
 
