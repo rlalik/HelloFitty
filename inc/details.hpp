@@ -67,16 +67,16 @@ struct draw_opts_impl final
 /// lwoer or upper boundaries, free or fixed fitting mode.
 struct function_impl final
 {
-    std::string body_string;
     TF1 function_obj;
+    std::string body_string;
 
     /// Accept param value and fit mode
     /// @param par_value initial parameter value
     /// @param par_mode parameter fitting mode, see @ref fit_mode
     explicit function_impl(std::string body, Double_t range_min, Double_t range_max)
+        : function_obj {"", body.c_str(), range_min, range_max, TF1::EAddToList::kNo}
+        , body_string {std::move(body)}
     {
-        function_obj = TF1("", body.c_str(), range_min, range_max, TF1::EAddToList::kNo);
-        body_string = std::move(body);
     }
 
     auto print(bool detailed) const -> void
@@ -201,9 +201,6 @@ struct fitter_impl
         TF1* tfSum = &hfp->get_function_object();
         tfSum->SetName(tools::format_name(name, function_decorator).c_str());
 
-        dataobj->GetListOfFunctions()->Clear();
-        dataobj->GetListOfFunctions()->SetOwner(kTRUE);
-
         const auto par_num = tfSum->GetNpar();
 
         // backup old parameters
@@ -215,13 +212,19 @@ struct fitter_impl
 
         double chi2_backup_old = dataobj->Chisquare(tfSum, "R");
 
+        if (!apply_style(tfSum, hfp_m_d->partial_functions_styles, -1))
+        {
+            if (!apply_style(tfSum, partial_functions_styles, -1))
+            {
+                // complete_function->ResetBit(TF1::kNotDraw);
+            }
+        }
+
         auto fit_res = dataobj->Fit(tfSum, pars, gpars, hfp->get_fit_range_min(), hfp->get_fit_range_max());
 
         auto fit_status = fit_res.Get() ? fit_res->Status() : int(fit_res);
 
         if (fit_status != 0) { return false; }
-
-        TF1* new_sig_func = dynamic_cast<TF1*>(dataobj->GetListOfFunctions()->At(0));
 
         // TVirtualFitter * fitter = TVirtualFitter::GetFitter();
         // TMatrixDSym cov;
@@ -265,7 +268,6 @@ struct fitter_impl
             for (int i = 0; i < par_num; ++i)
             {
                 tfSum->SetParameter(i, backup_old[int2size_t(i)].value);
-                new_sig_func->SetParameter(i, backup_old[int2size_t(i)].value);
             }
 
             if (verbose_flag)
@@ -279,8 +281,6 @@ struct fitter_impl
         }
 
         tfSum->SetChisquare(dataobj->Chisquare(tfSum, "R"));
-
-        new_sig_func->SetChisquare(dataobj->Chisquare(tfSum, "R"));
 
         const auto functions_count = hfp->get_functions_count();
 
@@ -302,30 +302,22 @@ struct fitter_impl
             hfp->update_param(i, par);
         }
 
-        auto complete_function = dynamic_cast<TF1*>(dataobj->GetListOfFunctions()->At(0));
-        if (!apply_style(complete_function, hfp_m_d->partial_functions_styles, -1))
+        if (functions_count > 1)
         {
-            if (!apply_style(complete_function, partial_functions_styles, -1))
+            for (auto i = 0; i < functions_count; ++i)
             {
-                complete_function->ResetBit(TF1::kNotDraw);
+                auto& partial_function = hfp->get_function_object(i);
+                // partial_function.SetName(tools::format_name(hfp->get_name(), function_decorator + "_function_" + i));
+
+                auto cloned = dynamic_cast<TF1*>(partial_function.Clone(
+                    tools::format_name(name, function_decorator + "_function_" + std::to_string(i)).c_str()));
+                if (!apply_style(cloned, hfp_m_d->partial_functions_styles, i))
+                {
+                    if (!apply_style(cloned, partial_functions_styles, i)) { cloned->ResetBit(TF1::kNotDraw); }
+                }
+
+                dataobj->GetListOfFunctions()->Add(cloned);
             }
-        }
-
-        for (auto i = 0; i < functions_count; ++i)
-        {
-            auto& partial_function = hfp->get_function_object(i);
-            // partial_function.SetName(tools::format_name(hfp->get_name(), function_decorator + "_function_" + i));
-
-            auto cloned = dynamic_cast<TF1*>(partial_function.Clone(
-                tools::format_name(name, function_decorator + "_function_" + std::to_string(i)).c_str()));
-            if (!apply_style(cloned, hfp_m_d->partial_functions_styles, i))
-            {
-                if (!apply_style(cloned, partial_functions_styles, i)) { cloned->ResetBit(TF1::kNotDraw); }
-            }
-
-            // tfSig->SetBit(TF1::kNotGlobal); TODO do I need it?
-
-            dataobj->GetListOfFunctions()->Add(cloned);
         }
 
         return true;

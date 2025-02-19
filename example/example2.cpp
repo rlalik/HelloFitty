@@ -21,8 +21,8 @@
 
 auto main(int argc, char* argv[]) -> int
 {
-    auto input_root = std::string(examples_bin_path) + "test_hist_output.root";
-    auto input_param = std::string(examples_bin_path) + "test_output1.txt";
+    auto input_root = std::string(examples_bin_path) + "test_hist_output_1a.root";
+    auto input_param = std::string(examples_bin_path) + "test_output_1a.txt";
 
     if (argc < 3)
     {

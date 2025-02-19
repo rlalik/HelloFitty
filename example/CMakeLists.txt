@@ -20,8 +20,11 @@ function(add_example NAME)
   add_dependencies(run-examples "run_${NAME}")
 endfunction()
 
-add_example(example1)
+add_example(example1a)
+add_example(example1b)
+add_example(example1c)
 add_example(example2)
+add_example(example3)
 
 if(RootTools_FOUND)
   # target_link_libraries(example2 RT::RootTools)

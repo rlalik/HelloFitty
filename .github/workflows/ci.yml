@@ -64,8 +64,11 @@ jobs:
     # hence we enforce it here.
     - name: Examples
       run: |
-        cmake --build build/coverage -t run_example1
+        cmake --build build/coverage -t run_example1a
+        cmake --build build/coverage -t run_example1b
+        cmake --build build/coverage -t run_example1c
         cmake --build build/coverage -t run_example2
+        cmake --build build/coverage -t run_example3
 
     - name: Process coverage info
       run: cmake --build build/coverage -t coverage

@@ -256,9 +256,7 @@ auto entry::drop() -> void { m_d->parameters_backup.clear(); }
 auto entry::set_function_style(int function_index) -> draw_opts&
 {
     auto res = m_d->partial_functions_styles.insert({function_index, draw_opts()});
-    if (res.second == true) { return res.first->second; }
-
-    throw std::runtime_error("Function style already exists.");
+    return res.first->second;
 }
 
 auto entry::set_function_style() -> draw_opts& { return set_function_style(-1); }

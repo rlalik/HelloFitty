@@ -335,9 +335,7 @@ auto fitter::set_function_decorator(std::string decorator) -> void { m_d->functi
 auto fitter::set_function_style(int function_index) -> draw_opts&
 {
     auto res = m_d->partial_functions_styles.insert({function_index, draw_opts()});
-    if (res.second == true) { return res.first->second; }
-
-    throw std::runtime_error("Function style already exists.");
+    return res.first->second;
 }
 
 auto fitter::set_function_style() -> draw_opts& { return set_function_style(-1); }
