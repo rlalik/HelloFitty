@@ -31,7 +31,7 @@ auto main() -> int
     if (hfp)
     {
         hfp->backup();
-        if (!ff.fit(hist.get(), hfp, "BQ0", "").first) { hfp->restore(); }
+        if (!ff.fit(hist.get(), hfp, "BQ0", "")) { hfp->restore(); }
     }
     else { fmt::print(stderr, "{}\n", "No function found"); }
 

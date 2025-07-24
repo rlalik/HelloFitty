@@ -35,7 +35,7 @@ auto main() -> int
         fmt::print("{}", "\n");
 
         hfp->backup();
-        if (!ff.fit(hist.get(), hfp, "BQ0", "").first) { hfp->restore(); }
+        if (!ff.fit(hist.get(), hfp, "BQ0", "")) { hfp->restore(); }
 
         fmt::print("{}", "\nAfter fitting:\n");
         hfp->print("test_hist", true);

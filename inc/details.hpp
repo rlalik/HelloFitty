@@ -180,7 +180,7 @@ struct fitter_impl
     format_version output_format_version {format_version::v2};
 
     static bool verbose_flag;
-    fit_qa_checker checker {hf::chi2checker()};
+    fitter::fit_qa_checker checker {hf::chi2checker()};
 
     std::string par_ref;
     std::string par_aux;
@@ -194,7 +194,7 @@ struct fitter_impl
 
     template<class T>
     auto generic_fit(entry* hfp, entry_impl* hfp_m_d, const char* name, T* dataobj, const char* pars,
-                     const char* gpars) -> bool
+                     const char* gpars) -> fitter::fit_result
     {
         hfp_m_d->prepare();
 
@@ -224,14 +224,6 @@ struct fitter_impl
 
         auto fit_status = fit_res.Get() ? fit_res->Status() : int(fit_res);
 
-        if (fit_status != 0) { return false; }
-
-        // TVirtualFitter * fitter = TVirtualFitter::GetFitter();
-        // TMatrixDSym cov;
-        // fitter->GetCovarianceMatrix()
-        // cov.Use(fitter->GetNumberTotalParameters(), fitter->GetCovarianceMatrix());
-        // cov.Print();
-
         // backup new parameters
         params_vector backup_new = backup_old;
         for (int i = 0; i < par_num; ++i)
@@ -241,43 +233,71 @@ struct fitter_impl
 
         double chi2_backup_new = dataobj->Chisquare(tfSum, "R");
 
-        auto qa_res = checker(backup_old, chi2_backup_old, backup_new, chi2_backup_new, fit_res);
-
-        if (qa_res > 0)
+        if (fit_status != 0)
         {
             if (verbose_flag)
             {
-                fmt::print(fmt::fg(fmt::color::royal_blue), "* old  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *\n", name,
+                fmt::print(fmt::fg(fmt::color::red), "* old  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *\n", name,
                            hfp_m_d->range_min, hfp_m_d->range_max, backup_old, chi2_backup_old);
-                fmt::print(fmt::fg(fmt::color::lime_green), "* new  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *", name,
+                fmt::print(fmt::fg(fmt::color::red), "* new  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *", name,
                            hfp_m_d->range_min, hfp_m_d->range_max, backup_new, chi2_backup_new);
-                fmt::print("{}\n", "\t [ OK ]");
+                fmt::print("\t [ invalid, error code: {:d} ]\n", fit_status);
             }
-        }
-        else if (qa_res == 0)
-        {
-            if (verbose_flag)
-            {
-                fmt::print(fmt::fg(fmt::color::orange), "* fine {} ({:g}--{:g}) : {} --> chi2:  {:} -- *", name,
-                           hfp_m_d->range_min, hfp_m_d->range_max, backup_old, chi2_backup_new);
-                fmt::print("{}\n", "\t [ pass ]");
-            }
-        }
-        else
-        {
+
             for (int i = 0; i < par_num; ++i)
             {
                 tfSum->SetParameter(i, backup_old[int2size_t(i)].value);
             }
 
-            if (verbose_flag)
-            {
-                fmt::print(fmt::fg(fmt::color::royal_blue), "* old  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *\n", name,
-                           hfp_m_d->range_min, hfp_m_d->range_max, backup_old, chi2_backup_old);
-                fmt::print(fmt::fg(fmt::color::crimson), "* new  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *", name,
-                           hfp_m_d->range_min, hfp_m_d->range_max, backup_new, chi2_backup_new);
-                fmt::print("{}\n", "\t [ FAILED - restoring old params ]");
-            }
+            return {fitter::fit_status::failed, hfp, fitter::fit_qa_status::none, fit_res};
+        }
+
+        auto qa_status = checker(backup_old, chi2_backup_old, backup_new, chi2_backup_new, fit_res);
+
+        switch (qa_status)
+        {
+            case fitter::fit_qa_status::chi2_better:
+
+                if (verbose_flag)
+                {
+                    fmt::print(fmt::fg(fmt::color::royal_blue), "* old  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *\n",
+                               name, hfp_m_d->range_min, hfp_m_d->range_max, backup_old, chi2_backup_old);
+                    fmt::print(fmt::fg(fmt::color::lime_green), "* new  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *", name,
+                               hfp_m_d->range_min, hfp_m_d->range_max, backup_new, chi2_backup_new);
+                    fmt::print("\t [ OK ]\n");
+                }
+                break;
+
+            case fitter::fit_qa_status::chi2_same:
+
+                if (verbose_flag)
+                {
+                    fmt::print(fmt::fg(fmt::color::orange), "* fine {} ({:g}--{:g}) : {} --> chi2:  {:} -- *", name,
+                               hfp_m_d->range_min, hfp_m_d->range_max, backup_old, chi2_backup_new);
+                    fmt::print("\t [ PASS ]\n");
+                }
+                break;
+
+            case fitter::fit_qa_status::chi2_worse:
+
+                if (verbose_flag)
+                {
+                    fmt::print(fmt::fg(fmt::color::royal_blue), "* old  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *\n",
+                               name, hfp_m_d->range_min, hfp_m_d->range_max, backup_old, chi2_backup_old);
+                    fmt::print(fmt::fg(fmt::color::yellow), "* new  {} ({:g}--{:g}) : {} --> chi2:  {:} -- *", name,
+                               hfp_m_d->range_min, hfp_m_d->range_max, backup_new, chi2_backup_new);
+                    fmt::print("\t [ WORSE - restoring old params ]\n");
+                }
+
+                for (int i = 0; i < par_num; ++i)
+                {
+                    tfSum->SetParameter(i, backup_old[int2size_t(i)].value);
+                }
+
+                break;
+
+            default:
+                break;
         }
 
         tfSum->SetChisquare(dataobj->Chisquare(tfSum, "R"));
@@ -320,7 +340,7 @@ struct fitter_impl
             }
         }
 
-        return true;
+        return {fitter::fit_status::ok, hfp, qa_status, fit_res};
     }
 };
 

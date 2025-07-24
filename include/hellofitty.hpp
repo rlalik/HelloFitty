@@ -286,19 +286,6 @@ enum class format_version
 };
 
 using params_vector = std::vector<param>;
-using fit_qa_checker =
-    std::function<int(const params_vector&, double, const params_vector&, double, const TFitResultPtr&)>;
-
-struct chi2checker
-{
-    int operator()(const params_vector& /*old_pars*/, double old_chi2, const params_vector& /*new_pars*/,
-                   double new_chi2, const TFitResultPtr&)
-    {
-        if (new_chi2 < old_chi2) { return 1; }
-        if (new_chi2 == old_chi2) { return 0; }
-        return -1;
-    }
-};
 
 class HELLOFITTY_EXPORT fitter final
 {
@@ -308,6 +295,36 @@ public:
         reference,
         auxiliary,
         newer
+    };
+
+    enum class fit_status
+    {
+        ok,
+        missing_entry,
+        empty_range,
+        failed,
+        qa_worse_chi2,
+    };
+
+    enum class fit_qa_status
+    {
+        none,
+        chi2_better,
+        chi2_same,
+        chi2_worse,
+    };
+
+    using fit_qa_checker = std::function<hf::fitter::fit_qa_status(const params_vector&, double, const params_vector&,
+                                                                   double, const TFitResultPtr&)>;
+
+    struct fit_result
+    {
+        fit_status status;
+        entry* hfp {nullptr};
+        fit_qa_status qa {fit_qa_status::none};
+        TFitResultPtr result;
+
+        operator bool() const { return status == fit_status::ok; }
     };
 
     fitter();
@@ -353,9 +370,9 @@ public:
     /// @param gpars histogram fit drawing pars
     /// @param generic histogram entry to be used if non present yet
     /// @return pair of bool (true if fit successful) and used entry
-    auto fit(TH1* hist, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, entry*>;
-    auto fit(TH1* hist, entry* generic, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, entry*>;
-    auto fit(entry* custom, TH1* hist, const char* pars = "BQ", const char* gpars = "") -> std::pair<bool, entry*>;
+    auto fit(TH1* hist, const char* pars = "BQS", const char* gpars = "") -> fit_result;
+    auto fit(TH1* hist, entry* generic, const char* pars = "BQS", const char* gpars = "") -> fit_result;
+    auto fit(entry* custom, TH1* hist, const char* pars = "BQS", const char* gpars = "") -> fit_result;
 
     /// Fit the graph using entry either located in the collection or using generic entry if provided.
     /// @param name entry name (graphs are not named object)
@@ -364,12 +381,11 @@ public:
     /// @param gpars graph fit drawing pars
     /// @param generic histogram entry to be used if non present yet
     /// @return pair of bool (true if fit successful) and used entry
-    auto fit(const char* name, TGraph* graph, const char* pars = "BQ",
-             const char* gpars = "") -> std::pair<bool, entry*>;
-    auto fit(const char* name, TGraph* graph, entry* generic, const char* pars = "BQ",
-             const char* gpars = "") -> std::pair<bool, entry*>;
-    auto fit(entry* custom, const char* name, TGraph* graph, const char* pars = "BQ",
-             const char* gpars = "") -> std::pair<bool, entry*>;
+    auto fit(const char* name, TGraph* graph, const char* pars = "BQS", const char* gpars = "") -> fit_result;
+    auto fit(const char* name, TGraph* graph, entry* generic, const char* pars = "BQS",
+             const char* gpars = "") -> fit_result;
+    auto fit(entry* custom, const char* name, TGraph* graph, const char* pars = "BQS",
+             const char* gpars = "") -> fit_result;
 
     auto print() const -> void;
 
@@ -404,6 +420,17 @@ private:
     auto import_parameters(const std::string& filename) -> bool;
     auto export_parameters(const std::string& filename) -> bool;
     std::unique_ptr<detail::fitter_impl> m_d;
+};
+
+struct chi2checker
+{
+    auto operator()(const params_vector& /*old_pars*/, double old_chi2, const params_vector& /*new_pars*/,
+                    double new_chi2, const TFitResultPtr&) -> fitter::fit_qa_status
+    {
+        if (new_chi2 < old_chi2) { return fitter::fit_qa_status::chi2_better; }
+        if (new_chi2 == old_chi2) { return fitter::fit_qa_status::chi2_same; }
+        return fitter::fit_qa_status::chi2_worse;
+    }
 };
 
 namespace tools

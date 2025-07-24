@@ -77,10 +77,10 @@ TEST(TestsFitter, FittingHistBadHFP)
     hf::entry hfp_defaults(0, 10);
     ASSERT_EQ(hfp_defaults.add_function("gaus(0)"), 0);
 
-    ASSERT_FALSE(fitter.fit(h_foo.get(), "", "").first);
+    ASSERT_EQ(fitter.fit(h_foo.get(), "", "").status, hf::fitter::fit_status::missing_entry);
 
     // test fitting without function
-    ASSERT_FALSE(fitter.fit(h_foo.get(), &hfp_defaults, "", "").first);
+    ASSERT_EQ(fitter.fit(h_foo.get(), &hfp_defaults, "", "").status, hf::fitter::fit_status::failed);
 }
 
 TEST(TestsFitter, FittingHistGoodHFP)
@@ -97,7 +97,7 @@ TEST(TestsFitter, FittingHistGoodHFP)
 
     // test fitting empty range
     // fitter.find_fit(h_foo->GetName())->set_fit_range(0, 10);
-    ASSERT_TRUE(fitter.fit(h_foo.get(), &hfp_defaults, "", "").first);
+    ASSERT_EQ(fitter.fit(h_foo.get(), &hfp_defaults, "", "").status, hf::fitter::fit_status::ok);
 
     fitter.clear();
 }
