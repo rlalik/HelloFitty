@@ -133,7 +133,7 @@ TEST(TestsEntry, Backups)
     // set to test_values_2
     for (auto& test_data : test_values_2)
     {
-        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data));
+        hfp1.update_param_value(std::get<0>(test_data), std::get<1>(test_data));
     }
 
     // should read test_values_2
@@ -154,7 +154,7 @@ TEST(TestsEntry, Backups)
     // should set test_values_2
     for (auto& test_data : test_values_3)
     {
-        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data));
+        hfp1.update_param_value(std::get<0>(test_data), std::get<1>(test_data));
     }
 
     // should restore test_values_1
@@ -168,7 +168,7 @@ TEST(TestsEntry, Backups)
 
     for (auto& test_data : test_values_3)
     {
-        hfp1.update_param(std::get<0>(test_data), std::get<1>(test_data));
+        hfp1.update_param_value(std::get<0>(test_data), std::get<1>(test_data));
     }
 
     // clear backup storage

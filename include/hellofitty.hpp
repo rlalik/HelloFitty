@@ -197,7 +197,10 @@ public:
     auto set_param(int par_id, Double_t value, hf::param::fit_mode mode = hf::param::fit_mode::free) -> void;
     auto set_param(int par_id, Double_t value, Double_t min, Double_t max,
                    hf::param::fit_mode mode = hf::param::fit_mode::free) -> void;
-    auto update_param(int par_id, Double_t value) -> void;
+
+    auto update_param_value(int par_id, Double_t value) -> void;
+    auto update_param_limits(int par_id, Double_t min, Double_t max) -> void;
+    auto update_param_mode(int par_id, hf::param::fit_mode mode = hf::param::fit_mode::free) -> void;
 
     auto get_param(int par_id) const -> hf::param;
     auto get_param(const char* name) const -> hf::param;
@@ -250,6 +253,8 @@ public:
 
     auto get_flag_rebin() const -> Int_t;
     auto get_flag_disabled() const -> bool;
+
+    auto set_flag_disabled(bool new_state) -> void;
 
     auto is_valid() const -> bool;
 

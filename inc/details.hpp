@@ -319,7 +319,7 @@ struct fitter_impl
                 }
             }
 
-            hfp->update_param(i, par);
+            hfp->update_param_value(i, par);
         }
 
         if (functions_count > 1)

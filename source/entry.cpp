@@ -104,12 +104,29 @@ auto entry::set_param(int par_id, Double_t value, Double_t l, Double_t u, param:
     set_param(par_id, hf::param(value, l, u, mode));
 }
 
-auto entry::update_param(int par_id, Double_t value) -> void
+auto entry::update_param_value(int par_id, Double_t value) -> void
 {
     const auto upar_id = int2size_t(par_id);
     auto& par = m_d->pars.at(upar_id);
 
     par.value = value;
+}
+
+auto entry::update_param_limits(int par_id, Double_t min, Double_t max) -> void
+{
+    const auto upar_id = int2size_t(par_id);
+    auto& par = m_d->pars.at(upar_id);
+
+    par.min = min;
+    par.max = max;
+}
+
+auto entry::update_param_mode(int par_id, hf::param::fit_mode mode) -> void
+{
+    const auto upar_id = int2size_t(par_id);
+    auto& par = m_d->pars.at(upar_id);
+
+    par.mode = mode;
 }
 
 auto entry::get_param(int par_id) const -> hf::param { return param(par_id); }
@@ -210,6 +227,8 @@ auto entry::get_function_params_count() const -> int { return get_function_objec
 auto entry::get_flag_rebin() const -> int { return m_d->rebin; }
 
 auto entry::get_flag_disabled() const -> bool { return m_d->fit_disabled; }
+
+auto entry::set_flag_disabled(bool new_state) -> void { m_d->fit_disabled = new_state; }
 
 auto entry::print(const std::string& name, bool detailed) const -> void
 {
