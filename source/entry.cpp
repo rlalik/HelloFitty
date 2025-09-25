@@ -119,6 +119,7 @@ auto entry::update_param_limits(int par_id, Double_t min, Double_t max) -> void
 
     par.min = min;
     par.max = max;
+    par.has_limits = true;
 }
 
 auto entry::update_param_mode(int par_id, hf::param::fit_mode mode) -> void
@@ -127,6 +128,22 @@ auto entry::update_param_mode(int par_id, hf::param::fit_mode mode) -> void
     auto& par = m_d->pars.at(upar_id);
 
     par.mode = mode;
+}
+
+auto entry::remove_param_limits(int par_id) -> void
+{
+    const auto upar_id = int2size_t(par_id);
+    auto& par = m_d->pars.at(upar_id);
+
+    par.has_limits = false;
+}
+
+auto entry::restore_param_limits(int par_id) -> void
+{
+    const auto upar_id = int2size_t(par_id);
+    auto& par = m_d->pars.at(upar_id);
+
+    par.has_limits = true;
 }
 
 auto entry::get_param(int par_id) const -> hf::param { return param(par_id); }

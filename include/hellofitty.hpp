@@ -202,6 +202,9 @@ public:
     auto update_param_limits(int par_id, Double_t min, Double_t max) -> void;
     auto update_param_mode(int par_id, hf::param::fit_mode mode = hf::param::fit_mode::free) -> void;
 
+    auto remove_param_limits(int par_id) -> void;
+    auto restore_param_limits(int par_id) -> void;
+
     auto get_param(int par_id) const -> hf::param;
     auto get_param(const char* name) const -> hf::param;
 
